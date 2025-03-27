@@ -9,6 +9,7 @@ All dependencies retain their original licenses.
 ## TODO List  
 
 - [X] Integrate `em_proxy`  
+- [ ] Compile idevice 
 - [ ] Implement heartbeat   
 - [ ] Retrieve and filter installed apps by `get-task-allow`  
 - [ ] Mount the developer image  
