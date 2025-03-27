@@ -2,6 +2,8 @@
 
 A **work-in-progress** on-device JIT enabler.
 
+The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.
+
 Powered by [idevice](https://github.com/jkcoxson/idevice) and [Emotional Mangling Proxy](https://github.com/SideStore/em_proxy).
 
 All dependencies remain under their original licenses.
