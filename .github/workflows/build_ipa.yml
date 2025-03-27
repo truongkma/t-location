@@ -1,0 +1,67 @@
+name: Build Unsigned IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest'
+
+      - name: Fix Project Format
+        run: |
+          sed -i '' 's/objectVersion = 77/objectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
+          sed -i '' 's/preferredProjectObjectVersion = 77/preferredProjectObjectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
+
+      - name: List Available SDKs
+        run: xcodebuild -showsdks
+
+      - name: List Available Schemes
+        run: xcodebuild -list -project StikJit.xcodeproj
+
+      - name: Archive Build (Unsigned)
+        run: |
+          xcodebuild clean archive \
+            -project StikJIT.xcodeproj \
+            -scheme "StikJIT" \
+            -configuration Release \
+            -archivePath build/StikJit.xcarchive \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_OPTIMIZATION_LEVEL="-Onone" \
+            IPHONEOS_DEPLOYMENT_TARGET=17.0
+
+      - name: Create IPA from Archive
+        run: |
+          # Copy the .app from the archive
+          cp -R build/StikJit.xcarchive/Products/Applications/StikJit.app .
+
+          # Package the app into an IPA
+          mkdir -p Payload
+          cp -R StikJit.app Payload/
+          zip -r StikJit.ipa Payload
+          rm -rf Payload StikJit.app
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: StikJit.ipa
+          path: StikJit.ipa
+          retention-days: 90 
