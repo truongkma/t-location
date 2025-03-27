@@ -11,34 +11,49 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
-
-      - name: Install dependencies
+      - name: Build archive
         run: |
-          brew install cocoapods
-          pod install --project-directory=.
+          # Build the archive using the Xcode project and scheme.
+          xcodebuild -project StikJIT.xcodeproj \
+                     -scheme StikJIT \
+                     -configuration Release \
+                     archive \
+                     -archivePath build/StikJIT.xcarchive
 
-      - name: Build IPA for sideloading
+      - name: Create ExportOptions.plist
         run: |
-          xcodebuild -workspace StikJIT.xcworkspace \
-            -scheme StikJIT \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath ${{ github.workspace }}/StikJIT.xcarchive archive
+          # Create an export options plist file for exporting the archive.
+          # Adjust the method (development, ad-hoc, app-store, enterprise) as needed.
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <!-- Optionally include your team ID if needed -->
+              <!-- <key>teamID</key>
+              <string>YOUR_TEAM_ID</string> -->
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export IPA
+        run: |
           xcodebuild -exportArchive \
-            -archivePath ${{ github.workspace }}/StikJIT.xcarchive \
-            -exportPath ${{ github.workspace }}/build \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates
+                     -archivePath build/StikJIT.xcarchive \
+                     -exportOptionsPlist ExportOptions.plist \
+                     -exportPath build
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: StikJIT.ipa
-          path: build/StikJIT.ipa
+          name: StikJIT-IPA
+          path: build/*.ipa
+
