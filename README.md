@@ -12,7 +12,7 @@ All dependencies remain under their original licenses.
 - [X] Compile idevice 
 - [X] Implement heartbeat
 - [ ] Mount the developer image     
-- [ ] Retrieve and filter installed apps by `get-task-allow`  
+- [X] Retrieve and filter installed apps by `get-task-allow`  
 - [X] Enable JIT for selected apps  
 - [ ] Design and implement a user-friendly UI  
 - [ ] Write comprehensive documentation  
