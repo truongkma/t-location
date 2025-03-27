@@ -36,7 +36,7 @@ jobs:
         run: |
           xcodebuild clean archive \
             -project StikJIT.xcodeproj \
-            -scheme "StikJit" \
+            -scheme "StikJIT" \
             -configuration Release \
             -archivePath build/StikJit.xcarchive \
             -sdk iphoneos \
