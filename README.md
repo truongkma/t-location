@@ -10,10 +10,10 @@ All dependencies remain under their original licenses.
 
 - [X] Integrate `em_proxy`  
 - [X] Compile idevice 
-- [ ] Implement heartbeat
+- [X] Implement heartbeat
 - [ ] Mount the developer image     
 - [ ] Retrieve and filter installed apps by `get-task-allow`  
-- [ ] Enable JIT for selected apps  
+- [X] Enable JIT for selected apps  
 - [ ] Design and implement a user-friendly UI  
 - [ ] Write comprehensive documentation  
 - [ ] Prepare and release the initial version  
