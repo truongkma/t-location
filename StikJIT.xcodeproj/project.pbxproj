@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DC6F1D772D94EB620071B2B6 /* em_proxy.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC6F1D762D94EB620071B2B6 /* em_proxy.xcframework */; };
-		DC6F1D782D94EB620071B2B6 /* em_proxy.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DC6F1D762D94EB620071B2B6 /* em_proxy.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DC5716262D95648B0099302E /* em_proxy.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC5716242D9564760099302E /* em_proxy.xcframework */; };
+		DC5716272D95648B0099302E /* em_proxy.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DC5716242D9564760099302E /* em_proxy.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,13 +29,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		DC6F1D792D94EB620071B2B6 /* Embed Frameworks */ = {
+		DC5716282D95648B0099302E /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				DC6F1D782D94EB620071B2B6 /* em_proxy.xcframework in Embed Frameworks */,
+				DC5716272D95648B0099302E /* em_proxy.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -43,10 +43,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		DC5716242D9564760099302E /* em_proxy.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = em_proxy.xcframework; sourceTree = "<group>"; };
 		DC6F1D372D94EADD0071B2B6 /* StikJIT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StikJIT.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D482D94EADF0071B2B6 /* StikJITTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikJITTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D522D94EADF0071B2B6 /* StikJITUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikJITUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DC6F1D762D94EB620071B2B6 /* em_proxy.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = em_proxy.xcframework; path = ../../../Downloads/em_proxy.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -72,7 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DC6F1D772D94EB620071B2B6 /* em_proxy.xcframework in Frameworks */,
+				DC5716262D95648B0099302E /* em_proxy.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +117,7 @@
 		DC6F1D752D94EB620071B2B6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				DC6F1D762D94EB620071B2B6 /* em_proxy.xcframework */,
+				DC5716242D9564760099302E /* em_proxy.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -132,7 +132,7 @@
 				DC6F1D332D94EADD0071B2B6 /* Sources */,
 				DC6F1D342D94EADD0071B2B6 /* Frameworks */,
 				DC6F1D352D94EADD0071B2B6 /* Resources */,
-				DC6F1D792D94EB620071B2B6 /* Embed Frameworks */,
+				DC5716282D95648B0099302E /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
