@@ -16,6 +16,6 @@ All dependencies remain under their original licenses.
 - [ ] Mount the developer image     
 - [X] Retrieve and filter installed apps by `get-task-allow`  
 - [X] Enable JIT for selected apps  
-- [ ] Design and implement a user-friendly UI  
+- [X] Design and implement a user-friendly UI (Done for now)
 - [ ] Write comprehensive documentation  
 - [ ] Prepare and release the initial version  
