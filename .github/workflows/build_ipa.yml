@@ -1,0 +1,44 @@
+name: Build IPA
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Install dependencies
+        run: |
+          brew install cocoapods
+          pod install --project-directory=.
+
+      - name: Build IPA for sideloading
+        run: |
+          xcodebuild -workspace StikJIT.xcworkspace \
+            -scheme StikJIT \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath ${{ github.workspace }}/StikJIT.xcarchive archive
+          xcodebuild -exportArchive \
+            -archivePath ${{ github.workspace }}/StikJIT.xcarchive \
+            -exportPath ${{ github.workspace }}/build \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StikJIT.ipa
+          path: build/StikJIT.ipa
