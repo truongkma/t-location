@@ -1,59 +1,58 @@
-name: Build IPA
+name: Build Unsigned IPA
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Build archive
-        run: |
-          # Build the archive using the Xcode project and scheme.
-          xcodebuild -project StikJIT.xcodeproj \
-                     -scheme StikJIT \
-                     -configuration Release \
-                     archive \
-                     -archivePath build/StikJIT.xcarchive
-
-      - name: Create ExportOptions.plist
-        run: |
-          # Create an export options plist file for exporting the archive.
-          # Adjust the method (development, ad-hoc, app-store, enterprise) as needed.
-          cat > ExportOptions.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>development</string>
-              <key>signingStyle</key>
-              <string>automatic</string>
-              <!-- Optionally include your team ID if needed -->
-              <!-- <key>teamID</key>
-              <string>YOUR_TEAM_ID</string> -->
-          </dict>
-          </plist>
-          EOF
-
-      - name: Export IPA
-        run: |
-          xcodebuild -exportArchive \
-                     -archivePath build/StikJIT.xcarchive \
-                     -exportOptionsPlist ExportOptions.plist \
-                     -exportPath build
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v3
+      - name: Set Up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          name: StikJIT-IPA
-          path: build/*.ipa
+          xcode-version: '15.3'
+
+      - name: List Available Schemes
+        run: xcodebuild -list -project StikJIT.xcodeproj
+
+      - name: Archive Build (Unsigned)
+        run: |
+          xcodebuild clean archive \
+            -project StikJIT.xcodeproj \
+            -scheme "StikJIT" \
+            -configuration Release \
+            -archivePath build/StikJIT.xcarchive \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=17.4
+
+      - name: Create IPA from Archive
+        run: |
+          # Create Payload directory and copy the .app into it
+          mkdir -p Payload
+          cp -R build/StikJIT.xcarchive/Products/Applications/StikJIT.app Payload/
+
+          # Package the Payload directory into an IPA
+          zip -r StikJIT.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StikJIT.ipa
+          path: StikJIT.ipa
+          retention-days: 90
 
