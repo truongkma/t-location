@@ -1,24 +1,45 @@
-# StikJIT
+# StikJIT  
 
-A **work-in-progress** on-device JIT enabler.
+A **work-in-progress** on-device JIT enabler for iOS.  
 
-The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.
+## Requirements  
+The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.  
 
-Powered by [idevice](https://github.com/jkcoxson/idevice) and [Emotional Mangling Proxy](https://github.com/SideStore/em_proxy).
+## Features  
+- On-device Just-In-Time (JIT) compilation for supported apps.  
+- Seamless integration with `em_proxy` and `idevice`.  
+- Native UI for managing JIT-enabling.  
+- No data collection—ensuring full privacy.  
 
-All dependencies remain under their original licenses.
+## Privacy Policy  
+StikJIT **does not collect or store any user data.**  
 
-## Privacy Policy
-No data is collected 
+## Compiling Instructions  
+
+1. **Clone the repository:**  
+   ```sh
+   git clone https://github.com/0-Blu/StikJIT.git
+   cd StikJIT
+   ```
+
+2. **Open in Xcode:**  
+   Open `StikJIT.xcodeproj` in Xcode.  
+
+3. **Build and Run:**  
+   - Connect your iOS device.  
+   - Select your device in Xcode.  
+   - Build and run the project.  
 
 ## TODO List  
-
 - [X] Integrate `em_proxy`  
-- [X] Compile idevice 
-- [X] Implement heartbeat
-- [ ] Mount the developer image     
+- [X] Compile `idevice`  
+- [X] Implement heartbeat  
+- [ ] Mount the developer image  
 - [X] Retrieve and filter installed apps by `get-task-allow`  
 - [X] Enable JIT for selected apps  
-- [X] Design and implement a user-friendly UI (Done for now)
+- [X] Design and implement a user-friendly UI *(Done for now)*  
 - [ ] Write comprehensive documentation  
 - [ ] Prepare and release the initial version  
+
+## License  
+StikJIT is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
