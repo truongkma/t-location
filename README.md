@@ -8,6 +8,9 @@ Powered by [idevice](https://github.com/jkcoxson/idevice) and [Emotional Manglin
 
 All dependencies remain under their original licenses.
 
+## Privacy Policy
+No data is collected 
+
 ## TODO List  
 
 - [X] Integrate `em_proxy`  
