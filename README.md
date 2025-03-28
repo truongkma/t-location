@@ -18,7 +18,7 @@ StikJIT **does not collect or store any user data.**
 
 1. **Clone the repository:**  
    ```sh
-   git clone https://github.com/your-username/StikJIT.git
+   git clone https://github.com/0-Blu/StikJIT.git
    cd StikJIT
    ```
 
