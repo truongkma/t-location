@@ -16,16 +16,20 @@ StikJIT **does not collect or store any user data.**
 
 ## Compiling Instructions  
 
-1. **Clone the repository:**  
+1. **Fork the repository:**
+   - Visit the [StikJIT repository](https://github.com/0-Blu/StikJIT.git)
+   - Click the "Fork" button in the top-right corner to create your own copy
+
+2. **Clone your forked repository:**  
    ```sh
-   git clone https://github.com/your-username/StikJIT.git
+   git clone https://github.com/your-github-username/StikJIT.git
    cd StikJIT
    ```
 
-2. **Open in Xcode:**  
+3. **Open in Xcode:**  
    Open `StikJIT.xcodeproj` in Xcode.  
 
-3. **Build and Run:**  
+4. **Build and Run:**  
    - Connect your iOS device.  
    - Select your device in Xcode.  
    - Build and run the project.  
