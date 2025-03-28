@@ -23,9 +23,21 @@ StikJIT **does not collect or store any user data.**
    ```
 
 2. **Open in Xcode:**  
-   Open `StikJIT.xcodeproj` in Xcode.  
+   Open `StikJIT.xcodeproj` in Xcode.
 
-3. **Build and Run:**  
+3. Configure Signing & Capabilities
+
+    In Xcode, go to Signing & Capabilities.
+
+    Set the Team to your Apple Developer account (free or paid).
+
+    Change the Bundle Identifier to:
+
+    com.<your-name>.stikJIT
+
+(Replace <your-name> with your actual name or identifier.)
+
+4. **Build and Run:**  
    - Connect your iOS device.  
    - Select your device in Xcode.  
    - Build and run the project.  
