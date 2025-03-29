@@ -1,13 +1,13 @@
 # StikJIT  
 
-A **work-in-progress** on-device JIT enabler for iOS.  
+A **work-in-progress** on-device JIT enabler for iOS, powered by [`idevice`](https://github.com/jkcoxson/idevice).  
 
 ## Requirements  
 The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.  
 
 ## Features  
-- On-device Just-In-Time (JIT) compilation for supported apps.  
-- Seamless integration with [`em_proxy`](https://github.com/SideStore/em_proxy) and [`idevice`](https://github.com/jkcoxson/idevice).  
+- On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
+- Seamless integration with [`em_proxy`](https://github.com/SideStore/em_proxy).  
 - Native UI for managing JIT-enabling.  
 - No data collection—ensuring full privacy.  
 
@@ -32,7 +32,7 @@ StikJIT **does not collect or store any user data.**
 
 ## TODO List  
 - [X] Integrate [`em_proxy`](https://github.com/SideStore/em_proxy)  
-- [X] Compile [`idevice`](https://github.com/jkcoxson/idevice)  
+- [X] Compile [`idevice`](https://github.com/jkcoxson/idevice/tree/master/ffi)  
 - [X] Implement heartbeat  
 - [X] Mount the developer image  
 - [X] Retrieve and filter installed apps by `get-task-allow`  
