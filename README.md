@@ -34,7 +34,7 @@ StikJIT **does not collect or store any user data.**
 - [X] Integrate [`em_proxy`](https://github.com/SideStore/em_proxy)  
 - [X] Compile [`idevice`](https://github.com/jkcoxson/idevice)  
 - [X] Implement heartbeat  
-- [ ] Mount the developer image  
+- [X] Mount the developer image  
 - [X] Retrieve and filter installed apps by `get-task-allow`  
 - [X] Enable JIT for selected apps  
 - [X] Design and implement a user-friendly UI *(Done for now)*  
