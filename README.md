@@ -9,10 +9,7 @@ The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1
 - On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
 - Seamless integration with [`em_proxy`](https://github.com/SideStore/em_proxy).  
 - Native UI for managing JIT-enabling.  
-- No data collection—ensuring full privacy.  
-
-## Privacy Policy  
-StikJIT **does not collect or store any user data.**  
+- No data collection—ensuring full privacy. 
 
 ## Compiling Instructions  
 
