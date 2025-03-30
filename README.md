@@ -25,18 +25,7 @@ The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1
 3. **Build and Run:**  
    - Connect your iOS device.  
    - Select your device in Xcode.  
-   - Build and run the project.  
-
-## TODO List  
-- [X] Integrate [`em_proxy`](https://github.com/SideStore/em_proxy)  
-- [X] Compile [`idevice`](https://github.com/jkcoxson/idevice/tree/master/ffi)  
-- [X] Implement heartbeat  
-- [X] Mount the developer image  
-- [X] Retrieve and filter installed apps by `get-task-allow`  
-- [X] Enable JIT for selected apps  
-- [X] Design and implement a user-friendly UI *(Done for now)*  
-- [ ] Write comprehensive documentation  
-- [ ] Prepare and release the initial version  
+   - Build and run the project.    
 
 ## License  
 StikJIT is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
