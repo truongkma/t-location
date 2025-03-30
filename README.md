@@ -1,6 +1,12 @@
 # StikJIT  
 
 A **work-in-progress** on-device JIT enabler for iOS, powered by [`idevice`](https://github.com/jkcoxson/idevice).  
+[![GitHub Release](https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases)](https://github.com/0-Blu/StikJIT/releases)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/0-Blu/StikJIT/pulls)
+[![GitHub License](https://img.shields.io/github/license/0-Blu/StikJIT?color=%23C96FAD&cache=none)](https://github.com/0-Blu/StikJIT/blob/main/LICENSE)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/0-Blu/StikJIT/total)
+![Build Status](https://github.com/0-Blu/StikJIT/actions/workflows/objective-c-xcode.yml/badge.svg)
+
 
 ## Requirements  
 The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.  
