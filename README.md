@@ -7,7 +7,7 @@ A **work-in-progress** on-device JIT enabler for iOS versions 17.4+ (excluding i
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/0-Blu/StikJIT/total)
 
 ## Requirements  
-The [SideStore VPN](https://github.com/SideStore/SideStore/releases/download/0.1.1/SideStore.conf) is required. This allows the device to connect to itself.  
+[StossVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
 
 ## Features  
 - On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
