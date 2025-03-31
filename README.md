@@ -1,6 +1,6 @@
 # StikJIT  
 
-A **work-in-progress** on-device JIT enabler for iOS, powered by [`idevice`](https://github.com/jkcoxson/idevice).  
+A **work-in-progress** on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by [`idevice`](https://github.com/jkcoxson/idevice).  
 [![GitHub Release](https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases)](https://github.com/0-Blu/StikJIT/releases)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/0-Blu/StikJIT/pulls)
 [![GitHub License](https://img.shields.io/github/license/0-Blu/StikJIT?color=%23C96FAD&cache=none)](https://github.com/0-Blu/StikJIT/blob/main/LICENSE)
