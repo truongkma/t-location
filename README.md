@@ -1,10 +1,26 @@
 # StikJIT  
 
 A **work-in-progress** on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by [`idevice`](https://github.com/jkcoxson/idevice).  
-[![GitHub Release](https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases)](https://github.com/0-Blu/StikJIT/releases)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/0-Blu/StikJIT/pulls)
-[![GitHub License](https://img.shields.io/github/license/0-Blu/StikJIT?color=%23C96FAD&cache=none)](https://github.com/0-Blu/StikJIT/blob/main/LICENSE)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/0-Blu/StikJIT/total)
+<h6 align="center">
+   <img width="225" height="225" src="/assets/StikJIT.png" alt="Logo">
+  <br /><br />
+  <a href="https://discord.gg/ZnNcrRT3M8">
+    <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/stargazers">
+    <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/network/members">
+    <img src="https://img.shields.io/github/forks/0-Blu/StikJIT?label=Forks&color=ED4245&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/issues">
+    <img src="https://img.shields.io/github/issues/0-Blu/StikJIT?label=Issues&color=FEE75C&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <br />
+</h6>
 
 ## Requirements  
 [StossVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
