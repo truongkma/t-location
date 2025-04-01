@@ -13,7 +13,7 @@
 |:--:|:--:|:--:|:--:|
 | **Home Screen** | **Apps List** | **Settings** | **JIT Under 10 Seconds** |
 <h6 align="center">
-<br /><br />
+
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
   </a>
