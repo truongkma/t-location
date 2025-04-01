@@ -463,7 +463,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.StikJIT;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -511,7 +511,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.StikJIT;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
