@@ -1,6 +1,16 @@
 <h6 align="center">
    <img width="225" height="225" src="/assets/StikJIT_Rounded_Corners.png" alt="Logo">
    
+
+<div align="center">
+  <h1><b>StikJIT</b></h1>
+  <p><i>~ A on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> ~</i></p>
+</div>
+
+| <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/Counter.PNG"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/Counter.PNG"><img alt="Sources" src="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/Counter.PNG" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/ClockTicking.gif"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/ClockTicking.gif"><img alt="Store" src="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/ClockTicking.gif" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/TOC.PNG"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/TOC.PNG"><img alt="Library" src="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/TOC.PNG" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/User%20Agreement.PNG"><source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/User%20Agreement.PNG"><img alt="Signing" src="https://raw.githubusercontent.com/neoarz/Countdown-App/main/Assets/User%20Agreement.PNG" width="200"></picture></p> |
+|:--:|:--:|:--:|:--:|
+| **Counter** | **Clock Ticking** | **Accept or Decline TOC** | **User Agreement Broken** |
+
   <br /><br />
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
@@ -20,10 +30,7 @@
   <br />
 </h6>
 
-<div align="center">
-  <h1><b>StikJIT</b></h1>
-  <p><i>~ A on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> ~</i></p>
-</div>
+
   
 ## Requirements  
 [StossVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
