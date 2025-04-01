@@ -1,6 +1,6 @@
-<h6 align="center">
+<div align="center">
    <img width="225" height="225" src="/assets/StikJIT_Rounded_Corners.png" alt="Logo">
-</h6>
+</div>
    
 
 <div align="center">
