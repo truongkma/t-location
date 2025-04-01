@@ -18,17 +18,16 @@
   <a href="https://github.com/0-Blu/StikJIT/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
   </a>
-  <a href="https://github.com/0-Blu/StikJIT/stargazers">
-    <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" />
-  </a>
   <a href="https://github.com/0-Blu/StikJIT/releases">
     <img src="https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases&label=Release&style=for-the-badge&labelColor=23272A" />
   </a>
   <a href="https://github.com/0-Blu/StikJIT/releases">
     <img src="https://img.shields.io/github/downloads/0-Blu/StikJIT/total?label=Downloads&style=for-the-badge&labelColor=23272A" />
   </a>
+  <a href="https://github.com/0-Blu/StikJIT/stargazers">
+    <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" />
+  </a>
   <br />
-
 
   
 ## Requirements  
