@@ -11,7 +11,7 @@
 |:--:|:--:|:--:|:--:|
 | **Home Screen** | **Apps List** | **Settings** | **JIT Under 10 Seconds** |
 
-  <br /><br />
+<br /><br />
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
   </a>
@@ -24,11 +24,13 @@
   <a href="https://github.com/0-Blu/StikJIT/network/members">
     <img src="https://img.shields.io/github/forks/0-Blu/StikJIT?label=Forks&color=ED4245&style=for-the-badge&labelColor=23272A" />
   </a>
-  <a href="https://github.com/0-Blu/StikJIT/issues">
-    <img src="https://img.shields.io/github/issues/0-Blu/StikJIT?label=Issues&color=FEE75C&style=for-the-badge&labelColor=23272A" />
+  <a href="https://github.com/0-Blu/StikJIT/releases">
+    <img src="https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases&label=Release&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/releases">
+    <img src="https://img.shields.io/github/downloads/0-Blu/StikJIT/total?label=Downloads&style=for-the-badge&labelColor=23272A" />
   </a>
   <br />
-</h6>
 
 
   
