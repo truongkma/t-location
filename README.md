@@ -7,12 +7,12 @@
   <h1><b>StikJIT</b></h1>
   <p><i>~ A on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> ~</i></p>
 </div>
-<div align="center">
+<h6 align="center">
 
 | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/HomeScreen.PNG?raw=true"><source media="(prefers-color-scheme: light)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/HomeScreen.PNG?raw=true"><img alt="Sources" src="https://github.com/neoarz/StikJIT/blob/main/assets/HomeScreen.PNG?raw=true" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/AppList.PNG?raw=true"><source media="(prefers-color-scheme: light)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/AppList.PNG?raw=true"><img alt="Store" src="https://github.com/neoarz/StikJIT/blob/main/assets/AppList.PNG?raw=true" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/Settings.PNG?raw=true"><source media="(prefers-color-scheme: light)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/Settings.PNG?raw=true"><img alt="Library" src="https://github.com/neoarz/StikJIT/blob/main/assets/Settings.PNG?raw=true" width="200"></picture></p> | <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/JIT.gif?raw=true"><source media="(prefers-color-scheme: light)" srcset="https://github.com/neoarz/StikJIT/blob/main/assets/JIT.gif?raw=true"><img alt="Signing" src="https://github.com/neoarz/StikJIT/blob/main/assets/JIT.gif?raw=true" width="200"></picture></p> |
 |:--:|:--:|:--:|:--:|
 | **Home Screen** | **Apps List** | **Settings** | **JIT Under 10 Seconds** |
-
+<h6 align="center">
 <br /><br />
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
@@ -30,7 +30,7 @@
     <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" />
   </a>
   <br />
-
+</h6>
   
 ## Requirements  
 [StossVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
