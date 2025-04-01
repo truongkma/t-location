@@ -1,8 +1,6 @@
-# StikJIT  
-
-A **work-in-progress** on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by [`idevice`](https://github.com/jkcoxson/idevice).  
 <h6 align="center">
-   <img width="225" height="225" src="/assets/StikJIT.png" alt="Logo">
+   <img width="225" height="225" src="/assets/StikJIT_Rounded_Corners.png" alt="Logo">
+   
   <br /><br />
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
@@ -22,6 +20,11 @@ A **work-in-progress** on-device JIT enabler for iOS versions 17.4+ (excluding i
   <br />
 </h6>
 
+<div align="center">
+  <h1><b>StikJIT</b></h1>
+  <p><i>~ A on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> ~</i></p>
+</div>
+  
 ## Requirements  
 [StossVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
 
