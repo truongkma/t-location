@@ -12,12 +12,21 @@
 | **Home Screen** | **Apps List** | **Settings** | **JIT Under 10 Seconds** |
 
 <br /><br />
-  <a href="https://discord.gg/ZnNcrRT3M8"><img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" /></a>
-  <a href="https://github.com/0-Blu/StikJIT/blob/main/LICENSE"><img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" /></a>
-  <a href="https://github.com/0-Blu/StikJIT/stargazers"><img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" /></a>
-  <a href="https://github.com/0-Blu/StikJIT/network/members"><img src="https://img.shields.io/github/forks/0-Blu/StikJIT?label=Forks&color=ED4245&style=for-the-badge&labelColor=23272A" /></a>
-  <a href="https://github.com/0-Blu/StikJIT/releases"><img src="https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases&label=Release&style=for-the-badge&labelColor=23272A" /></a>
-  <a href="https://github.com/0-Blu/StikJIT/releases"><img src="https://img.shields.io/github/downloads/0-Blu/StikJIT/total?label=Downloads&style=for-the-badge&labelColor=23272A" /></a>
+  <a href="https://discord.gg/ZnNcrRT3M8">
+    <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/stargazers">
+    <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=57F287&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/releases">
+    <img src="https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases&label=Release&style=for-the-badge&labelColor=23272A" />
+  </a>
+  <a href="https://github.com/0-Blu/StikJIT/releases">
+    <img src="https://img.shields.io/github/downloads/0-Blu/StikJIT/total?label=Downloads&style=for-the-badge&labelColor=23272A" />
+  </a>
   <br />
 
 
