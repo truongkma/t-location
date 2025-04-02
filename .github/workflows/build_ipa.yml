@@ -9,6 +9,12 @@ on:
 
 jobs:
   build:
+    env:
+      PROJECT_NAME: "StikJIT.xcodeproj"
+      SCHEME: "StikJIT"
+      ARCHIVE_PATH: "build/StikJit.xcarchive"
+      APP_NAME: "StikJit.app"
+      IPA_NAME: "StikJit.ipa"
     name: Build Unsigned IPA
     runs-on: macos-14
 
@@ -21,24 +27,32 @@ jobs:
         with:
           xcode-version: 'latest'
 
+      - name: Print Environment Info
+        run: |
+          echo "Using project: $PROJECT_NAME"
+          echo "Using scheme: $SCHEME"
+          echo "Archive will be created at: $ARCHIVE_PATH"
+          echo "App name: $APP_NAME"
+          echo "IPA filename: $IPA_NAME"
+
       - name: Fix Project Format
         run: |
-          sed -i '' 's/objectVersion = 77/objectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
-          sed -i '' 's/preferredProjectObjectVersion = 77/preferredProjectObjectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
+          sed -i '' 's/objectVersion = 77/objectVersion = 56/' $PROJECT_NAME/project.pbxproj
+          sed -i '' 's/preferredProjectObjectVersion = 77/preferredProjectObjectVersion = 56/' $PROJECT_NAME/project.pbxproj
 
       - name: List Available SDKs
         run: xcodebuild -showsdks
 
       - name: List Available Schemes
-        run: xcodebuild -list -project StikJit.xcodeproj
+        run: xcodebuild -list -project $PROJECT_NAME
 
       - name: Archive Build (Unsigned)
         run: |
           xcodebuild clean archive \
-            -project StikJIT.xcodeproj \
-            -scheme "StikJIT" \
+            -project $PROJECT_NAME \
+            -scheme "$SCHEME" \
             -configuration Release \
-            -archivePath build/StikJit.xcarchive \
+            -archivePath $ARCHIVE_PATH \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             ONLY_ACTIVE_ARCH=NO \
@@ -50,18 +64,15 @@ jobs:
 
       - name: Create IPA from Archive
         run: |
-          # Copy the .app from the archive
-          cp -R build/StikJit.xcarchive/Products/Applications/StikJit.app .
-
-          # Package the app into an IPA
+          cp -R $ARCHIVE_PATH/Products/Applications/$APP_NAME .
           mkdir -p Payload
-          cp -R StikJit.app Payload/
-          zip -r StikJit.ipa Payload
-          rm -rf Payload StikJit.app
+          cp -R $APP_NAME Payload/
+          zip -r $IPA_NAME Payload
+          rm -rf Payload $APP_NAME
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: StikJit.ipa
-          path: StikJit.ipa
-          retention-days: 90 
+          name: $IPA_NAME
+          path: $IPA_NAME
+          retention-days: 90
