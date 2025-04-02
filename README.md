@@ -33,7 +33,7 @@
 </h6>
   
 ## Requirements  
-[StosVPN](https://testflight.apple.com/join/hBUbg4ZJ) is required. This allows the device to connect to itself.  
+[StosVPN](https://apps.apple.com/us/app/stosvpn/id6744003051) is required. This allows the device to connect to itself.  
 
 ## Features  
 - On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
