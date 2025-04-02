@@ -1,0 +1,49 @@
+{
+    "apps": [
+      {
+        "beta": false,
+        "bundleIdentifier": "com.stik.sj",
+        "developerName": "Stephen",
+        "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.1/StikJit_1.1.ipa",
+        "iconURL": "https://github.com/neoarz/StikJIT/raw/main/Assets/StikJITLogo.jpg",
+        "localizedDescription": "A work-in-progress on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
+        "name": "StikJIT",
+        "screenshotURLs": [
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/HomeScreen.PNG?raw=true",
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/AppsList.PNG?raw=true",
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/Settings.PNG?raw=true"
+        ],
+        "size": 5800000,
+        "subtitle": "Enable JIT capabilities for your sideloaded apps",
+        "tintColor": "293B45",
+        "version": "1.1",
+        "versionDate": "2025-04-02T21:37:29-05:00",
+        "versionDescription": "Bug fixes and UI improvements",
+        "versions": [
+          {
+            "version": "1.1",
+            "buildVersion": "2",
+            "date": "2025-04-02T21:37:29-05:00",
+            "localizedDescription": "Bug fixes and UI improvements. Enhanced system log viewer and better error handling.",
+            "downloadURL": "https://github.com/neoarz/StikJIT/releases/download/1.1/StikJIT.ipa",
+            "size": 5200000,
+            "minOSVersion": "17.4",
+          },
+          {
+            "version": "1.0",
+            "buildVersion": "1",
+            "date": "2025-03-26T21:37:29-05:00",
+            "localizedDescription": "Initial release of StikJIT",
+            "downloadURL": "https://github.com/neoarz/StikJIT/releases/download/1.0/StikJIT.ipa",
+            "size": 5000000,
+            "minOSVersion": "17.4",
+          }
+        ]
+      }
+    ],
+    "identifier": "com.neoarz.stikjit",
+    "name": "StikJIT Repository",
+    "news": [],
+    "userInfo": {}
+  }
+  
