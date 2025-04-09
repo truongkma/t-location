@@ -9,9 +9,9 @@
         "localizedDescription": "An on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
         "name": "StikJIT",
         "screenshotURLs": [
-          "https://github.com/0-Blu/StikJIT/blob/main/assets/HomeScreen.PNG?raw=true",
-          "https://github.com/0-Blu/StikJIT/blob/main/assets/AppsList.PNG?raw=true",
-          "https://github.com/0-Blu/StikJIT/blob/main/assets/Settings.PNG?raw=true"
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/HomeScreen.PNG?raw=true",
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/AppsList.PNG?raw=true",
+          "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/Settings.PNG?raw=true"
         ],
         "size": 5650000,
         "subtitle": "Enable JIT capabilities for your sideloaded apps",
