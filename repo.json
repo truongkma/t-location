@@ -1,71 +1,72 @@
 {
+    "name": "StikJIT Repository",
+    "subtitle": "AltStore/SideStore compatible source repository for StikJIT.",
+    "iconURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
+    "headerURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
+    "tintColor": "#293B45",
+    "featuredApps": [
+        "com.stik.sj"
+    ],
     "apps": [
       {
-        "beta": false,
+        "name": "StikJIT",
         "bundleIdentifier": "com.stik.sj",
         "developerName": "Stephen",
-        "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.3.1/StikJIT_1.3.1.ipa",
+        "subtitle": "An on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
+        "localizedDescription": "Enable JIT capabilities for your sideloaded apps.",
         "iconURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
-        "localizedDescription": "An on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
-        "name": "StikJIT",
-        "screenshotURLs": [
+        "tintColor": "#293B45",
+        "screenshots": [
           "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/HomeScreen.PNG?raw=true",
           "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/AppsList.PNG?raw=true",
           "https://github.com/0-Blu/StikJIT/blob/main/assets/views/dark/Settings.PNG?raw=true"
         ],
-        "size": 5650000,
-        "subtitle": "Enable JIT capabilities for your sideloaded apps",
-        "tintColor": "293B45",
-        "version": "1.3.1",
-        "versionDate": "2025-04-14T12:00:00-05:00",
-        "versionDescription": "Latest - Enhanced & Advanced bug fixes",
         "versions": [
             {
             "version": "1.3.1",
             "date": "2025-04-14T12:00:00-05:00",
-            "localizedDescription": "Bug fixes - no wifi error, make -9 error more clear, fix -17 error",
+            "size": 6211010,
             "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.3.1/StikJIT_1.3.1.ipa",
-            "size": 5650000,
+            "localizedDescription": "Bug fixes - no wifi error, make -9 error more clear, fix -17 error",
             "minOSVersion": "17.4"
             },
             {
             "version": "1.3",
-            "date": "2025-04-12T12:00:00-05:00",
-            "localizedDescription": "Enhanced & Advanced: Improved Performance: Fixes disk image unbounting in the background, DNS Blocker Check, UI improvements (Custom accent color picker), more logs.",
+            "date": "2025-04-12",
+            "size": 6210215,
             "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.3/StikJIT.ipa",
-            "size": 5650000,
-            "minOSVersion": "17.4"
+            "localizedDescription": "Enhanced & Advanced: Improved performance: Fixes disk image unbounting in the background, DNS Blocker Check, UI tweaks: custom accent color picker, more logs."
           },
           {
             "version": "1.2",
-            "date": "2025-04-07T12:00:00-05:00",
-            "localizedDescription": "Smooth Sailing: Improved Performance: Prevented UI stutter in App List. UI Tweaks: Light theme for notifications. Settings View Polish: Better aligned UI elements. Expanded theming support. Fixed user feedback when get-task-allow is missing.",
+            "date": "2025-04-07",
+            "localizedDescription": "Smooth Sailing: Improved performance: Prevented UI stutter in App List. UI tweaks: Light theme for notifications, better aligned UI elements, expanded theming support, fixed user feedback when get-task-allow is missing.",
             "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.2/StikJit_1.2.ipa",
-            "size": 5650000,
-            "minOSVersion": "17.4"
+            "size": 5922690
           },
           {
             "version": "1.1",
-            "date": "2025-04-01T21:37:29-05:00",
+            "date": "2025-04-01",
             "localizedDescription": "Bug fixes and UI improvements. Enhanced system log viewer and better error handling.",
             "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.1/StikJit_1.1.ipa",
-            "size": 5800000,
-            "minOSVersion": "17.4"
+            "size": 5800000
           },
           {
             "version": "1.0",
-            "date": "2025-03-26T21:37:29-05:00",
+            "date": "2025-03-26",
             "localizedDescription": "Initial release of StikJIT",
             "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.0/StikJit_1.0.ipa",
-            "size": 5000000,
-            "minOSVersion": "17.4"
+            "size": 5000000
           }
-        ]
+        ],
+        "appPermissions": {
+            "entitlements": [
+            ],
+            "privacy": {
+            }
+        }
       }
     ],
-    "identifier": "com.stik.sj",
-    "name": "StikJIT Repository",
-    "news": [],
-    "userInfo": {}
-  }
-  
+    "news": [
+    ]
+}
