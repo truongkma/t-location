@@ -13,6 +13,7 @@
         "bundleIdentifier": "com.stik.sj",
         "developerName": "Stephen",
         "subtitle": "An on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
+        "localizedDescription": "An on-device JIT enabler for iOS versions 17.4+ (excluding iOS 18.4 beta 1), powered by idevice.",
         "iconURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
         "tintColor": "#293B45",
         "screenshots": [
