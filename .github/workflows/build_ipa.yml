@@ -26,12 +26,6 @@ jobs:
           sed -i '' 's/objectVersion = 77/objectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
           sed -i '' 's/preferredProjectObjectVersion = 77/preferredProjectObjectVersion = 56/' StikJIT.xcodeproj/project.pbxproj
 
-      - name: List Available SDKs
-        run: xcodebuild -showsdks
-
-      - name: List Available Schemes
-        run: xcodebuild -list -project StikJit.xcodeproj
-
       - name: Archive Build (Unsigned)
         run: |
           xcodebuild clean archive \
