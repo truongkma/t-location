@@ -79,12 +79,9 @@ def update_json_file(json_file, latest_release):
     existing_versions = [v["version"] for v in app["versions"]]
     print(f"Existing versions: {existing_versions}")
     
-    if version in existing_versions:
-        print(f"Version {version} already exists in the versions list")
-        # Check if the latest version is already the current version
-        if version == current_version:
-            print("The latest version is already the current version, no changes needed")
-            return False
+    if version in existing_versions and version == current_version:
+        print(f"Version {version} already exists and is current, no update needed")
+        return False
     
     version_date = latest_release["published_at"]
     date_obj = datetime.strptime(version_date, "%Y-%m-%dT%H:%M:%SZ")
@@ -120,11 +117,7 @@ def update_json_file(json_file, latest_release):
         "minOSVersion": "17.4"  # Adding minOSVersion for StikJIT
     }
 
-    duplicate_entries = [item for item in app["versions"] if item["version"] == version]
-    if duplicate_entries:
-        print(f"Removing duplicate entry for version {version}")
-        app["versions"].remove(duplicate_entries[0])
-
+    # Always update with the latest version
     print(f"Adding new version entry: {version}")
     app["versions"].insert(0, version_entry)
 
