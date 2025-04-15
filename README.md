@@ -61,8 +61,10 @@
    make clean  # Clean previous build
    make package  # Rebuild
    ```
+> [!WARNING]
+> The Makefile build creates an unsigned IPA in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
 
-> **Note:** The Makefile build creates an unsigned IPA in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
+
 
 ## Contributing 
 ```sh
