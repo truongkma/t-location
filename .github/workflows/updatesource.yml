@@ -1,0 +1,22 @@
+name: Update StikJIT Source
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Add permissions block to ensure the workflow can push changes
+permissions:
+  contents: write
+
+jobs:
+  update-source:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: 0-Blu/StikJIT
+        ref: main
+        
