@@ -42,7 +42,7 @@
 - Native UI for managing JIT-enabling.  
 - No data collection—ensuring full privacy. 
 
-## Compiling Instructions  
+## Building Instructions  
 
 1. **Clone the repository:**  
    ```sh
@@ -50,13 +50,34 @@
    cd StikJIT
    ```
 
-2. **Open in Xcode:**  
-   Open `StikJIT.xcodeproj` in Xcode.  
+2. **Build using Makefile:**
+   ```sh
+   make package  # Build unsigned .ipa
+   ```
 
-3. **Build and Run:**  
-   - Connect your iOS device.  
-   - Select your device in Xcode.  
-   - Build and run the project.    
+3. **Updating:**
+   ```sh
+   git pull
+   make clean  # Clean previous build
+   make package  # Rebuild
+   ```
+
+> **Note:** The Makefile build creates an unsigned IPA in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
+
+## Contributing 
+```sh
+# Clone the repository
+git clone https://github.com/0-Blu/StikJIT.git
+cd StikJIT
+
+# Open in Xcode
+open StikJIT.xcodeproj
+```
+
+Then in Xcode:
+- Connect your iOS device
+- Select your device in Xcode
+- Build and run the project (⌘R)
 
 ## License  
 StikJIT is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
