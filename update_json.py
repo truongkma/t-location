@@ -2,6 +2,7 @@ import json
 import re
 import requests
 import os
+import sys
 from datetime import datetime
 
 def prepare_description(text):
@@ -21,11 +22,14 @@ def fetch_latest_release(repo_url):
     try:
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
-        release = response.json()
-        return release
+        releases = response.json()
+        if not releases:
+            print("No releases found in the repository")
+            return None
+        return releases
     except requests.RequestException as e:
         print(f"Error fetching releases: {e}")
-        raise
+        return None
 
 def get_file_size(url):
     try:
@@ -41,26 +45,33 @@ def update_json_file(json_file, latest_release):
         latest_release = latest_release[0]
     else:
         print("Error getting latest release")
-        return
+        return False
 
     try:
         with open(json_file, "r") as file:
             data = json.load(file)
     except json.JSONDecodeError as e:
         print(f"Error reading JSON file: {e}")
-        data = {"apps": []}
-        raise
+        return False
+    except FileNotFoundError:
+        print(f"File {json_file} not found")
+        return False
 
     app = data["apps"][0]
 
     full_version = latest_release["tag_name"]
     tag = latest_release["tag_name"]
-    version = re.search(r"(\d+\.\d+\.\d+)", full_version).group(1)
+    version_match = re.search(r"(\d+\.\d+\.\d+)", full_version)
+    if not version_match:
+        print(f"Could not extract version from tag: {full_version}")
+        return False
+    
+    version = version_match.group(1)
     version_date = latest_release["published_at"]
     date_obj = datetime.strptime(version_date, "%Y-%m-%dT%H:%M:%SZ")
     version_date = date_obj.strftime("%Y-%m-%d")
 
-    description = latest_release["body"]
+    description = latest_release["body"] or "No description provided"
     description = prepare_description(description)
 
     assets = latest_release.get("assets", [])
@@ -74,7 +85,7 @@ def update_json_file(json_file, latest_release):
 
     if download_url is None or size is None:
         print("Error: IPA file not found in release assets.")
-        return
+        return False
 
     version_entry = {
         "version": version,
@@ -124,20 +135,32 @@ def update_json_file(json_file, latest_release):
         with open(json_file, "w") as file:
             json.dump(data, file, indent=2)
         print("JSON file updated successfully.")
+        return True
     except IOError as e:
         print(f"Error writing to JSON file: {e}")
-        raise
+        return False
 
 def main():
-    repo_url = "0-Blu/StikJIT"
+    # Get repository from environment variable or use default
+    repo_url = os.environ.get("GITHUB_REPOSITORY", "neoarz/StikJIT")
     json_file = "repo.json"
+
+    print(f"Using repository: {repo_url}")
+    print(f"Updating file: {json_file}")
 
     try:
         fetched_data_latest = fetch_latest_release(repo_url)
-        update_json_file(json_file, fetched_data_latest)
+        if fetched_data_latest:
+            success = update_json_file(json_file, fetched_data_latest)
+            if not success:
+                print("Failed to update JSON file")
+                sys.exit(1)
+        else:
+            print("No releases found to update")
+            sys.exit(1)
     except Exception as e:
         print(f"An error occurred: {e}")
-        raise
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
