@@ -15,6 +15,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: 0-Blu/StikJIT
+        ref: main
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -32,7 +36,7 @@ jobs:
 
     - name: Debug repository information
       run: |
-        echo "Repository: $GITHUB_REPOSITORY"
+        echo "Repository: 0-Blu/StikJIT"
         echo "Event name: $GITHUB_EVENT_NAME"
         echo "Current directory: $(pwd)"
         echo "Repository contents:"
@@ -59,8 +63,8 @@ jobs:
           echo "Changes detected in repo.json:"
           git diff --staged
           git commit -m "Updated source with latest StikJIT release"
-          # Force push to main
-          git push -f origin HEAD:main
+          # Push to main branch of original repository
+          git push origin main
           echo "changes=true" >> $GITHUB_OUTPUT
         fi
 

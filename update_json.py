@@ -165,8 +165,8 @@ def update_json_file(json_file, latest_release):
         return False
 
 def main():
-    # Get repository from environment variable or use default
-    repo_url = os.environ.get("GITHUB_REPOSITORY", "neoarz/StikJIT")
+    # Use the original repository instead of fork
+    repo_url = "0-Blu/StikJIT"
     json_file = "repo.json"
 
     print(f"Using repository: {repo_url}")
