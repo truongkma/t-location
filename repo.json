@@ -24,6 +24,14 @@
       ],
       "versions": [
         {
+          "version": "1.3.2",
+          "date": "2025-04-15",
+          "localizedDescription": "testing release",
+          "downloadURL": "https://github.com/neoarz/StikJIT/releases/download/1.3.2/StikJIT_1.3.2.ipa",
+          "size": 6211010,
+          "minOSVersion": "17.4"
+        },
+        {
           "version": "1.3.1",
           "date": "2025-04-14",
           "localizedDescription": "What's Changed\r\n* Fix the no wifi error by @neoarz in https://github.com/0-Blu/StikJIT/pull/122\r\n* Make the -9 error more clear by @neoarz in https://github.com/0-Blu/StikJIT/pull/123\r\n* Fixes the -17 error (hopefully)\r\nFull Changelog: https://github.com/0-Blu/StikJIT/compare/1.3...1.3.1",
@@ -64,10 +72,10 @@
         "entitlements": [],
         "privacy": {}
       },
-      "version": "1.3.1",
-      "versionDate": "2025-04-14",
-      "versionDescription": "What's Changed\r\n* Fix the no wifi error by @neoarz in https://github.com/0-Blu/StikJIT/pull/122\r\n* Make the -9 error more clear by @neoarz in https://github.com/0-Blu/StikJIT/pull/123\r\n* Fixes the -17 error (hopefully)\r\nFull Changelog: https://github.com/0-Blu/StikJIT/compare/1.3...1.3.1",
-      "downloadURL": "https://github.com/0-Blu/StikJIT/releases/download/1.3.1/StikJIT_1.3.1.ipa",
+      "version": "1.3.2",
+      "versionDate": "2025-04-15",
+      "versionDescription": "testing release",
+      "downloadURL": "https://github.com/neoarz/StikJIT/releases/download/1.3.2/StikJIT_1.3.2.ipa",
       "size": 6211010
     }
   ],
@@ -82,6 +90,17 @@
       "tintColor": "#293B45",
       "title": "1.3.1 - StikJIT 14/04/25",
       "url": "https://github.com/0-Blu/StikJIT/releases/tag/1.3.1"
+    },
+    {
+      "appID": "com.stik.sj",
+      "caption": "Update of StikJIT just got released!",
+      "date": "2025-04-15T01:18:49Z",
+      "identifier": "release-1.3.2",
+      "imageURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
+      "notify": true,
+      "tintColor": "#293B45",
+      "title": "1.3.2 - StikJIT 15/04/25",
+      "url": "https://github.com/0-Blu/StikJIT/releases/tag/1.3.2"
     }
   ]
 }
