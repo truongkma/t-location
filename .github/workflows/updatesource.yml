@@ -8,6 +8,7 @@ on:
 # Add permissions block to ensure the workflow can push changes
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update-source:
@@ -17,6 +18,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         ref: main  # Explicitly checkout the main branch
+        fetch-depth: 0  # Fetch all history for proper branching
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -44,10 +46,32 @@ jobs:
         if git diff --staged --quiet; then
           echo "changes=false" >> $GITHUB_OUTPUT
         else
+          # Create a new branch for the changes
+          BRANCH_NAME="update-source-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b $BRANCH_NAME
           git commit -m "Updated source with latest StikJIT release"
-          git push origin main
+          git push origin $BRANCH_NAME
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "changes=true" >> $GITHUB_OUTPUT
         fi
+
+    - name: Create Pull Request
+      if: steps.update_source.outputs.changes == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ steps.update_source.outputs.branch }}
+        base: main
+        title: "Update StikJIT source with latest release"
+        body: |
+          This PR updates the repo.json file with the latest StikJIT release information.
+          
+          Changes include:
+          - Updated version information
+          - Added new release to versions list
+          - Updated news section
+          
+          Please review and merge if everything looks good.
 
     - name: Calculate job duration
       id: duration
@@ -61,9 +85,9 @@ jobs:
       run: |
         if [[ "${{ steps.update_source.outputs.changes }}" == "true" ]]; then
           echo "## Update StikJIT Source Summary 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Changes Detected and Applied" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Changes Detected and Pull Request Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The repo.json file has been updated with the latest release information." >> $GITHUB_STEP_SUMMARY
+          echo "A pull request has been created to update the repo.json file with the latest release information." >> $GITHUB_STEP_SUMMARY
         else
           echo "## Update StikJIT Source Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "🔍 No Changes Detected" >> $GITHUB_STEP_SUMMARY
