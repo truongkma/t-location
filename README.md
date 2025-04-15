@@ -62,7 +62,7 @@
    make package  # Rebuild
    ```
 > [!WARNING]
-> The Makefile build creates an unsigned IPA in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
+> The __Makefile__ build creates an unsigned .ipa in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
 
 
 
