@@ -1,5 +1,6 @@
 {
     "name": "StikJIT Repository",
+    "identifier": "com.stik.sj",
     "subtitle": "AltStore/SideStore compatible source repository for StikJIT.",
     "iconURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
     "headerURL": "https://github.com/0-Blu/StikJIT/blob/main/assets/StikJIT.png?raw=true",
