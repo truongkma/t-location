@@ -1,14 +1,19 @@
+# StikJIT Makefile 
+# By neoarz
+
+# Path to code signing tool
 TARGET_CODESIGN = $(shell which ldid)
 
+# Build config
 PLATFORM = iphoneos
 NAME = StikJIT
 SCHEME ?= 'StikJIT'
 RELEASE = Release-iphoneos
 CONFIGURATION = Release
-
 MACOSX_SYSROOT = $(shell xcrun -sdk macosx --show-sdk-path)
 TARGET_SYSROOT = $(shell xcrun -sdk $(PLATFORM) --show-sdk-path)
 
+# Temporary build directories
 APP_TMP         = $(TMPDIR)/$(NAME)
 STAGE_DIR   = $(APP_TMP)/stage
 APP_DIR 	   = $(APP_TMP)/Build/Products/$(RELEASE)/$(NAME).app
@@ -18,6 +23,7 @@ all: package
 package:
 	@rm -rf $(APP_TMP)
 	
+	# Build the app with xcodebuild
 	@set -o pipefail; \
 		xcodebuild \
 		-jobs $(shell sysctl -n hw.ncpu) \
@@ -35,6 +41,7 @@ package:
 		SWIFT_OPTIMIZATION_LEVEL="-Onone" \
 		IPHONEOS_DEPLOYMENT_TARGET=17.4
 		
+	# Prepare for packaging
 	@rm -rf Payload
 	@rm -rf $(STAGE_DIR)/
 	@mkdir -p $(STAGE_DIR)/Payload
@@ -42,17 +49,15 @@ package:
 	@echo $(APP_TMP)
 	@echo $(STAGE_DIR)
 	
+	# Remove Apple's code signature
 	@rm -rf $(STAGE_DIR)/Payload/$(NAME).app/_CodeSignature
 	@ln -sf $(STAGE_DIR)/Payload Payload
 	@rm -rf packages
 	@mkdir -p packages
 
-ifeq ($(TIPA),1)
-	@zip -r9 packages/$(NAME)-ts.tipa Payload
-else
-	@zip -r9 packages/$(NAME).ipa Payload
-endif
-	@rm -rf Payload
+# Create standard IPA package
+@zip -r9 packages/$(NAME).ipa Payload
+@rm -rf Payload
 
 clean:
 	@rm -rf $(STAGE_DIR)
@@ -61,5 +66,3 @@ clean:
 	@rm -rf $(APP_TMP)
 
 .PHONY: apple-include
-
-
