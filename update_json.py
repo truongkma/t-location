@@ -20,12 +20,15 @@ def fetch_latest_release(repo_url):
         "Accept": "application/vnd.github+json",
     }
     try:
+        print(f"Fetching releases from: {api_url}")
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
         releases = response.json()
         if not releases:
             print("No releases found in the repository")
             return None
+        print(f"Found {len(releases)} releases")
+        print(f"Latest release: {releases[0]['tag_name']}")
         return releases
     except requests.RequestException as e:
         print(f"Error fetching releases: {e}")
@@ -48,6 +51,7 @@ def update_json_file(json_file, latest_release):
         return False
 
     try:
+        print(f"Reading JSON file: {json_file}")
         with open(json_file, "r") as file:
             data = json.load(file)
     except json.JSONDecodeError as e:
@@ -58,6 +62,8 @@ def update_json_file(json_file, latest_release):
         return False
 
     app = data["apps"][0]
+    current_version = app.get("version", "unknown")
+    print(f"Current version in repo.json: {current_version}")
 
     full_version = latest_release["tag_name"]
     tag = latest_release["tag_name"]
@@ -67,6 +73,19 @@ def update_json_file(json_file, latest_release):
         return False
     
     version = version_match.group(1)
+    print(f"Latest release version: {version}")
+    
+    # Check if the version is already in the versions list
+    existing_versions = [v["version"] for v in app["versions"]]
+    print(f"Existing versions: {existing_versions}")
+    
+    if version in existing_versions:
+        print(f"Version {version} already exists in the versions list")
+        # Check if the latest version is already the current version
+        if version == current_version:
+            print("The latest version is already the current version, no changes needed")
+            return False
+    
     version_date = latest_release["published_at"]
     date_obj = datetime.strptime(version_date, "%Y-%m-%dT%H:%M:%SZ")
     version_date = date_obj.strftime("%Y-%m-%d")
@@ -75,12 +94,17 @@ def update_json_file(json_file, latest_release):
     description = prepare_description(description)
 
     assets = latest_release.get("assets", [])
+    print(f"Found {len(assets)} assets in the release")
+    for asset in assets:
+        print(f"Asset: {asset['name']}")
+    
     download_url = None
     size = None
     for asset in assets:
         if asset["name"].endswith(".ipa"):
             download_url = asset["browser_download_url"]
             size = asset["size"]
+            print(f"Found IPA file: {asset['name']}, size: {size}")
             break
 
     if download_url is None or size is None:
@@ -98,10 +122,13 @@ def update_json_file(json_file, latest_release):
 
     duplicate_entries = [item for item in app["versions"] if item["version"] == version]
     if duplicate_entries:
+        print(f"Removing duplicate entry for version {version}")
         app["versions"].remove(duplicate_entries[0])
 
+    print(f"Adding new version entry: {version}")
     app["versions"].insert(0, version_entry)
 
+    print(f"Updating app with version {version}")
     app.update({
         "version": version,
         "versionDate": version_date,
@@ -129,9 +156,13 @@ def update_json_file(json_file, latest_release):
 
     news_entry_exists = any(item["identifier"] == news_identifier for item in data["news"])
     if not news_entry_exists:
+        print(f"Adding news entry for version {full_version}")
         data["news"].append(news_entry)
+    else:
+        print(f"News entry for version {full_version} already exists")
 
     try:
+        print(f"Writing updated JSON to {json_file}")
         with open(json_file, "w") as file:
             json.dump(data, file, indent=2)
         print("JSON file updated successfully.")
@@ -153,8 +184,8 @@ def main():
         if fetched_data_latest:
             success = update_json_file(json_file, fetched_data_latest)
             if not success:
-                print("Failed to update JSON file")
-                sys.exit(1)
+                print("Failed to update JSON file or no changes were needed")
+                sys.exit(0)  # Exit with success code since no changes needed is not an error
         else:
             print("No releases found to update")
             sys.exit(1)

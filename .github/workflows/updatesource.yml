@@ -34,6 +34,19 @@ jobs:
       id: job_start_time
       run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
 
+    - name: Debug repository information
+      run: |
+        echo "Repository: $GITHUB_REPOSITORY"
+        echo "Event name: $GITHUB_EVENT_NAME"
+        echo "Event path: $GITHUB_EVENT_PATH"
+        if [ -f "$GITHUB_EVENT_PATH" ]; then
+          echo "Event payload:"
+          cat $GITHUB_EVENT_PATH
+        fi
+        echo "Current directory: $(pwd)"
+        echo "Repository contents:"
+        ls -la
+
     - name: Update StikJIT source
       id: update_source
       env:
@@ -45,7 +58,10 @@ jobs:
         git add repo.json
         if git diff --staged --quiet; then
           echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes detected in repo.json"
         else
+          echo "Changes detected in repo.json:"
+          git diff --staged
           # Create a new branch for the changes
           BRANCH_NAME="update-source-$(date +%Y%m%d-%H%M%S)"
           git checkout -b $BRANCH_NAME
@@ -93,6 +109,11 @@ jobs:
           echo "🔍 No Changes Detected" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The repo.json file is up to date. No changes were necessary." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This could be because:" >> $GITHUB_STEP_SUMMARY
+          echo "- The release version is already in the repo.json file" >> $GITHUB_STEP_SUMMARY
+          echo "- The release doesn't contain an IPA file" >> $GITHUB_STEP_SUMMARY
+          echo "- The release tag doesn't match the expected version format" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "🕐 Execution Time" >> $GITHUB_STEP_SUMMARY
