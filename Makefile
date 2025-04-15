@@ -1,6 +1,5 @@
 # StikJIT Makefile 
 # By neoarz
-# Version 1.0 - April 2025
 
 # Path to code signing tool
 TARGET_CODESIGN = $(shell which ldid)
