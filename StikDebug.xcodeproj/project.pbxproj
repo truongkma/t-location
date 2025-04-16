@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DCA690122DAF660E007C91A8 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCA690112DAF660E007C91A8 /* NetworkExtension.framework */; };
+		DCA6901A2DAF660E007C91A8 /* TunnelProv.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DCA690102DAF660E007C91A8 /* TunnelProv.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		DC6F1D492D94EADF0071B2B6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,13 +26,36 @@
 			remoteGlobalIDString = DC6F1D362D94EADD0071B2B6;
 			remoteInfo = StikJIT;
 		};
+		DCA690182DAF660E007C91A8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DC6F1D2F2D94EADD0071B2B6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DCA6900F2DAF660E007C91A8;
+			remoteInfo = TunnelProv;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DCA6901F2DAF660E007C91A8 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DCA6901A2DAF660E007C91A8 /* TunnelProv.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		DC5716242D9564760099302E /* em_proxy.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = em_proxy.xcframework; sourceTree = "<group>"; };
 		DC6F1D372D94EADD0071B2B6 /* StikDebug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StikDebug.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D482D94EADF0071B2B6 /* StikDebugTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikDebugTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikDebugUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA690102DAF660E007C91A8 /* TunnelProv.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TunnelProv.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DCA690112DAF660E007C91A8 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -37,6 +65,13 @@
 				Info.plist,
 			);
 			target = DC6F1D362D94EADD0071B2B6 /* StikDebug */;
+		};
+		DCA6901E2DAF660E007C91A8 /* Exceptions for "TunnelProv" folder in "TunnelProv" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DCA6900F2DAF660E007C91A8 /* TunnelProv */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -57,6 +92,14 @@
 		DC6F1D552D94EADF0071B2B6 /* StikJITUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = StikJITUITests;
+			sourceTree = "<group>";
+		};
+		DCA690132DAF660E007C91A8 /* TunnelProv */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DCA6901E2DAF660E007C91A8 /* Exceptions for "TunnelProv" folder in "TunnelProv" target */,
+			);
+			path = TunnelProv;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -83,6 +126,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DCA6900D2DAF660E007C91A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DCA690122DAF660E007C91A8 /* NetworkExtension.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -92,6 +143,7 @@
 				DC6F1D392D94EADD0071B2B6 /* StikJIT */,
 				DC6F1D4B2D94EADF0071B2B6 /* StikJITTests */,
 				DC6F1D552D94EADF0071B2B6 /* StikJITUITests */,
+				DCA690132DAF660E007C91A8 /* TunnelProv */,
 				DC6F1D752D94EB620071B2B6 /* Frameworks */,
 				DC6F1D382D94EADD0071B2B6 /* Products */,
 			);
@@ -103,6 +155,7 @@
 				DC6F1D372D94EADD0071B2B6 /* StikDebug.app */,
 				DC6F1D482D94EADF0071B2B6 /* StikDebugTests.xctest */,
 				DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */,
+				DCA690102DAF660E007C91A8 /* TunnelProv.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -111,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				DC5716242D9564760099302E /* em_proxy.xcframework */,
+				DCA690112DAF660E007C91A8 /* NetworkExtension.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -125,10 +179,12 @@
 				DC6F1D332D94EADD0071B2B6 /* Sources */,
 				DC6F1D342D94EADD0071B2B6 /* Frameworks */,
 				DC6F1D352D94EADD0071B2B6 /* Resources */,
+				DCA6901F2DAF660E007C91A8 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DCA690192DAF660E007C91A8 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DC6F1D392D94EADD0071B2B6 /* StikJIT */,
@@ -186,6 +242,28 @@
 			productReference = DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		DCA6900F2DAF660E007C91A8 /* TunnelProv */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DCA6901B2DAF660E007C91A8 /* Build configuration list for PBXNativeTarget "TunnelProv" */;
+			buildPhases = (
+				DCA6900C2DAF660E007C91A8 /* Sources */,
+				DCA6900D2DAF660E007C91A8 /* Frameworks */,
+				DCA6900E2DAF660E007C91A8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DCA690132DAF660E007C91A8 /* TunnelProv */,
+			);
+			name = TunnelProv;
+			packageProductDependencies = (
+			);
+			productName = TunnelProv;
+			productReference = DCA690102DAF660E007C91A8 /* TunnelProv.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -208,6 +286,9 @@
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = DC6F1D362D94EADD0071B2B6;
 					};
+					DCA6900F2DAF660E007C91A8 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 				};
 			};
 			buildConfigurationList = DC6F1D322D94EADD0071B2B6 /* Build configuration list for PBXProject "StikDebug" */;
@@ -227,6 +308,7 @@
 				DC6F1D362D94EADD0071B2B6 /* StikDebug */,
 				DC6F1D472D94EADF0071B2B6 /* StikDebugTests */,
 				DC6F1D512D94EADF0071B2B6 /* StikDebugUITests */,
+				DCA6900F2DAF660E007C91A8 /* TunnelProv */,
 			);
 		};
 /* End PBXProject section */
@@ -247,6 +329,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DC6F1D502D94EADF0071B2B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCA6900E2DAF660E007C91A8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -277,6 +366,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DCA6900C2DAF660E007C91A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -289,6 +385,11 @@
 			isa = PBXTargetDependency;
 			target = DC6F1D362D94EADD0071B2B6 /* StikDebug */;
 			targetProxy = DC6F1D532D94EADF0071B2B6 /* PBXContainerItemProxy */;
+		};
+		DCA690192DAF660E007C91A8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DCA6900F2DAF660E007C91A8 /* TunnelProv */;
+			targetProxy = DCA690182DAF660E007C91A8 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -592,6 +693,63 @@
 			};
 			name = Release;
 		};
+		DCA6901C2DAF660E007C91A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TunnelProv/TunnelProv.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SZ977XLF24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TunnelProv/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TunnelProv;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.TunnelProv;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DCA6901D2DAF660E007C91A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TunnelProv/TunnelProv.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SZ977XLF24;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TunnelProv/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TunnelProv;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.TunnelProv;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -627,6 +785,15 @@
 			buildConfigurations = (
 				DC6F1D632D94EADF0071B2B6 /* Debug */,
 				DC6F1D642D94EADF0071B2B6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DCA6901B2DAF660E007C91A8 /* Build configuration list for PBXNativeTarget "TunnelProv" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCA6901C2DAF660E007C91A8 /* Debug */,
+				DCA6901D2DAF660E007C91A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
