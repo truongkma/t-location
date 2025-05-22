@@ -4,8 +4,8 @@
    
 
 <div align="center">
-  <h1><b>StikJIT</b></h1>
-  <p><i> An on-device JIT enabler for iOS versions 17.4+ (17.4-18.5b1 (latest)), excluding iOS 18.4 beta 1 (22E5200), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> </i></p>
+  <h1><b>StikDebug</b></h1>
+  <p><i> An on-device debugger/JIT enabler for iOS versions 17.4+ (17.4-18.5b1 (latest)), excluding iOS 18.4 beta 1 (22E5200), powered by <a href="https://github.com/jkcoxson/idevice">idevice</a> </i></p>
 </div>
 <h6 align="center">
 
@@ -31,14 +31,10 @@
   </a>
   <br />
 </h6>
-  
-## Requirements  
-[StosVPN](https://apps.apple.com/us/app/stosvpn/id6744003051) is required. This allows the device to connect to itself.  
 
 ## Features  
 - On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
 - Seamless integration with [`em_proxy`](https://github.com/SideStore/em_proxy).  
-   - Note: em_proxy isn't needed for StosVPN, its only kept for backwards compatibility with WireGuard
 - Native UI for managing JIT-enabling.  
 - No data collection—ensuring full privacy. 
 
@@ -82,4 +78,4 @@ Then in Xcode:
 - Build and run the project (⌘R)
 
 ## License  
-StikJIT is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
+StikDebug is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
