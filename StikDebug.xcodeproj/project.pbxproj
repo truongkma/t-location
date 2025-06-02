@@ -502,7 +502,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.7;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.DebugWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -532,7 +532,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.3.7;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.DebugWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -693,7 +693,7 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.3.6;
+				MARKETING_VERSION = 1.3.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -742,7 +742,7 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.3.6;
+				MARKETING_VERSION = 1.3.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
