@@ -33,49 +33,10 @@
 </h6>
 
 ## Features  
-- On-device Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
-- Seamless integration with [`em_proxy`](https://github.com/SideStore/em_proxy).  
-- Native UI for managing JIT-enabling.  
+- On-device debugging/Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
+- Seamless integration with our custom built loopback vpn.  
+- Native UI for managing debugging/JIT-enabling.  
 - No data collection—ensuring full privacy. 
-
-## Building Instructions  
-
-1. **Clone the repository:**  
-   ```sh
-   git clone https://github.com/0-Blu/StikJIT.git
-   cd StikJIT
-   ```
-
-2. **Build using Makefile:**
-   ```sh
-   make package  # Build unsigned .ipa
-   ```
-
-3. **Updating:**
-   ```sh
-   git pull
-   make clean  # Clean previous build
-   make package  # Rebuild
-   ```
-> [!WARNING]
-> The __Makefile__ build creates an unsigned .ipa in the `packages` directory. While this is useful for quick builds, please use Xcode for development and debugging. When submitting pull requests or reporting issues, ensure you've tested your changes thoroughly using Xcode.
-
-
-
-## Contributing 
-```sh
-# Clone the repository
-git clone https://github.com/0-Blu/StikJIT.git
-cd StikJIT
-
-# Open in Xcode
-open StikJIT.xcodeproj
-```
-
-Then in Xcode:
-- Connect your iOS device
-- Select your device in Xcode
-- Build and run the project (⌘R)
 
 ## License  
 StikDebug is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
