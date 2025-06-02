@@ -17,17 +17,12 @@
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
   </a>
-  <a href="https://github.com/0-Blu/StikJIT/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
+  <a href="https://github.com/0-Blu/StikDebug/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/0-Blu/StikDebug?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
   </a>
-  <a href="https://github.com/0-Blu/StikJIT/releases">
-    <img src="https://img.shields.io/github/v/release/0-Blu/StikJIT?include_prereleases&label=Release&color=57F287&style=for-the-badge&labelColor=23272A" />
   </a>
-  <a href="https://github.com/0-Blu/StikJIT/releases">
-    <img src="https://img.shields.io/github/downloads/0-Blu/StikJIT/total?label=Downloads&color=ED4245&style=for-the-badge&labelColor=23272A" />
-  </a>
-  <a href="https://github.com/0-Blu/StikJIT/stargazers">
-    <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=FEE75C&style=for-the-badge&labelColor=23272A" />
+  <a href="https://github.com/0-Blu/StikDebug/stargazers">
+    <img src="https://img.shields.io/github/stars/0-Blu/StikDebug?label=Stars&color=FEE75C&style=for-the-badge&labelColor=23272A" />
   </a>
   <br />
 </h6>
