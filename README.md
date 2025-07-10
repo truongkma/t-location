@@ -7,7 +7,7 @@
 
 <div align="center">
   <h1><b>StikDebug</b></h1>
-  <p><i> An on-device debugger/JIT enabler for iOS versions powered by <a href="https://github.com/jkcoxson/idevice">idevice.</a> </i></p>
+  <p><i> An on-device debugger/JIT enabler for iOS versions 17.4+ powered by <a href="https://github.com/jkcoxson/idevice">idevice.</a> </i></p>
 </div>
 <h6 align="center">
 
