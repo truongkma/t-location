@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
 		DC139F6E2DE97EA400F63846 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC139F6D2DE97EA400F63846 /* WidgetKit.framework */; };
@@ -149,6 +150,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				17C744F02E20BED000834F17 /* Pipify in Frameworks */,
 				68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
 			);
@@ -262,6 +264,7 @@
 			packageProductDependencies = (
 				68D569BD2E1B415700A5BA36 /* CodeEditorView */,
 				68D569BF2E1B415700A5BA36 /* LanguageSupport */,
+				17C744EF2E20BED000834F17 /* Pipify */,
 			);
 			productName = StikJIT;
 			productReference = DC6F1D372D94EADD0071B2B6 /* StikDebug.app */;
@@ -377,6 +380,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */,
+				17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DC6F1D382D94EADD0071B2B6 /* Products */;
@@ -971,6 +975,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hugeBlack/swiftui-pipify";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mchakravarty/CodeEditorView";
@@ -982,6 +994,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		17C744EF2E20BED000834F17 /* Pipify */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */;
+			productName = Pipify;
+		};
 		68D569BD2E1B415700A5BA36 /* CodeEditorView */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
