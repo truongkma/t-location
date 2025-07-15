@@ -1,5 +1,5 @@
 {
-  "originHash" : "3675a8b363ad866505239c8e2c7f6a0862ed02618f2dca478b2519372fb79c0c",
+  "originHash" : "4df9bfc6bef31f016f92a5a4a2b67290e6fd98a0453ec6e1981c9a8fb5222170",
   "pins" : [
     {
       "identity" : "codeeditorview",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "5ff7f3363f7a08f77e0d761e38e6add31c2136e1",
         "version" : "1.8.1"
+      }
+    },
+    {
+      "identity" : "swiftui-pipify",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hugeBlack/swiftui-pipify",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a1ec2fd1781c8289bff1a8b3f664dcf21c910efb"
       }
     }
   ],
