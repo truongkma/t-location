@@ -1,5 +1,5 @@
 {
-  "originHash" : "4df9bfc6bef31f016f92a5a4a2b67290e6fd98a0453ec6e1981c9a8fb5222170",
+  "originHash" : "a7d8c65e2fd86cffbcb641147283c4520fb198ba8311739d1d27b74ef46eee96",
   "pins" : [
     {
       "identity" : "codeeditorview",
@@ -20,12 +20,39 @@
       }
     },
     {
+      "identity" : "stikimporter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/StephenDev0/StikImporter",
+      "state" : {
+        "revision" : "4d80fca1334493889501d5b5a9fdcbb262e11f24",
+        "version" : "1.0.2"
+      }
+    },
+    {
       "identity" : "swiftui-pipify",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/hugeBlack/swiftui-pipify",
       "state" : {
         "branch" : "main",
         "revision" : "a1ec2fd1781c8289bff1a8b3f664dcf21c910efb"
+      }
+    },
+    {
+      "identity" : "zipfoundation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/weichsel/ZIPFoundation",
+      "state" : {
+        "revision" : "02b6abe5f6eef7e3cbd5f247c5cc24e246efcfe0",
+        "version" : "0.9.19"
+      }
+    },
+    {
+      "identity" : "zsign-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/StephenDev0/zsign-ios",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a7f275fb4830ea48adf536fcddee7d05471970d0"
       }
     }
   ],
