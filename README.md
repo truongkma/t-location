@@ -38,7 +38,7 @@
 
 ## Features  
 - On-device debugging/Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
-- Seamless integration with our custom built loopback vpn.  
+- Seamless integration with our custom-built loopback vpn.  
 - Native UI for managing debugging/JIT-enabling.  
 - No data collection—ensuring full privacy. 
 
