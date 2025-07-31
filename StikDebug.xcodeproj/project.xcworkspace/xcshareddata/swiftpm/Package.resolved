@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/StephenDev0/StikImporter",
       "state" : {
-        "revision" : "8b0ced6c4447257cc6d22d26b8346f79773e4461",
-        "version" : "1.1.0"
+        "revision" : "4d80fca1334493889501d5b5a9fdcbb262e11f24",
+        "version" : "1.0.2"
       }
     },
     {
