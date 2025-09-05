@@ -1,5 +1,5 @@
 {
-  "originHash" : "a7d8c65e2fd86cffbcb641147283c4520fb198ba8311739d1d27b74ef46eee96",
+  "originHash" : "fd6a0b1431f87fb1abbacc56899d6160059dfd4b59e9d381af1131363e73fb23",
   "pins" : [
     {
       "identity" : "codeeditorview",
@@ -49,7 +49,7 @@
     {
       "identity" : "zsign-ios",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/StephenDev0/zsign-ios",
+      "location" : "https://github.com/zwsn/zsign-ios",
       "state" : {
         "branch" : "main",
         "revision" : "a7f275fb4830ea48adf536fcddee7d05471970d0"

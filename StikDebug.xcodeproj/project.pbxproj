@@ -8,15 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
+		6874D2722E6B4A5E00B18184 /* ZSignApple in Frameworks */ = {isa = PBXBuildFile; productRef = 6874D2712E6B4A5E00B18184 /* ZSignApple */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
+		68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 68E714E52E6AA2B00025610F /* ZIPFoundation */; };
 		DC139F6E2DE97EA400F63846 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC139F6D2DE97EA400F63846 /* WidgetKit.framework */; };
 		DC139F702DE97EA400F63846 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC139F6F2DE97EA400F63846 /* SwiftUI.framework */; };
 		DC139F812DE97EA600F63846 /* DebugWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		DC7E2F1C2E38D01E00725B2C /* ZSignApple in Frameworks */ = {isa = PBXBuildFile; productRef = DC7E2F1B2E38D01E00725B2C /* ZSignApple */; };
 		DCA690122DAF660E007C91A8 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCA690112DAF660E007C91A8 /* NetworkExtension.framework */; };
 		DCA6901A2DAF660E007C91A8 /* TunnelProv.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DCA690102DAF660E007C91A8 /* TunnelProv.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		DCBA85192E388CD400E88C06 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DCBA85182E388CD400E88C06 /* ZIPFoundation */; };
 		DCBA85862E3897BD00E88C06 /* StikImporter in Frameworks */ = {isa = PBXBuildFile; productRef = DCBA85852E3897BD00E88C06 /* StikImporter */; };
 /* End PBXBuildFile section */
 
@@ -157,8 +157,8 @@
 				17C744F02E20BED000834F17 /* Pipify in Frameworks */,
 				68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
-				DCBA85192E388CD400E88C06 /* ZIPFoundation in Frameworks */,
-				DC7E2F1C2E38D01E00725B2C /* ZSignApple in Frameworks */,
+				68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */,
+				6874D2722E6B4A5E00B18184 /* ZSignApple in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,9 +271,9 @@
 				68D569BD2E1B415700A5BA36 /* CodeEditorView */,
 				68D569BF2E1B415700A5BA36 /* LanguageSupport */,
 				17C744EF2E20BED000834F17 /* Pipify */,
-				DCBA85182E388CD400E88C06 /* ZIPFoundation */,
 				DCBA85852E3897BD00E88C06 /* StikImporter */,
-				DC7E2F1B2E38D01E00725B2C /* ZSignApple */,
+				68E714E52E6AA2B00025610F /* ZIPFoundation */,
+				6874D2712E6B4A5E00B18184 /* ZSignApple */,
 			);
 			productName = StikJIT;
 			productReference = DC6F1D372D94EADD0071B2B6 /* StikDebug.app */;
@@ -390,9 +390,9 @@
 			packageReferences = (
 				68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */,
 				17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */,
-				DCBA85172E388CD400E88C06 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				DCBA85842E3897BD00E88C06 /* XCRemoteSwiftPackageReference "StikImporter" */,
-				DC7E2F1A2E38D01E00725B2C /* XCRemoteSwiftPackageReference "zsign-ios" */,
+				68CB05252E6AA15F0075BAA9 /* XCRemoteSwiftPackageReference "zsign-ios" */,
+				68E714E42E6AA2B00025610F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DC6F1D382D94EADD0071B2B6 /* Products */;
@@ -722,7 +722,7 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -775,7 +775,7 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -1003,6 +1003,14 @@
 				kind = branch;
 			};
 		};
+		68CB05252E6AA15F0075BAA9 /* XCRemoteSwiftPackageReference "zsign-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/zwsn/zsign-ios";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mchakravarty/CodeEditorView";
@@ -1011,15 +1019,7 @@
 				minimumVersion = 0.15.4;
 			};
 		};
-		DC7E2F1A2E38D01E00725B2C /* XCRemoteSwiftPackageReference "zsign-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StephenDev0/zsign-ios";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		DCBA85172E388CD400E88C06 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+		68E714E42E6AA2B00025610F /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
 			requirement = {
@@ -1043,6 +1043,10 @@
 			package = 17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */;
 			productName = Pipify;
 		};
+		6874D2712E6B4A5E00B18184 /* ZSignApple */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ZSignApple;
+		};
 		68D569BD2E1B415700A5BA36 /* CodeEditorView */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
@@ -1053,14 +1057,9 @@
 			package = 68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
 			productName = LanguageSupport;
 		};
-		DC7E2F1B2E38D01E00725B2C /* ZSignApple */ = {
+		68E714E52E6AA2B00025610F /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DC7E2F1A2E38D01E00725B2C /* XCRemoteSwiftPackageReference "zsign-ios" */;
-			productName = ZSignApple;
-		};
-		DCBA85182E388CD400E88C06 /* ZIPFoundation */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DCBA85172E388CD400E88C06 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			package = 68E714E42E6AA2B00025610F /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
 		};
 		DCBA85852E3897BD00E88C06 /* StikImporter */ = {
