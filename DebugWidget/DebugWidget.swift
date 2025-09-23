@@ -11,16 +11,22 @@ import UIKit
 
 // MARK: - Favorites Widget ----------------------------------------------------
 
+struct FavoriteSnapshot: Identifiable {
+    let bundleID: String
+    let displayName: String
+    var id: String { bundleID }
+}
+
 struct FavoritesEntry: TimelineEntry {
     let date: Date
-    let bundleIDs: [String]
+    let items: [FavoriteSnapshot]
 }
 
 struct FavoritesProvider: TimelineProvider {
     private let sharedDefaults = UserDefaults(suiteName: "group.com.stik.sj")
 
     func placeholder(in context: Context) -> FavoritesEntry {
-        FavoritesEntry(date: .now, bundleIDs: [])
+        FavoritesEntry(date: .now, items: [])
     }
 
     func getSnapshot(in context: Context, completion: @escaping (FavoritesEntry) -> Void) {
@@ -34,7 +40,12 @@ struct FavoritesProvider: TimelineProvider {
 
     private func makeEntry() -> FavoritesEntry {
         let favorites = sharedDefaults?.stringArray(forKey: "favoriteApps") ?? []
-        return FavoritesEntry(date: .now, bundleIDs: Array(favorites.prefix(4)))
+        let names = sharedDefaults?.dictionary(forKey: "favoriteAppNames") as? [String: String] ?? [:]
+        let items = favorites.prefix(4).map { bundleID -> FavoriteSnapshot in
+            let display = names[bundleID] ?? friendlyNameFromBundleID(bundleID)
+            return FavoriteSnapshot(bundleID: bundleID, displayName: display)
+        }
+        return FavoritesEntry(date: .now, items: items)
     }
 }
 
@@ -44,10 +55,11 @@ struct FavoritesWidgetEntryView: View {
     var body: some View {
         HStack(spacing: 8) {
             ForEach(0..<4, id: \.self) { idx in
-                if idx < entry.bundleIDs.count {
-                    iconCell(bundleID: entry.bundleIDs[idx])
+                if idx < entry.items.count {
+                    labeledIconCell(item: entry.items[idx])
                 } else {
                     placeholderCell()
+                        .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -56,29 +68,43 @@ struct FavoritesWidgetEntryView: View {
     }
 
     @ViewBuilder
-    private func iconCell(bundleID: String) -> some View {
-        if let img = loadIcon(for: bundleID) {
-            Link(destination: URL(string: "stikjit://enable-jit?bundle-id=\(bundleID)")!) {
-                Image(uiImage: img)
-                    .resizable()
-                    .aspectRatio(1, contentMode: .fit)
-                    .cornerRadius(12)
+    private func labeledIconCell(item: FavoriteSnapshot) -> some View {
+        if let img = loadIcon(for: item.bundleID) {
+            Link(destination: URL(string: "stikjit://enable-jit?bundle-id=\(item.bundleID)")!) {
+                VStack(spacing: 6) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .aspectRatio(1, contentMode: .fit)
+                        .cornerRadius(12)
+                    Text(item.displayName)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity)
             }
         } else {
             placeholderCell()
+                .frame(maxWidth: .infinity)
         }
     }
 
     @ViewBuilder
     private func placeholderCell() -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.systemGray5))
-            Image(systemName: "plus")
-                .font(.system(size: 24, weight: .medium))
-                .foregroundColor(.gray)
+        VStack(spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.systemGray5))
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            Text(" ")
+                .font(.caption2)
+                .opacity(0) // keep height consistent
         }
-        .aspectRatio(1, contentMode: .fit)
     }
 }
 
@@ -95,7 +121,7 @@ struct FavoritesWidget: Widget {
     }
 }
 
-// MARK: - System Apps Widget -------------------------------------------------
+// MARK: - Launch Shortcuts Widget (formerly System Apps) ---------------------
 
 struct SystemAppSnapshot: Identifiable {
     let bundleID: String
@@ -125,6 +151,7 @@ struct SystemAppsProvider: TimelineProvider {
     }
 
     private func makeEntry() -> SystemAppsEntry {
+        // This list now represents "pinned launch apps" (system or other)
         let pinned = sharedDefaults?.stringArray(forKey: "pinnedSystemApps") ?? []
         let names = sharedDefaults?.dictionary(forKey: "pinnedSystemAppNames") as? [String: String] ?? [:]
         let snapshots = pinned.prefix(4).map { bundleID -> SystemAppSnapshot in
@@ -149,59 +176,58 @@ struct SystemAppsWidgetEntryView: View {
     let entry: SystemAppsEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(entry.items) { item in
-                Link(destination: URL(string: "stikjit://enable-jit?bundle-id=\(item.bundleID)")!) {
-                    HStack(spacing: 10) {
-                        icon(for: item.bundleID)
-                            .frame(width: 44, height: 44)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.displayName)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                            Text(item.bundleID)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                    }
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.secondarySystemBackground).opacity(0.35))
-                    )
+        HStack(spacing: 8) {
+            ForEach(0..<4, id: \.self) { idx in
+                if idx < entry.items.count {
+                    labeledIconCell(item: entry.items[idx])
+                } else {
+                    placeholderCell()
+                        .frame(maxWidth: .infinity)
                 }
             }
-
-            if entry.items.isEmpty {
-                Text("Pin system apps from StikDebug to see them here.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-            }
         }
-        .padding(12)
+        .padding(8)
         .containerBackground(Color(UIColor.systemBackground), for: .widget)
     }
 
     @ViewBuilder
-    private func icon(for bundleID: String) -> some View {
-        if let image = loadIcon(for: bundleID) {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(1, contentMode: .fill)
-                .cornerRadius(10)
+    private func labeledIconCell(item: SystemAppSnapshot) -> some View {
+        if let img = loadIcon(for: item.bundleID) {
+            // Use launch-app to mirror non-debug launch behavior
+            Link(destination: URL(string: "stikjit://launch-app?bundle-id=\(item.bundleID)")!) {
+                VStack(spacing: 6) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .aspectRatio(1, contentMode: .fit)
+                        .cornerRadius(12)
+                    Text(item.displayName)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity)
+            }
         } else {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(UIColor.systemGray5))
-                .overlay(
-                    Image(systemName: "app")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundColor(.gray)
-                )
+            placeholderCell()
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func placeholderCell() -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.systemGray5))
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            Text(" ")
+                .font(.caption2)
+                .opacity(0) // keep height consistent
         }
     }
 }
@@ -213,8 +239,8 @@ struct SystemAppsWidget: Widget {
         StaticConfiguration(kind: kind, provider: SystemAppsProvider()) { entry in
             SystemAppsWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Hidden System Apps")
-        .description("Launch your pinned hidden system apps directly from the widget.")
+        .configurationDisplayName("Launch Shortcuts")
+        .description("Pin any app to launch directly from the widget.")
         .supportedFamilies([.systemMedium])
     }
 }
@@ -230,3 +256,15 @@ private func loadIcon(for bundleID: String) -> UIImage? {
         .appendingPathComponent("\(bundleID).png")
     return UIImage(contentsOfFile: url.path)
 }
+
+/// Fallback readable name from a bundle identifier
+private func friendlyNameFromBundleID(_ bundleID: String) -> String {
+    let components = bundleID.split(separator: ".")
+    if let last = components.last {
+        let cleaned = last.replacingOccurrences(of: "_", with: " ")
+        let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed.capitalized }
+    }
+    return bundleID
+}
+
