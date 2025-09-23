@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
+		68AA2E4D2E8214A1008342E8 /* StikDebug.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */; };
 		68AD80462E6B65DA00DE9112 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80452E6B65DA00DE9112 /* ZsignSwift */; };
 		68AD80482E6B65DA00DE9112 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80472E6B65DA00DE9112 /* zsign */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
@@ -68,6 +69,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StikDebug.storekit; sourceTree = "<group>"; };
 		DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DebugWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC139F6D2DE97EA400F63846 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		DC139F6F2DE97EA400F63846 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -193,6 +195,7 @@
 			isa = PBXGroup;
 			children = (
 				DC139F862DE97F2000F63846 /* DebugWidgetExtension.entitlements */,
+				68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */,
 				DC6F1D392D94EADD0071B2B6 /* StikJIT */,
 				DC6F1D4B2D94EADF0071B2B6 /* StikJITTests */,
 				DC6F1D552D94EADF0071B2B6 /* StikJITUITests */,
@@ -416,6 +419,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				68AA2E4D2E8214A1008342E8 /* StikDebug.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
