@@ -11,6 +11,7 @@
 		68AA2E4D2E8214A1008342E8 /* StikDebug.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */; };
 		68AD80462E6B65DA00DE9112 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80452E6B65DA00DE9112 /* ZsignSwift */; };
 		68AD80482E6B65DA00DE9112 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80472E6B65DA00DE9112 /* zsign */; };
+		68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
 		68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 68E714E52E6AA2B00025610F /* ZIPFoundation */; };
@@ -70,6 +71,7 @@
 
 /* Begin PBXFileReference section */
 		68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StikDebug.storekit; sourceTree = "<group>"; };
+		68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DebugWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC139F6D2DE97EA400F63846 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		DC139F6F2DE97EA400F63846 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -161,6 +163,7 @@
 				68AD80462E6B65DA00DE9112 /* ZsignSwift in Frameworks */,
 				68AD80482E6B65DA00DE9112 /* zsign in Frameworks */,
 				68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */,
+				68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
 				68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */,
 			);
@@ -221,6 +224,7 @@
 		DC6F1D752D94EB620071B2B6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */,
 				DCA690112DAF660E007C91A8 /* NetworkExtension.framework */,
 				DC139F6D2DE97EA400F63846 /* WidgetKit.framework */,
 				DC139F6F2DE97EA400F63846 /* SwiftUI.framework */,
