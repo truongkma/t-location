@@ -8,9 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
-		68AA2E4D2E8214A1008342E8 /* StikDebug.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */; };
-		68AD80462E6B65DA00DE9112 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80452E6B65DA00DE9112 /* ZsignSwift */; };
-		68AD80482E6B65DA00DE9112 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 68AD80472E6B65DA00DE9112 /* zsign */; };
+		687843662E8765D1002D0813 /* ZSignApple in Frameworks */ = {isa = PBXBuildFile; productRef = 687843652E8765D1002D0813 /* ZSignApple */; };
+		687843682E8765FA002D0813 /* StikDebug.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 687843672E8765FA002D0813 /* StikDebug.storekit */; };
 		68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
@@ -70,7 +69,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StikDebug.storekit; sourceTree = "<group>"; };
+		687843672E8765FA002D0813 /* StikDebug.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StikDebug.storekit; sourceTree = "<group>"; };
 		68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DebugWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC139F6D2DE97EA400F63846 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -160,12 +159,11 @@
 			files = (
 				DCBA85862E3897BD00E88C06 /* StikImporter in Frameworks */,
 				17C744F02E20BED000834F17 /* Pipify in Frameworks */,
-				68AD80462E6B65DA00DE9112 /* ZsignSwift in Frameworks */,
-				68AD80482E6B65DA00DE9112 /* zsign in Frameworks */,
 				68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */,
 				68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
 				68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */,
+				687843662E8765D1002D0813 /* ZSignApple in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,8 +195,8 @@
 		DC6F1D2E2D94EADD0071B2B6 = {
 			isa = PBXGroup;
 			children = (
+				687843672E8765FA002D0813 /* StikDebug.storekit */,
 				DC139F862DE97F2000F63846 /* DebugWidgetExtension.entitlements */,
-				68AA2E4C2E8214A1008342E8 /* StikDebug.storekit */,
 				DC6F1D392D94EADD0071B2B6 /* StikJIT */,
 				DC6F1D4B2D94EADF0071B2B6 /* StikJITTests */,
 				DC6F1D552D94EADF0071B2B6 /* StikJITUITests */,
@@ -282,8 +280,7 @@
 				17C744EF2E20BED000834F17 /* Pipify */,
 				DCBA85852E3897BD00E88C06 /* StikImporter */,
 				68E714E52E6AA2B00025610F /* ZIPFoundation */,
-				68AD80452E6B65DA00DE9112 /* ZsignSwift */,
-				68AD80472E6B65DA00DE9112 /* zsign */,
+				687843652E8765D1002D0813 /* ZSignApple */,
 			);
 			productName = StikJIT;
 			productReference = DC6F1D372D94EADD0071B2B6 /* StikDebug.app */;
@@ -402,7 +399,7 @@
 				17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */,
 				DCBA85842E3897BD00E88C06 /* XCRemoteSwiftPackageReference "StikImporter" */,
 				68E714E42E6AA2B00025610F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				68AD80442E6B65DA00DE9112 /* XCRemoteSwiftPackageReference "Zsign-Package" */,
+				687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DC6F1D382D94EADD0071B2B6 /* Products */;
@@ -423,7 +420,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68AA2E4D2E8214A1008342E8 /* StikDebug.storekit in Resources */,
+				687843682E8765FA002D0813 /* StikDebug.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1014,11 +1011,11 @@
 				kind = branch;
 			};
 		};
-		68AD80442E6B65DA00DE9112 /* XCRemoteSwiftPackageReference "Zsign-Package" */ = {
+		687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/khcrysalis/Zsign-Package/";
+			repositoryURL = "https://github.com/loyahdev/zsign-swift";
 			requirement = {
-				branch = package;
+				branch = main;
 				kind = branch;
 			};
 		};
@@ -1054,15 +1051,10 @@
 			package = 17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */;
 			productName = Pipify;
 		};
-		68AD80452E6B65DA00DE9112 /* ZsignSwift */ = {
+		687843652E8765D1002D0813 /* ZSignApple */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 68AD80442E6B65DA00DE9112 /* XCRemoteSwiftPackageReference "Zsign-Package" */;
-			productName = ZsignSwift;
-		};
-		68AD80472E6B65DA00DE9112 /* zsign */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 68AD80442E6B65DA00DE9112 /* XCRemoteSwiftPackageReference "Zsign-Package" */;
-			productName = zsign;
+			package = 687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */;
+			productName = ZSignApple;
 		};
 		68D569BD2E1B415700A5BA36 /* CodeEditorView */ = {
 			isa = XCSwiftPackageProductDependency;
