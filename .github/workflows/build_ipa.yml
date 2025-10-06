@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build Debug IPA
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
