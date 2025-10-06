@@ -36,6 +36,9 @@
   </a>
 </div>
 
+## Code Help
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/stephendev0/stikdebug)
+
 ## Features  
 - On-device debugging/Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
 - Seamless integration with our custom-built loopback vpn.  
