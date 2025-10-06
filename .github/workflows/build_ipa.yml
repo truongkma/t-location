@@ -1,4 +1,4 @@
-name: Build Unsigned Debug IPA
+name: Build Alpha IPA
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build Debug IPA
-    runs-on: macos-latest   # Always the newest available macOS runner
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -19,8 +19,8 @@ jobs:
       - name: Setup Xcode (latest stable)
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 'latest-stable'  # Always the newest non-beta Xcode
-
+          xcode-version: 'latest-stable'
+          
       - name: Archive Build (Debug, Unsigned)
         run: |
           xcodebuild clean archive \
@@ -48,9 +48,20 @@ jobs:
           zip -r StikDebug.ipa Payload
           rm -rf Payload StikDebug.app
 
-      - name: Upload Debug IPA
+      - name: Upload Debug IPA (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: StikDebug-Debug.ipa
           path: StikDebug.ipa
           retention-days: 90
+
+      - name: Create or Update GitHub Release (GitHub-Alpha)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: GitHub-Alpha
+          name: GitHub-Alpha
+          draft: false
+          prerelease: true
+          files: StikDebug.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
