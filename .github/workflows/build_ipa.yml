@@ -1,4 +1,4 @@
-name: Build Alpha IPA
+name: Build Unsigned Debug IPA
 
 on:
   push:
@@ -7,10 +7,13 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write  
+  
 jobs:
   build:
     name: Build Debug IPA
-    runs-on: macos-latest
+    runs-on: macos-latest  
 
     steps:
       - name: Checkout
@@ -19,7 +22,7 @@ jobs:
       - name: Setup Xcode (latest stable)
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 'latest-stable'
+          xcode-version: 'latest-stable' 
           
       - name: Archive Build (Debug, Unsigned)
         run: |
@@ -39,10 +42,7 @@ jobs:
 
       - name: Create IPA from Archive
         run: |
-          # Copy the .app from the archive
           cp -R build/StikDebug.xcarchive/Products/Applications/StikDebug.app .
-
-          # Package the app into an IPA
           mkdir -p Payload
           cp -R StikDebug.app Payload/
           zip -r StikDebug.ipa Payload
@@ -56,12 +56,15 @@ jobs:
           retention-days: 90
 
       - name: Create or Update GitHub Release (GitHub-Alpha)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: GitHub-Alpha
           name: GitHub-Alpha
-          draft: false
           prerelease: true
-          files: StikDebug.ipa
+          generate_release_notes: true
+          target_commitish: ${{ github.sha }}
+          files: |
+            StikDebug.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
