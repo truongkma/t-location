@@ -33,6 +33,7 @@
 <div>
   <a href="https://apps.apple.com/us/app/stikdebug/id6744045754" target="_blank" rel="noopener noreferrer">
     <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" style="width: 200px; height: auto;">
+     <a href="https://intradeus.github.io/http-protocol-redirector?r=altstore://source?url=https://StikDebug.xyz/apps.json"><img src="https://github.com/user-attachments/assets/0cadc474-ca12-4b83-b04c-2962087cabcb" alt="Add to AltStore PAL" height="50"></a>
   </a>
 </div>
 
