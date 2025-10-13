@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>StikFetch Patreon Redirect</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0b0b0f;
+        color: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+        text-align: center;
+      }
+      .card {
+        max-width: 420px;
+        padding: 32px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+      }
+      h1 {
+        font-size: 1.9rem;
+        margin-bottom: 12px;
+      }
+      p {
+        margin: 0;
+        line-height: 1.5;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, SFMono-Bold, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Opening StikFetch…</h1>
+      <p id="status">If the app doesn’t open automatically, tap the button below.</p>
+      <p class="hidden" id="error"></p>
+      <p style="margin-top: 18px;">
+        <a id="open-app" href="#" style="color: #9ad1ff;">Open StikFetch</a>
+      </p>
+      <p style="margin-top: 24px; font-size: 0.85rem; opacity: 0.75;">
+        You can close this tab once the app finishes signing you in.
+      </p>
+    </div>
+    <script>
+      (function () {
+        const query = window.location.search || "";
+        const hash = window.location.hash || "";
+        const target = "stikfetch://oauth" + query + hash;
+        const error = new URLSearchParams(query).get("error_description");
+
+        const errorEl = document.getElementById("error");
+        const statusEl = document.getElementById("status");
+        const openLink = document.getElementById("open-app");
+        openLink.href = target;
+
+        if (error) {
+          statusEl.textContent = "Patreon reported an error while signing in.";
+          errorEl.textContent = error;
+          errorEl.classList.remove("hidden");
+          return;
+        }
+
+        let opened = false;
+        const attemptOpen = () => {
+          window.location.replace(target);
+        };
+
+        openLink.addEventListener("click", (event) => {
+          event.preventDefault();
+          attemptOpen();
+        });
+
+        attemptOpen();
+
+        setTimeout(() => {
+          if (!opened) {
+            statusEl.textContent = "Tap “Open StikFetch” above if your device doesn’t switch automatically.";
+          }
+        }, 1200);
+      })();
+    </script>
+  </body>
+</html>
