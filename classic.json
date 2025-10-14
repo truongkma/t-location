@@ -1,0 +1,58 @@
+{
+  "name": "Stephen's Apps (StikBridge Beta)",
+  "subtitle": "A collection of Stephen B's apps",
+  "website": "https://stikdebug.xyz",
+  "patreonURL": "https://www.patreon.com/StephenDev0",
+  "tintColor": "#293B45",
+  "featuredApps": [
+    "com.stik.StikBridge.beta"
+  ],
+  "apps": [
+    {
+      "name": "StikBridge",
+      "bundleIdentifier": "com.stik.StikBridge.beta",
+      "marketplaceID": "6753732323",
+      "developerName": "Stephen B",
+      "subtitle": "Patreon beta access",
+      "localizedDescription": "The Patreon beta release of StikBridge is now live! Get early access to new tools and help test features before the full 1.0 release on January 1, 2026. The beta will continue to receive experimental builds and updates even after the public 1.0 release, remaining a dedicated testing branch for new features.",
+      "category": "developer",
+      "iconURL": "https://stikdebug.xyz/BridgeBeta.PNG",
+      "tintColor": "#293B45",
+      "minOSVersion": "17.4",
+      "beta": true,
+      "patreon": {
+        "pledge": 3
+      },
+      "tags": ["beta"],
+      "screenshots": {
+        "iphone": [
+          {
+            "width": 1290,
+            "height": 2796,
+            "imageURL": "https://stikdebug.xyz/4.PNG"
+          },
+          {
+            "width": 1290,
+            "height": 2796,
+            "imageURL": "https://stikdebug.xyz/5.PNG"
+          },
+          {
+            "width": 1290,
+            "height": 2796,
+            "imageURL": "https://stikdebug.xyz/6.PNG"
+          }
+        ]
+      },
+      "versions": [
+        {
+          "version": "0.2.0",
+          "date": "2025-10-08T11:00:00-04:00",
+          "localizedDescription": "Patreon beta release of StikBridge — now live! Exclusive early access for Patreon supporters to test new features and tools before the public 1.0 release. The beta will continue to exist as an ongoing test branch with new experimental features even after 1.0 launches.",
+          "downloadURL": "https://www.patreon.com/file?h=141090352&m=548062830",
+          "size": 3296110,
+          "buildVersion": "1"
+        }
+      ]
+    }
+  ]
+}
