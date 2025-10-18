@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
-		687843662E8765D1002D0813 /* ZSignApple in Frameworks */ = {isa = PBXBuildFile; productRef = 687843652E8765D1002D0813 /* ZSignApple */; };
 		68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
@@ -161,7 +160,6 @@
 				68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
 				68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */,
-				687843662E8765D1002D0813 /* ZSignApple in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,7 +275,6 @@
 				17C744EF2E20BED000834F17 /* Pipify */,
 				DCBA85852E3897BD00E88C06 /* StikImporter */,
 				68E714E52E6AA2B00025610F /* ZIPFoundation */,
-				687843652E8765D1002D0813 /* ZSignApple */,
 			);
 			productName = StikJIT;
 			productReference = DC6F1D372D94EADD0071B2B6 /* StikDebug.app */;
@@ -396,7 +393,6 @@
 				17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */,
 				DCBA85842E3897BD00E88C06 /* XCRemoteSwiftPackageReference "StikImporter" */,
 				68E714E42E6AA2B00025610F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DC6F1D382D94EADD0071B2B6 /* Products */;
@@ -690,8 +686,9 @@
 		DC6F1D5D2D94EADF0071B2B6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StikDebug;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = StikJIT/StikJIT.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -743,8 +740,9 @@
 		DC6F1D5E2D94EADF0071B2B6 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = StikDebug;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = StikJIT/StikJIT.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -1007,14 +1005,6 @@
 				kind = branch;
 			};
 		};
-		687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/loyahdev/zsign-swift";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		68D569BC2E1B415700A5BA36 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mchakravarty/CodeEditorView";
@@ -1046,11 +1036,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 17C744EE2E20BED000834F17 /* XCRemoteSwiftPackageReference "swiftui-pipify" */;
 			productName = Pipify;
-		};
-		687843652E8765D1002D0813 /* ZSignApple */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 687843642E8765D0002D0813 /* XCRemoteSwiftPackageReference "zsign-swift" */;
-			productName = ZSignApple;
 		};
 		68D569BD2E1B415700A5BA36 /* CodeEditorView */ = {
 			isa = XCSwiftPackageProductDependency;

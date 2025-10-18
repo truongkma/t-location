@@ -1,5 +1,5 @@
 {
-  "originHash" : "af465bb1c1430dc380451fa591e9921f0137b228028823dc223d9644e144d632",
+  "originHash" : "ac6355f0d394d08e98cd8bc09669552151ca717b83a414b5708b301c9ba767e4",
   "pins" : [
     {
       "identity" : "codeeditorview",
@@ -44,15 +44,6 @@
       "state" : {
         "revision" : "02b6abe5f6eef7e3cbd5f247c5cc24e246efcfe0",
         "version" : "0.9.19"
-      }
-    },
-    {
-      "identity" : "zsign-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/loyahdev/zsign-swift",
-      "state" : {
-        "branch" : "main",
-        "revision" : "574ad0bc993ecb2b13b170730bd5b196005034b4"
       }
     }
   ],
