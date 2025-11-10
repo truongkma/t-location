@@ -8,68 +8,45 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-
+  contents: write  
+  
 jobs:
   build:
     name: Build Debug IPA
-    runs-on: macos-latest
+    runs-on: macos-latest  
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Setup Xcode
+
+      - name: Setup Xcode (latest stable)
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.1'
-
-      - name: Diagnostics (helpful in logs)
+          xcode-version: '26.0.1' 
+          
+      - name: Archive Build (Debug, Unsigned)
         run: |
-          set -euxo pipefail
-          xcodebuild -version
-          xcode-select -p
-          xcodebuild -showsdks
-
-      - name: Resolve Swift Packages (device-only)
-        run: |
-          set -euxo pipefail
-          xcodebuild -resolvePackageDependencies \
-            -project StikDebug.xcodeproj \
-            -scheme "StikDebug" \
-            -destination 'generic/platform=iOS' \
-            -skipPackagePluginValidation
-
-      - name: Archive Build (Debug, Unsigned, Device-only)
-        run: |
-          set -euxo pipefail
           xcodebuild clean archive \
             -project StikDebug.xcodeproj \
             -scheme "StikDebug" \
             -configuration Debug \
-            -archivePath "$PWD/build/StikDebug.xcarchive" \
+            -archivePath build/StikDebug.xcarchive \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
-            -derivedDataPath "$PWD/build/DerivedData" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="" \
-            SKIP_INSTALL=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=NO \
-            TEST_AFTER_BUILD=NO \
-            ENABLE_TESTABILITY=NO \
-            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             SWIFT_OPTIMIZATION_LEVEL="-Onone" \
             IPHONEOS_DEPLOYMENT_TARGET=17.4
 
       - name: Create IPA from Archive
         run: |
-          set -euxo pipefail
-          APP_PATH="$PWD/build/StikDebug.xcarchive/Products/Applications/StikDebug.app"
-          test -d "$APP_PATH"  # fail early if archive didn't produce the .app
+          cp -R build/StikDebug.xcarchive/Products/Applications/StikDebug.app .
           mkdir -p Payload
-          cp -R "$APP_PATH" Payload/
-          (cd Payload && zip -r ../StikDebug.ipa .)
-          rm -rf Payload
+          cp -R StikDebug.app Payload/
+          zip -r StikDebug.ipa Payload
+          rm -rf Payload StikDebug.app
 
       - name: Upload Debug IPA (artifact)
         uses: actions/upload-artifact@v4
@@ -85,8 +62,9 @@ jobs:
           tag_name: GitHub-Alpha
           name: GitHub-Alpha
           prerelease: true
-          generate_release_notes: false
+          generate_release_notes: true
           target_commitish: ${{ github.sha }}
-          files: StikDebug.ipa
+          files: |
+            StikDebug.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
