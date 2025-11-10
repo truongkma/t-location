@@ -62,7 +62,7 @@ jobs:
           tag_name: GitHub-Alpha
           name: GitHub-Alpha
           prerelease: true
-          generate_release_notes: true
+          generate_release_notes: false
           target_commitish: ${{ github.sha }}
           files: |
             StikDebug.ipa
