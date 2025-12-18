@@ -8,15 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		17C744F02E20BED000834F17 /* Pipify in Frameworks */ = {isa = PBXBuildFile; productRef = 17C744EF2E20BED000834F17 /* Pipify */; };
-		68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */; };
 		68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BD2E1B415700A5BA36 /* CodeEditorView */; };
 		68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 68D569BF2E1B415700A5BA36 /* LanguageSupport */; };
 		68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 68E714E52E6AA2B00025610F /* ZIPFoundation */; };
 		DC139F6E2DE97EA400F63846 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC139F6D2DE97EA400F63846 /* WidgetKit.framework */; };
 		DC139F702DE97EA400F63846 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC139F6F2DE97EA400F63846 /* SwiftUI.framework */; };
 		DC139F812DE97EA600F63846 /* DebugWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		DCA690122DAF660E007C91A8 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCA690112DAF660E007C91A8 /* NetworkExtension.framework */; };
-		DCA6901A2DAF660E007C91A8 /* TunnelProv.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DCA690102DAF660E007C91A8 /* TunnelProv.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DCBA85862E3897BD00E88C06 /* StikImporter in Frameworks */ = {isa = PBXBuildFile; productRef = DCBA85852E3897BD00E88C06 /* StikImporter */; };
 /* End PBXBuildFile section */
 
@@ -42,13 +39,6 @@
 			remoteGlobalIDString = DC6F1D362D94EADD0071B2B6;
 			remoteInfo = StikJIT;
 		};
-		DCA690182DAF660E007C91A8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DC6F1D2F2D94EADD0071B2B6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DCA6900F2DAF660E007C91A8;
-			remoteInfo = TunnelProv;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -59,7 +49,6 @@
 			dstSubfolderSpec = 13;
 			files = (
 				DC139F812DE97EA600F63846 /* DebugWidgetExtension.appex in Embed Foundation Extensions */,
-				DCA6901A2DAF660E007C91A8 /* TunnelProv.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -67,7 +56,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DebugWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC139F6D2DE97EA400F63846 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		DC139F6F2DE97EA400F63846 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -75,8 +63,6 @@
 		DC6F1D372D94EADD0071B2B6 /* StikDebug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StikDebug.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D482D94EADF0071B2B6 /* StikDebugTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikDebugTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StikDebugUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DCA690102DAF660E007C91A8 /* TunnelProv.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TunnelProv.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		DCA690112DAF660E007C91A8 /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -93,13 +79,6 @@
 				Info.plist,
 			);
 			target = DC139F6B2DE97EA400F63846 /* DebugWidgetExtension */;
-		};
-		DCA6901E2DAF660E007C91A8 /* Exceptions for "TunnelProv" folder in "TunnelProv" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = DCA6900F2DAF660E007C91A8 /* TunnelProv */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -130,14 +109,6 @@
 			path = StikJITUITests;
 			sourceTree = "<group>";
 		};
-		DCA690132DAF660E007C91A8 /* TunnelProv */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				DCA6901E2DAF660E007C91A8 /* Exceptions for "TunnelProv" folder in "TunnelProv" target */,
-			);
-			path = TunnelProv;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,7 +128,6 @@
 				17C744F02E20BED000834F17 /* Pipify in Frameworks */,
 				DCBA85862E3897BD00E88C06 /* StikImporter in Frameworks */,
 				68D569C02E1B415700A5BA36 /* LanguageSupport in Frameworks */,
-				68D1FA402E847E4A0028A0EA /* StoreKit.framework in Frameworks */,
 				68D569BE2E1B415700A5BA36 /* CodeEditorView in Frameworks */,
 				68E714E62E6AA2B00025610F /* ZIPFoundation in Frameworks */,
 			);
@@ -177,14 +147,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DCA6900D2DAF660E007C91A8 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				DCA690122DAF660E007C91A8 /* NetworkExtension.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -195,7 +157,6 @@
 				DC6F1D392D94EADD0071B2B6 /* StikJIT */,
 				DC6F1D4B2D94EADF0071B2B6 /* StikJITTests */,
 				DC6F1D552D94EADF0071B2B6 /* StikJITUITests */,
-				DCA690132DAF660E007C91A8 /* TunnelProv */,
 				DC139F712DE97EA400F63846 /* DebugWidget */,
 				DC6F1D752D94EB620071B2B6 /* Frameworks */,
 				DC6F1D382D94EADD0071B2B6 /* Products */,
@@ -208,7 +169,6 @@
 				DC6F1D372D94EADD0071B2B6 /* StikDebug.app */,
 				DC6F1D482D94EADF0071B2B6 /* StikDebugTests.xctest */,
 				DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */,
-				DCA690102DAF660E007C91A8 /* TunnelProv.appex */,
 				DC139F6C2DE97EA400F63846 /* DebugWidgetExtension.appex */,
 			);
 			name = Products;
@@ -217,8 +177,6 @@
 		DC6F1D752D94EB620071B2B6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				68D1FA3F2E847E4A0028A0EA /* StoreKit.framework */,
-				DCA690112DAF660E007C91A8 /* NetworkExtension.framework */,
 				DC139F6D2DE97EA400F63846 /* WidgetKit.framework */,
 				DC139F6F2DE97EA400F63846 /* SwiftUI.framework */,
 			);
@@ -262,7 +220,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				DCA690192DAF660E007C91A8 /* PBXTargetDependency */,
 				DC139F802DE97EA600F63846 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -326,28 +283,6 @@
 			productReference = DC6F1D522D94EADF0071B2B6 /* StikDebugUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		DCA6900F2DAF660E007C91A8 /* TunnelProv */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = DCA6901B2DAF660E007C91A8 /* Build configuration list for PBXNativeTarget "TunnelProv" */;
-			buildPhases = (
-				DCA6900C2DAF660E007C91A8 /* Sources */,
-				DCA6900D2DAF660E007C91A8 /* Frameworks */,
-				DCA6900E2DAF660E007C91A8 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				DCA690132DAF660E007C91A8 /* TunnelProv */,
-			);
-			name = TunnelProv;
-			packageProductDependencies = (
-			);
-			productName = TunnelProv;
-			productReference = DCA690102DAF660E007C91A8 /* TunnelProv.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -372,9 +307,6 @@
 					DC6F1D512D94EADF0071B2B6 = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = DC6F1D362D94EADD0071B2B6;
-					};
-					DCA6900F2DAF660E007C91A8 = {
-						CreatedOnToolsVersion = 16.2;
 					};
 				};
 			};
@@ -403,7 +335,6 @@
 				DC6F1D362D94EADD0071B2B6 /* StikDebug */,
 				DC6F1D472D94EADF0071B2B6 /* StikDebugTests */,
 				DC6F1D512D94EADF0071B2B6 /* StikDebugUITests */,
-				DCA6900F2DAF660E007C91A8 /* TunnelProv */,
 				DC139F6B2DE97EA400F63846 /* DebugWidgetExtension */,
 			);
 		};
@@ -432,13 +363,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DC6F1D502D94EADF0071B2B6 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DCA6900E2DAF660E007C91A8 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -476,13 +400,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DCA6900C2DAF660E007C91A8 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -501,11 +418,6 @@
 			target = DC6F1D362D94EADD0071B2B6 /* StikDebug */;
 			targetProxy = DC6F1D532D94EADF0071B2B6 /* PBXContainerItemProxy */;
 		};
-		DCA690192DAF660E007C91A8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DCA6900F2DAF660E007C91A8 /* TunnelProv */;
-			targetProxy = DCA690182DAF660E007C91A8 /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -517,7 +429,7 @@
 				CODE_SIGN_ENTITLEMENTS = DebugWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SZ977XLF24;
+				DEVELOPMENT_TEAM = 2743MYJ5UC;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebugWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DebugWidget;
@@ -529,7 +441,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.DebugWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.DebugWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -547,7 +459,7 @@
 				CODE_SIGN_ENTITLEMENTS = DebugWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SZ977XLF24;
+				DEVELOPMENT_TEAM = 2743MYJ5UC;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DebugWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DebugWidget;
@@ -559,7 +471,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.DebugWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.DebugWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -695,7 +607,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"StikJIT/Preview Content\"";
-				DEVELOPMENT_TEAM = SZ977XLF24;
+				DEVELOPMENT_TEAM = 2743MYJ5UC;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -726,8 +638,8 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 2.3.5;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
+				MARKETING_VERSION = 2.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -753,7 +665,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"StikJIT/Preview Content\"";
-				DEVELOPMENT_TEAM = SZ977XLF24;
+				DEVELOPMENT_TEAM = 2743MYJ5UC;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -784,8 +696,8 @@
 					"$(PROJECT_DIR)/StikJIT/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 2.3.5;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj;
+				MARKETING_VERSION = 2.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -889,63 +801,6 @@
 			};
 			name = Release;
 		};
-		DCA6901C2DAF660E007C91A8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TunnelProv/TunnelProv.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SZ977XLF24;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TunnelProv/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TunnelProv;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.TunnelProv;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		DCA6901D2DAF660E007C91A8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = TunnelProv/TunnelProv.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = SZ977XLF24;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TunnelProv/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = TunnelProv;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.sj.TunnelProv;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -990,15 +845,6 @@
 			buildConfigurations = (
 				DC6F1D632D94EADF0071B2B6 /* Debug */,
 				DC6F1D642D94EADF0071B2B6 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		DCA6901B2DAF660E007C91A8 /* Build configuration list for PBXNativeTarget "TunnelProv" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				DCA6901C2DAF660E007C91A8 /* Debug */,
-				DCA6901D2DAF660E007C91A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
