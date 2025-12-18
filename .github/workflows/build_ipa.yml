@@ -15,7 +15,7 @@ jobs:
     name: Build Debug IPA
     runs-on: macos-latest  
     env:
-      UPLOAD_IPA: ${{ vars.UPLOAD_IPA || 'false' }}
+      UPLOAD_IPA: ${{ vars.UPLOAD_IPA || 'true' }}
 
     steps:
       - name: Checkout
