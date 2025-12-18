@@ -1,7 +1,5 @@
 <div align="center">
-   <a href="https://apps.apple.com/us/app/stikdebug/id6744045754" target="_blank" rel="noopener noreferrer">
    <img width="217" height="217" src="/assets/StikJIT.png" alt="Logo">
-   </a>
 </div>
    
 
