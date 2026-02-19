@@ -30,12 +30,16 @@
 
 <div align="center" style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
    <a href="https://stikstore.app/altdirect/?url=https://stikdebug.xyz/index.json" target="_blank">
-  <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/AltSource_Blue.png?raw=true" alt="Add AltSource" width="200">
+  <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/AltSource_Blue.png" alt="Add AltSource" width="200">
    </a>
    <a href="https://github.com/StephenDev0/StikDebug/releases/download/2.3.7/StikDebug-2.3.7.ipa" target="_blank">
-  <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/Download_Blue.png?raw=true" alt="Download .ipa" width="200">
+  <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/Download_Blue.png" alt="Download .ipa" width="200">
    </a>
 </div>
+
+## Project Status
+> [!NOTE]
+> A major code cleanup and rewrite is currently underway on the [`semi-rewrite`](https://github.com/StephenDev0/StikDebug/tree/semi-rewrite) branch to improve stability and maintainability.
 
 ## Code Help
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/stephendev0/stikdebug)
