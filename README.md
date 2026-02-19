@@ -1,7 +1,9 @@
+> [!CAUTION]
+> **WARNING:** There are known critical issues with **iOS 26.4 Developer Beta 1**. The `lockdownd` service appears to be dropping connections, which interferes with how the device connects to itself (loopback/pairing issues) and prevents JIT from functioning. **DO NOT UPDATE** if you rely on StikDebug. These issues and possible fixes are currently being investigated.
+
 <div align="center">
    <img width="217" height="217" src="/assets/StikJIT.png" alt="Logo">
 </div>
-   
 
 <div align="center">
   <h1><b>StikDebug</b></h1>
@@ -9,13 +11,11 @@
 </div>
 
 <h6 align="center">
-
   <a href="https://discord.gg/ZnNcrRT3M8">
     <img src="https://img.shields.io/badge/Discord-join%20us-7289DA?logo=discord&logoColor=white&style=for-the-badge&labelColor=23272A" />
   </a>
   <a href="https://github.com/StephenDev0/StikDebug/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/0-Blu/StikJIT?label=License&color=5865F2&style=for-the-badge&labelColor=23272A" />
-  </a>
   </a>
   <a href="https://github.com/StephenDev0/StikDebug/stargazers">
     <img src="https://img.shields.io/github/stars/0-Blu/StikJIT?label=Stars&color=FEE75C&style=for-the-badge&labelColor=23272A" />
@@ -43,4 +43,4 @@
 - No data collection—ensuring full privacy. 
 
 ## License  
-StikDebug is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.  
+StikDebug is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.
