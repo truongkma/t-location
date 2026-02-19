@@ -24,6 +24,10 @@
 </h6>
 
 # Download
+
+> [!WARNING]
+> **Notice:** StikDebug is no longer available on the App Store. Please use the official download methods below.
+
 <div align="center" style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
    <a href="https://stikstore.app/altdirect/?url=https://stikdebug.xyz/index.json" target="_blank">
   <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/AltSource_Blue.png?raw=true" alt="Add AltSource" width="200">
