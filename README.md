@@ -44,11 +44,5 @@
 ## Code Help
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/stephendev0/stikdebug)
 
-## Features  
-- On-device debugging/Just-In-Time (JIT) compilation for supported apps via [`idevice`](https://github.com/jkcoxson/idevice).  
-- No special VPN/Network Extension entitlements required.  
-- Native UI for managing debugging/JIT-enabling.  
-- No data collection
-
 ## License  
 StikDebug is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.
