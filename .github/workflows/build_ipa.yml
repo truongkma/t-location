@@ -2,9 +2,9 @@ name: Build Debug IPA
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "semi-rewrite" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "semi-rewrite" ]
   workflow_dispatch:
 
 permissions:
@@ -71,7 +71,7 @@ jobs:
           tag_name: Nightly
           name: "Nightly Build - v${{ steps.version.outputs.app_version }}"
           prerelease: true
-          generate_release_notes: false
+          generate_release_notes: true
           target_commitish: ${{ github.sha }}
           files: |
             StikDebug.ipa
