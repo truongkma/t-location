@@ -31,7 +31,7 @@
 - **App Launching:** Launch every app installed on your device.
 - **Console:** Live app and system logs.
 - **Scripts:** Manage automation scripts (mainly used for iOS 26 JIT). 
-- **Profiles:** Install/remove profile and see when apps will expire.
+- **App Expiry:** See when apps will expire and install/remove profiles.
 - **Device Info:** View detailed device metadata.
 - **Processes:** Inspect running apps/processes and terminate them.
 - **Location Simulator:** Simulate the GPS location of your device.
