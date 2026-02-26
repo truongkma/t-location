@@ -27,7 +27,7 @@
 </h6>
 
 ## Features
-- **JIT:** Enable Just In Time coplation in sideloaded apps that have the `get-task-allow` entitlement.
+- **JIT:** Enable Just In Time compilation for sideloaded apps that have the `get-task-allow` entitlement.
 - **App Launching:** Launch every app installed on your device.
 - **Console:** Live app and system logs.
 - **Scripts:** Manage automation scripts (mainly used for iOS 26 JIT). 
@@ -53,11 +53,11 @@
 
 | iOS Version              | Status               | Notes                                                                 |
 |--------------------------|----------------------|-----------------------------------------------------------------------|
-| 1.0 – 17.3.X             | Not supported      | Uses Different Connection Protocols                                                                |
+| 1.0 – 17.3.X             | Not supported        | Uses Different Connection Protocols                                   |
 | 17.4 – 18.x              | Fully supported      | Stable                                                                |
-| 26.0 – 26.3              | Supported            | Limited App Availability (Developers need to update their apps to work.)                                        |
-| 26.4 Developer Beta 1    | Critical issues   | lockdownd drops connections → JIT broken; do not update               |
-| iOS 26.4+ betas / future | Untested / partial   | Check [Discord](https://discord.gg/ZnNcrRT3M8), [releases](https://github.com/StephenDev0/StikDebug/releases), or [@StephenDev0 on X](https://x.com/stephendev0) for updates                                 |
+| 26.0 – 26.3              | Supported            | Limited App Availability (Developers need to update their apps to work.) |
+| 26.4 Developer Beta 1    | Critical issues   | lockdownd drops connections → JIT broken; do not update                  |
+| iOS 26.4+ betas / future | Untested / partial   | Check [Discord](https://discord.gg/ZnNcrRT3M8), [releases](https://github.com/StephenDev0/StikDebug/releases), or [@StephenDev0 on X](https://x.com/stephendev0) for updates |
 
 ## How to Enable JIT
 
@@ -67,23 +67,23 @@ StikDebug enables **JIT** for sideloaded apps on iOS 17.4+ without needing a com
 - StikDebug installed (via AltSource, direct .ipa, or self-built)
 - A valid **pairing file** (.plist / .mobiledevicepairing) for your device
 - SideStore / AltStore / similar sideload tool (for app refreshing)
-- A loopback vpn such as [LocalDevVPN](https://apps.apple.com/us/app/localdevvpn/id6755608044)
+- A loopback VPN such as [LocalDevVPN](https://apps.apple.com/us/app/localdevvpn/id6755608044)
 
 ### Steps
 1. **Obtain a pairing file**  
    - Detailed guide: [Pairing File Instructions](https://github.com/StephenDev0/StikDebug-Guide/blob/main/pairing_file.md) (or ask in Discord).
 
 2. **Set up VPN**  
-   - Launch LocalDevVPN and enable the vpn.
+   - Launch LocalDevVPN and enable the VPN.
 
 4. **Enable JIT for an app**  
-   - Launch StikDebug and press the `Enable JIT` button.
+   - Launch StikDebug and tapp the `Enable JIT` button.
    - Select your sideloaded app from the list in StikDebug.  
 
 **Troubleshooting**  
 - "Connection dropped" or loopback errors → Check iOS version compatibility / beta warnings.  
-- Heartbeat erros → Ensure that the vpn is on and that you are connecected to Wi-Fi.
-- Pairing file issues → Regenerate file with device unlocked & trusted.  
+- Heartbeat errors → Ensure that the VPN is on and that you are connecected to Wi-Fi. It may be a pairing file issue.
+- Pairing file issues → Replace file with device unlocked & trusted.  
 - Still stuck? Join the [Discord](https://discord.gg/ZnNcrRT3M8) with logs/screenshots.
 
 <!-- 
