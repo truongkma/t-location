@@ -71,7 +71,8 @@ jobs:
           tag_name: Nightly
           name: "Nightly Build - v${{ steps.version.outputs.app_version }}"
           prerelease: true
-          generate_release_notes: true
+          body: |
+            Built from commit [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
           target_commitish: ${{ github.sha }}
           files: |
             StikDebug.ipa
