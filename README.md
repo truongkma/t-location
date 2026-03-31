@@ -23,7 +23,7 @@
   <br />
 </h6>
 
-> [!NOTE]
+> [!WARNING]
 > The Tools section of StikDebug is being moved to a separate app to make both codebases easier to maintain and to improve the user experience in both apps. Thank you for your understanding.
 
 ## Features
@@ -37,7 +37,7 @@
 - **Location Simulator:** Simulate the GPS location of your device.
 
 ## Download
-> [!WARNING]
+> [!NOTE]
 > **Notice:** StikDebug is no longer available on the App Store. Please use the official download methods below.
 
 <div align="center" style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -98,8 +98,6 @@ StikDebug enables **JIT** for sideloaded apps on iOS 17.4+ without needing a com
 -->
 
 ## Building from Source
-> [!NOTE]
-> StikDebug is an open-source Xcode project written mostly in Swift. Building yourself lets you modify code, debug, or create custom versions. Requires a Mac with Xcode.
 
 ### Requirements
 - macOS (latest recommended)
