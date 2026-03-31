@@ -1,6 +1,3 @@
-> [!CAUTION]
-> **WARNING:** There are known critical issues with **iOS 26.4 Developer Beta 1**. The `lockdownd` service appears to be dropping connections, which interferes with how the device connects to itself (loopback/pairing issues) and prevents JIT from functioning. **DO NOT UPDATE** if you rely on StikDebug. These issues and possible fixes are currently being investigated.
-
 <div align="center">
    <img width="217" height="217" src="/assets/StikJIT.png" alt="Logo">
 </div>
