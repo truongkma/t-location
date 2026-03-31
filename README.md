@@ -23,6 +23,9 @@
   <br />
 </h6>
 
+> [!NOTE]
+> The Tools section of StikDebug is being moved to a separate app to make both codebases easier to maintain and to improve the user experience in both apps. Thank you for your understanding.
+
 ## Features
 - **JIT:** Enable Just In Time compilation for sideloaded apps that have the `get-task-allow` entitlement.
 - **App Launching:** Launch every app installed on your device.
