@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "id": "news-tab-added",
+      "title": "News tab added",
+      "body": "Added a simple News tab for StikDebug updates.",
+      "date": "2026-05-18",
+      "category": "Update",
+      "symbol": "newspaper.fill",
+      "tint": "blue"
+    }
+  ]
+}
