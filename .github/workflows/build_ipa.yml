@@ -2,18 +2,18 @@ name: Build Debug IPA
 
 on:
   push:
-    branches: [ "main", "semi-rewrite" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "semi-rewrite" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
-  contents: write  
+  contents: read
 
 jobs:
-  build_and_release:
-    name: Build & Release IPA
-    runs-on: macos-latest  
+  build:
+    name: Build IPA
+    runs-on: macos-latest
     env:
       UPLOAD_IPA: ${{ vars.UPLOAD_IPA || 'true' }}
 
@@ -24,8 +24,8 @@ jobs:
       - name: 2. Configure Xcode Environment
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.0.1' 
-          
+          xcode-version: '26.0.1'
+
       - name: 3. Compile Project Archive
         run: |
           xcodebuild clean archive \
@@ -57,24 +57,3 @@ jobs:
           name: StikDebug-Debug.ipa
           path: StikDebug.ipa
           retention-days: 90
-
-      - name: 6. Extract Version Information
-        id: version
-        run: |
-          VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' StikDebug.xcodeproj/project.pbxproj | head -1 | xargs)
-          echo "app_version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: 7. Deploy to Nightly Release
-        if: env.UPLOAD_IPA == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: Nightly
-          name: "Nightly Build - v${{ steps.version.outputs.app_version }}"
-          prerelease: true
-          body: |
-            Built from commit [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-          target_commitish: ${{ github.sha }}
-          files: |
-            StikDebug.ipa
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
