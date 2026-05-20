@@ -1,13 +1,13 @@
 //
-//  StikJITUITestsLaunchTests.swift
-//  StikJITUITests
+//  StikDebugUITestsLaunchTests.swift
+//  StikDebugUITests
 //
 //  Created by Stephen on 3/26/25.
 //
 
 import XCTest
 
-final class StikJITUITestsLaunchTests: XCTestCase {
+final class StikDebugUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

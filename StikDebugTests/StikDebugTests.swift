@@ -1,6 +1,6 @@
 //
-//  StikJITTests.swift
-//  StikJITTests
+//  StikDebugTests.swift
+//  StikDebugTests
 //
 //  Created by Stephen on 3/26/25.
 //
@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import StikDebug
 
-struct StikJITTests {
+struct StikDebugTests {
 
     @Test func txmDetectionIgnoresFirmwareFileBeforeIOS26() async throws {
         let isSupported = ProcessInfo.hasTXMSupport(

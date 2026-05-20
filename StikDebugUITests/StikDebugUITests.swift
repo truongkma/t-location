@@ -1,13 +1,13 @@
 //
-//  StikJITUITests.swift
-//  StikJITUITests
+//  StikDebugUITests.swift
+//  StikDebugUITests
 //
 //  Created by Stephen on 3/26/25.
 //
 
 import XCTest
 
-final class StikJITUITests: XCTestCase {
+final class StikDebugUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
