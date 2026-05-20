@@ -1,167 +1,28 @@
 //
-//  ContentView.swift
+//  HomeView.swift
 //  StikDebug
 //
 //  Created by Stephen on 3/26/25.
 //
 
 import SwiftUI
-import UIKit
-
-struct JITEnableConfiguration {
-    var bundleID: String? = nil
-    var pid : Int? = nil
-    var scriptData: Data? = nil
-    var scriptName : String? = nil
-}
-
-private enum ExternalURLAction: Identifiable {
-    case enableJIT(JITEnableConfiguration)
-    case killProcess(Int)
-    case launchApp(String)
-
-    var id: String {
-        switch self {
-        case .enableJIT(let config):
-            return "enable-\(config.bundleID ?? "")-\(config.pid ?? 0)-\(config.scriptName ?? "")"
-        case .killProcess(let pid):
-            return "kill-\(pid)"
-        case .launchApp(let bundleID):
-            return "launch-\(bundleID)"
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .enableJIT:
-            return "Enable JIT?"
-        case .killProcess:
-            return "Kill Process?"
-        case .launchApp:
-            return "Launch App?"
-        }
-    }
-
-    var message: String {
-        switch self {
-        case .enableJIT(let config):
-            let scriptText = config.scriptData == nil ? "" : " and run a script"
-            return "An external link wants to enable JIT\(scriptText) for \(targetDescription(for: config))."
-        case .killProcess(let pid):
-            return "An external link wants to kill process \(pid)."
-        case .launchApp(let bundleID):
-            return "An external link wants to launch \(bundleID)."
-        }
-    }
-
-    var confirmationTitle: String {
-        switch self {
-        case .enableJIT(let config):
-            return config.scriptData == nil ? "Enable JIT" : "Enable and Run Script"
-        case .killProcess:
-            return "Kill Process"
-        case .launchApp:
-            return "Launch App"
-        }
-    }
-
-    var role: ButtonRole? {
-        switch self {
-        case .enableJIT(let config):
-            return config.scriptData == nil ? nil : .destructive
-        case .killProcess:
-            return .destructive
-        case .launchApp:
-            return nil
-        }
-    }
-
-    private func targetDescription(for config: JITEnableConfiguration) -> String {
-        if let bundleID = config.bundleID {
-            return bundleID
-        }
-        if let pid = config.pid {
-            return "process \(pid)"
-        }
-        return "the requested app"
-    }
-}
-
-private final class DebugKeepAliveLease {
-    private let stateLock = NSLock()
-    private var isActive = false
-    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
-
-    init() {
-        activate()
-    }
-
-    func invalidate() {
-        stateLock.lock()
-        guard isActive else {
-            stateLock.unlock()
-            return
-        }
-        isActive = false
-        stateLock.unlock()
-
-        runOnMain {
-            BackgroundAudioManager.shared.requestStop()
-            BackgroundLocationManager.shared.requestStop()
-
-            if self.backgroundTaskID != .invalid {
-                UIApplication.shared.endBackgroundTask(self.backgroundTaskID)
-                self.backgroundTaskID = .invalid
-            }
-        }
-    }
-
-    private func activate() {
-        stateLock.lock()
-        guard !isActive else {
-            stateLock.unlock()
-            return
-        }
-        isActive = true
-        stateLock.unlock()
-
-        runOnMain {
-            BackgroundAudioManager.shared.requestStart()
-            BackgroundLocationManager.shared.requestStart()
-            self.backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "StikDebugDebugSession") { [weak self] in
-                LogManager.shared.addWarningLog("Debug session background task expired")
-                self?.invalidate()
-            }
-        }
-    }
-
-    private func runOnMain(_ work: @escaping () -> Void) {
-        if Thread.isMainThread {
-            work()
-        } else {
-            DispatchQueue.main.sync(execute: work)
-        }
-    }
-}
 
 struct HomeView: View {
-
     @AppStorage("autoQuitAfterEnablingJIT") private var doAutoQuitAfterEnablingJIT = false
     @AppStorage("bundleID") private var bundleID: String = ""
-    @State private var isProcessing = false
-    @State private var viewDidAppeared = false
-    @State private var pendingJITEnableConfiguration : JITEnableConfiguration? = nil
-    @State private var isShowingPairingFilePicker = false
-    @State private var debugFeedback: DebugFeedback?
-    @State private var pendingExternalURLAction: ExternalURLAction?
+    @AppStorage(UserDefaults.Keys.defaultScriptName) private var selectedScript = UserDefaults.Keys.defaultScriptNameValue
 
-    @State var scriptViewShow = false
-    @State private var isShowingConsole = false
-    @AppStorage(UserDefaults.Keys.defaultScriptName) var selectedScript = UserDefaults.Keys.defaultScriptNameValue
-    @State var jsModel: RunJSViewModel?
     @ObservedObject private var mounting = MountingProgress.shared
 
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var hasAppeared = false
+    @State private var pendingJITEnableConfiguration: JITEnableConfiguration?
+    @State private var isShowingPairingFilePicker = false
+    @State private var debugFeedback: DebugFeedback?
+    @State private var pendingExternalURLAction: HomeExternalAction?
+    @State private var isShowingScriptRunner = false
+    @State private var scriptRunModel: RunJSViewModel?
+
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private struct DebugFeedback: Identifiable {
         let id = UUID()
@@ -173,7 +34,7 @@ struct HomeView: View {
     var body: some View {
         InstalledAppsListView(onSelectApp: { selectedBundle, selectedName in
             bundleID = selectedBundle
-            HapticFeedbackHelper.trigger()
+            Haptics.medium()
             startJITInBackground(bundleID: selectedBundle, displayName: selectedName)
         }, showDoneButton: false, onImportPairingFile: { isShowingPairingFilePicker = true })
         .overlay(alignment: .bottom) {
@@ -183,27 +44,10 @@ struct HomeView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .onAppear {
-            startTunnelInBackground()
-            MountingProgress.shared.checkforMounted()
-            viewDidAppeared = true
-            if let config = pendingJITEnableConfiguration {
-                startJITInBackground(bundleID: config.bundleID, pid: config.pid, scriptData: config.scriptData, scriptName: config.scriptName, triggeredByURLScheme: true)
-                pendingJITEnableConfiguration = nil
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .intentJSScriptReady)) { notification in
-            guard let model = notification.userInfo?["model"] as? RunJSViewModel else { return }
-            jsModel = model
-            if let name = notification.userInfo?["scriptName"] as? String {
-                selectedScript = name
-            }
-            scriptViewShow = true
-        }
+        .onAppear(perform: handleAppear)
+        .onReceive(NotificationCenter.default.publisher(for: .intentJSScriptReady), perform: handleScriptReadyNotification)
         .onReceive(timer) { _ in
-            if mounting.mountingThread == nil && !mounting.coolisMounted {
-                MountingProgress.shared.checkforMounted()
-            }
+            refreshMountStatusIfNeeded()
         }
         .onOpenURL { url in
             handleExternalURL(url)
@@ -231,54 +75,77 @@ struct HomeView: View {
         } message: { action in
             Text(action.message)
         }
-        .fileImporter(isPresented: $isShowingPairingFilePicker, allowedContentTypes: PairingFileStore.supportedContentTypes) { result in
-            switch result {
-            case .success(let url):
-                let fileManager = FileManager.default
-                do {
-                    try PairingFileStore.importFromPicker(url, fileManager: fileManager)
-                    pubTunnelConnected = false
-                    startTunnelInBackground()
-                    NotificationCenter.default.post(name: .pairingFileImported, object: nil)
-                    // Dismiss any existing connection error alert
-                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let root = scene.windows.first?.rootViewController {
-                        var top = root
-                        while let presented = top.presentedViewController { top = presented }
-                        if top is UIAlertController { top.dismiss(animated: true) }
-                    }
-                } catch {
-                    print("Error copying pairing file: \(error)")
-                }
-            case .failure(let error):
-                print("Failed to import pairing file: \(error)")
-            }
-        }
-        .sheet(isPresented: $isShowingConsole) {
+        .fileImporter(
+            isPresented: $isShowingPairingFilePicker,
+            allowedContentTypes: PairingFileStore.supportedContentTypes,
+            onCompletion: importPairingFile
+        )
+        .sheet(isPresented: $isShowingScriptRunner) {
             NavigationStack {
-                ConsoleLogsView()
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") {
-                                isShowingConsole = false
-                            }
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $scriptViewShow) {
-            NavigationStack {
-                if let jsModel {
-                    RunJSView(model: jsModel)
+                if let scriptRunModel {
+                    RunJSView(model: scriptRunModel)
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { scriptViewShow = false }
+                                Button("Done") { isShowingScriptRunner = false }
                             }
                         }
                         .navigationTitle(selectedScript)
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }
+        }
+    }
+
+    private func handleAppear() {
+        startTunnelInBackground()
+        MountingProgress.shared.checkforMounted()
+        hasAppeared = true
+
+        if let config = pendingJITEnableConfiguration {
+            startJITInBackground(
+                bundleID: config.bundleID,
+                pid: config.pid,
+                scriptData: config.scriptData,
+                scriptName: config.scriptName,
+                triggeredByURLScheme: true
+            )
+            pendingJITEnableConfiguration = nil
+        }
+    }
+
+    private func handleScriptReadyNotification(_ notification: Notification) {
+        guard let model = notification.userInfo?["model"] as? RunJSViewModel else {
+            return
+        }
+
+        scriptRunModel = model
+        if let name = notification.userInfo?["scriptName"] as? String {
+            selectedScript = name
+        }
+        isShowingScriptRunner = true
+    }
+
+    private func refreshMountStatusIfNeeded() {
+        guard mounting.mountingThread == nil, !mounting.coolisMounted else {
+            return
+        }
+        MountingProgress.shared.checkforMounted()
+    }
+
+    private func importPairingFile(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                try PairingFileStore.importFromPicker(url)
+                markTunnelDisconnected()
+                startTunnelInBackground()
+                NotificationCenter.default.post(name: .pairingFileImported, object: nil)
+                AlertPresenter.dismissPresentedAlert()
+            } catch {
+                LogManager.shared.addErrorLog("Failed to import pairing file: \(error.localizedDescription)")
+            }
+        case .failure(let error):
+            LogManager.shared.addErrorLog("Pairing file picker failed: \(error.localizedDescription)")
         }
     }
 
@@ -336,10 +203,10 @@ struct HomeView: View {
         }
     }
 
-    private func performExternalURLAction(_ action: ExternalURLAction) {
+    private func performExternalURLAction(_ action: HomeExternalAction) {
         switch action {
         case .enableJIT(let config):
-            if viewDidAppeared {
+            if hasAppeared {
                 startJITInBackground(
                     bundleID: config.bundleID,
                     pid: config.pid,
@@ -351,7 +218,7 @@ struct HomeView: View {
                 pendingJITEnableConfiguration = config
             }
         case .killProcess(let pid):
-            pubTunnelConnected = false
+            markTunnelDisconnected()
             startTunnelInBackground(showErrorUI: false)
             DispatchQueue.global(qos: .userInitiated).async {
                 sleep(1)
@@ -367,7 +234,7 @@ struct HomeView: View {
                 }
             }
         case .launchApp(let bundleID):
-            HapticFeedbackHelper.trigger()
+            Haptics.medium()
             DispatchQueue.global(qos: .userInitiated).async {
                 let _ = JITEnableContext.shared.launchAppWithoutDebug(bundleID, logger: nil)
             }
@@ -403,8 +270,8 @@ struct HomeView: View {
                                        semaphore: semaphore)
 
             DispatchQueue.main.async {
-                jsModel = model
-                scriptViewShow = true
+                scriptRunModel = model
+                isShowingScriptRunner = true
             }
 
             do {
@@ -419,7 +286,6 @@ struct HomeView: View {
     }
 
     private func startJITInBackground(bundleID: String? = nil, pid: Int? = nil, scriptData: Data? = nil, scriptName: String? = nil, triggeredByURLScheme: Bool = false, displayName: String? = nil) {
-        isProcessing = true
         let targetName = displayName ?? bundleID ?? pid.map { String(format: "process %d".localized, $0) } ?? "app".localized
         let startingMessage = String(format: "Starting JIT for %@".localized, targetName)
         LogManager.shared.addInfoLog("Starting Debug for \(bundleID ?? String(pid ?? 0))")
@@ -429,7 +295,7 @@ struct HomeView: View {
         AccessibilityAnnouncer.announce(startingMessage)
 
         if triggeredByURLScheme {
-            pubTunnelConnected = false
+            markTunnelDisconnected()
             startTunnelInBackground(showErrorUI: false)
         }
 
@@ -443,7 +309,6 @@ struct HomeView: View {
 
             let finishProcessing: (Bool, String?) -> Void = { success, detail in
                 DispatchQueue.main.async {
-                    isProcessing = false
                     let message = success
                         ? String(format: "JIT request completed for %@".localized, targetName)
                         : String(format: "JIT failed for %@".localized, targetName)
@@ -522,41 +387,4 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
-}
-
-public extension ProcessInfo {
-    var hasTXM: Bool {
-        if isTXMOverridden {
-            return true
-        }
-        return ProcessInfo.hasTXMSupport(
-            operatingSystemVersion: operatingSystemVersion,
-            localTXMDetector: ProcessInfo.detectLocalTXM
-        )
-    }
-
-    var isTXMOverridden: Bool {
-        UserDefaults.standard.bool(forKey: UserDefaults.Keys.txmOverride)
-    }
-
-    static func hasTXMSupport(
-        operatingSystemVersion: OperatingSystemVersion,
-        localTXMDetector: () -> Bool
-    ) -> Bool {
-        guard operatingSystemVersion.majorVersion >= 26 else {
-            return false
-        }
-        return localTXMDetector()
-    }
-
-    private static func detectLocalTXM() -> Bool {
-        if let boot = FileManager.default.filePath(atPath: "/System/Volumes/Preboot", withLength: 36),
-           let file = FileManager.default.filePath(atPath: "\(boot)/boot", withLength: 96) {
-            return access("\(file)/usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4", F_OK) == 0
-        } else {
-            return (FileManager.default.filePath(atPath: "/private/preboot", withLength: 96).map {
-                access("\($0)/usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4", F_OK) == 0
-            }) ?? false
-        }
-    }
 }

@@ -8,12 +8,13 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.stik.StikDebug.enableJIT</string>
+			<string>com.stik.stikdebug.enableJIT</string>
 			<key>CFBundleURLSchemes</key>
-				<array>
-					<string>stikdebug</string>
-				</array>
-			</dict>
+			<array>
+				<string>stikdebug</string>
+				<string>stikjit</string>
+			</array>
+		</dict>
 	</array>
 	<key>NSBonjourServices</key>
 	<array>
@@ -40,7 +41,7 @@
 			<key>UTTypeIconFiles</key>
 			<array/>
 			<key>UTTypeIdentifier</key>
-			<string>com.stik.StikDebug.stiktool</string>
+			<string>com.stik.stikdebug.stiktool</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

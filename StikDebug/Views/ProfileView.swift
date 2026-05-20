@@ -265,9 +265,9 @@ struct ProfileView: View {
             ) { result in
                 switch result {
                 case .success(let url):
-                    print("Saved at \(url)")
+                    LogManager.shared.addInfoLog("Provisioning profile exported to \(url.lastPathComponent)")
                 case .failure(let error):
-                    print("Error: \(error.localizedDescription)")
+                    LogManager.shared.addErrorLog("Provisioning profile export failed: \(error.localizedDescription)")
                 }
             }
         }

@@ -298,7 +298,7 @@ struct StikDebugShortcuts: AppShortcutsProvider {
 
 func ensureTunnel() async {
     await MainActor.run {
-        pubTunnelConnected = false
+        markTunnelDisconnected()
         startTunnelInBackground(showErrorUI: false)
     }
     try? await Task.sleep(nanoseconds: 1_000_000_000)

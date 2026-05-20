@@ -8,10 +8,6 @@
 import SwiftUI
 import Foundation
 
-extension Notification.Name {
-    static let switchToTab = Notification.Name("MainTabSwitchNotification")
-}
-
 private enum ExternalLocationAction: Identifiable {
     case simulate(URL, Double, Double)
     case clear
@@ -55,7 +51,6 @@ private enum ExternalLocationAction: Identifiable {
 
 struct MainTabView: View {
     @AppStorage("primaryTabSelection") private var selection: String = AppFeature.home.id
-    @State private var switchObserver: Any?
     @State private var detachedFeature: AppFeature?
     @State private var didSetInitialHome = false
     @State private var pendingLocationAction: ExternalLocationAction?
@@ -76,17 +71,6 @@ struct MainTabView: View {
                 if !didSetInitialHome {
                     selection = AppFeature.home.id
                     didSetInitialHome = true
-                }
-                guard switchObserver == nil else { return }
-                switchObserver = NotificationCenter.default.addObserver(forName: .switchToTab, object: nil, queue: .main) { note in
-                    guard let id = note.object as? String else { return }
-                    openFeature(id: id)
-                }
-            }
-            .onDisappear {
-                if let observer = switchObserver {
-                    NotificationCenter.default.removeObserver(observer)
-                    switchObserver = nil
                 }
             }
             .onOpenURL { url in

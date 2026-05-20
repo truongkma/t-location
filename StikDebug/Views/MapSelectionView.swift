@@ -1651,7 +1651,7 @@ private struct RouteSearchSheet: View {
                 } else if !activeResults.isEmpty {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(activeResults.enumerated()), id: \.offset) { index, result in
+                            ForEach(Array(activeResults.enumerated()), id: \.element) { index, result in
                                 Button {
                                     resolve(result)
                                 } label: {

@@ -14,6 +14,14 @@ final class SystemLogStream: ObservableObject {
         let timestamp: Date
         let message: String
         let raw: String
+        let searchableRaw: String
+
+        init(timestamp: Date, message: String, raw: String) {
+            self.timestamp = timestamp
+            self.message = message
+            self.raw = raw
+            self.searchableRaw = raw.lowercased()
+        }
     }
 
     @Published private(set) var entries: [Entry] = []
@@ -167,12 +175,6 @@ final class SystemLogStream: ObservableObject {
         return line
     }
 
-    func concatenatedLog(limit: Int = 500) -> String {
-        let slice = entries.suffix(limit)
-        return slice.map { "[\(DateFormatter.consoleFormatter.string(from: $0.timestamp))] \($0.raw)" }
-            .joined(separator: "\n")
-    }
-
     private func scheduleFlushIfNeeded() {
         guard !isPaused else { return }
         guard !pendingEntries.isEmpty else { return }
@@ -214,12 +216,4 @@ final class SystemLogStream: ObservableObject {
         retryTimer = timer
         RunLoop.main.add(timer, forMode: .common)
     }
-}
-
-private extension DateFormatter {
-    static let consoleFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter
-    }()
 }

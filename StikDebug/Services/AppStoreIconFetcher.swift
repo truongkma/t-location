@@ -10,7 +10,7 @@ import UIKit
 
 class AppStoreIconFetcher {
     private static var cache = [String: UIImage]()
-    private static let queue = DispatchQueue(label: "com.stik.StikDebug.iconFetchQueue", attributes: .concurrent)
+    private static let queue = DispatchQueue(label: "com.stik.stikdebug.iconFetchQueue", attributes: .concurrent)
 
     static func getIcon(for bundleID: String, completion: @escaping (UIImage?) -> Void) {
         if let icon = cache[bundleID] {

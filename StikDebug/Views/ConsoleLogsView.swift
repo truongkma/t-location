@@ -36,7 +36,7 @@ struct ConsoleLogsView: View {
             return systemLogStream.entries
         }
         let query = syslogSearchText.lowercased()
-        return systemLogStream.entries.filter { $0.raw.lowercased().contains(query) }
+        return systemLogStream.entries.filter { $0.searchableRaw.contains(query) }
     }
 
     var body: some View {
@@ -165,7 +165,7 @@ struct ConsoleLogsView: View {
             }
             .coordinateSpace(name: "jitScroll")
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                jitIsAtBottom = offset > -20
+                updateJITBottomState(offset > -20)
             }
             .onChange(of: logManager.logs.count) { _, _ in
                 guard jitIsAtBottom, let lastLog = logManager.logs.last else { return }
@@ -229,7 +229,7 @@ struct ConsoleLogsView: View {
                 }
                 .coordinateSpace(name: "syslogScroll")
                 .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                    syslogIsAtBottom = offset > -20
+                    updateSyslogBottomState(offset > -20)
                 }
                 .onChange(of: systemLogStream.entries.count) { _, _ in
                     guard syslogIsAtBottom, syslogSearchText.isEmpty,
@@ -458,6 +458,16 @@ struct ConsoleLogsView: View {
         alertTitle = title
         alertMessage = message
         showingCustomAlert = true
+    }
+
+    private func updateJITBottomState(_ isAtBottom: Bool) {
+        guard jitIsAtBottom != isAtBottom else { return }
+        jitIsAtBottom = isAtBottom
+    }
+
+    private func updateSyslogBottomState(_ isAtBottom: Bool) {
+        guard syslogIsAtBottom != isAtBottom else { return }
+        syslogIsAtBottom = isAtBottom
     }
 
     nonisolated private static func parseAppLogEntries<S: Sequence>(from lines: S, skipPrefixes: [String] = []) -> [LogManager.LogEntry] where S.Element == String {
