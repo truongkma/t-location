@@ -30,7 +30,8 @@ extension ScriptStore {
             appNames: [
                 "UTM",
                 "DolphiniOS",
-                "Flycast"
+                "Flycast",
+                "ARMSX2 iOS"
             ],
             resource: ScriptResource(resourceName: "UTM-Dolphin", fileName: "UTM-Dolphin.js")
         ),
