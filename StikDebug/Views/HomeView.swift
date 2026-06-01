@@ -10,7 +10,6 @@ import SwiftUI
 struct HomeView: View {
     @AppStorage("autoQuitAfterEnablingJIT") private var doAutoQuitAfterEnablingJIT = false
     @AppStorage("bundleID") private var bundleID: String = ""
-    @AppStorage(UserDefaults.Keys.defaultScriptName) private var selectedScript = UserDefaults.Keys.defaultScriptNameValue
 
     @ObservedObject private var mounting = MountingProgress.shared
 
@@ -114,9 +113,6 @@ struct HomeView: View {
             return
         }
 
-        if let name = notification.userInfo?["scriptName"] as? String {
-            selectedScript = name
-        }
         scriptRunModel = model
     }
 

@@ -9,7 +9,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
     case home
     case scripts
     case tools
-    case news
     case console
     case deviceInfo = "deviceinfo"
     case profiles
@@ -29,8 +28,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
             return "Scripts"
         case .tools:
             return "Tools"
-        case .news:
-            return "News"
         case .console:
             return "Console"
         case .deviceInfo:
@@ -54,8 +51,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
             return "Manage and run JS scripts"
         case .tools:
             return "Access additional tools"
-        case .news:
-            return "Latest StikDebug updates"
         case .console:
             return "Live device logs"
         case .deviceInfo:
@@ -88,8 +83,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
             return "scroll"
         case .tools:
             return "wrench.and.screwdriver"
-        case .news:
-            return "newspaper"
         case .console:
             return "terminal"
         case .deviceInfo:
@@ -114,8 +107,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
             ScriptListView()
         case .tools:
             ToolsView()
-        case .news:
-            NewsView()
         case .console:
             ConsoleLogsView()
         case .deviceInfo:
@@ -133,6 +124,6 @@ enum AppFeature: String, CaseIterable, Identifiable {
 }
 
 extension AppFeature {
-    static let mainTabs: [AppFeature] = [.home, .tools, .news, .settings]
+    static let mainTabs: [AppFeature] = [.home, .tools, .settings]
     static let toolList: [AppFeature] = [.scripts, .console, .deviceInfo, .profiles, .processes, .location]
 }

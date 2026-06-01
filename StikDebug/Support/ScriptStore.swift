@@ -17,11 +17,9 @@ enum ScriptStore {
     static let favoriteAppNamesKey = "favoriteAppNames"
     static let defaultScriptName = UserDefaults.Keys.defaultScriptNameValue
     static let bundledResources: [ScriptResource] = [
-        ScriptResource(resourceName: "attachDetach", fileName: "attachDetach.js"),
         ScriptResource(resourceName: "maciOS", fileName: "maciOS.js"),
         ScriptResource(resourceName: "universal", fileName: "universal.js"),
         ScriptResource(resourceName: "Geode", fileName: "Geode.js"),
-        ScriptResource(resourceName: "manic", fileName: "manic.js"),
         ScriptResource(resourceName: "UTM-Dolphin", fileName: "UTM-Dolphin.js")
     ]
 

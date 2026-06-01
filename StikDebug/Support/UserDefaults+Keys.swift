@@ -11,6 +11,6 @@ extension UserDefaults {
         static let txmOverride = "overrideTXMForScripts"
         static let bundleScriptMap = "BundleScriptMap"
         static let defaultScriptName = "DefaultScriptName"
-        static let defaultScriptNameValue = "attachDetach.js"
+        static let defaultScriptNameValue = ""
     }
 }

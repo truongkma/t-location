@@ -19,10 +19,15 @@ extension ScriptStore {
                 "MeloCafe",
                 "Manic EMU",
                 "Manic",
-                "Geode",
                 "DukeX",
             ],
             resource: ScriptResource(resourceName: "universal", fileName: "universal.js")
+        ),
+        AutoScriptAssignment(
+            appNames: [
+                "Geode"
+            ],
+            resource: ScriptResource(resourceName: "Geode", fileName: "Geode.js")
         ),
         AutoScriptAssignment(
             appNames: [
