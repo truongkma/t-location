@@ -11,20 +11,71 @@ import Testing
 
 struct StikDebugTests {
 
-    @Test func txmDetectionIgnoresFirmwareFileBeforeIOS26() async throws {
-        let isSupported = ProcessInfo.hasTXMSupport(
-            operatingSystemVersion: OperatingSystemVersion(majorVersion: 18, minorVersion: 7, patchVersion: 2),
-            localTXMDetector: { true }
+    @Test func txmDetectionUsesClassicTXMBeforeIOS266() async throws {
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: false,
+                hasTXMClassic: false,
+                hardwareIdentifier: "iPhone15,2"
+            ) == false
         )
-
-        #expect(isSupported == false)
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: false,
+                hasTXMClassic: true,
+                hardwareIdentifier: "iPhone1,1"
+            ) == true
+        )
     }
 
-    @Test func txmDetectionRequiresLocalTXMOnIOS26() async throws {
-        let iOS26 = OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
+    @Test func txmDetectionUsesClassicTXMWhenAvailableOnIOS266() async throws {
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: true,
+                hasTXMClassic: true,
+                hardwareIdentifier: "iPhone1,1"
+            ) == true
+        )
+    }
 
-        #expect(ProcessInfo.hasTXMSupport(operatingSystemVersion: iOS26, localTXMDetector: { false }) == false)
-        #expect(ProcessInfo.hasTXMSupport(operatingSystemVersion: iOS26, localTXMDetector: { true }) == true)
+    @Test func txmDetectionFallsBackToIPhoneThresholdOnIOS266() async throws {
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: true,
+                hasTXMClassic: false,
+                hardwareIdentifier: "iPhone14,1"
+            ) == false
+        )
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: true,
+                hasTXMClassic: false,
+                hardwareIdentifier: "iPhone14,2"
+            ) == true
+        )
+    }
+
+    @Test func txmDetectionFallsBackToIPadThresholdOnIOS266() async throws {
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: true,
+                hasTXMClassic: false,
+                hardwareIdentifier: "iPad14,4"
+            ) == false
+        )
+        #expect(
+            ProcessInfo.hasTXMSupport(
+                isIOS266OrNewer: true,
+                hasTXMClassic: false,
+                hardwareIdentifier: "iPad14,5"
+            ) == true
+        )
+    }
+
+    @Test func deviceVersionParsesSupportedIdentifiers() async throws {
+        #expect(ProcessInfo.processInfo.deviceVersion(from: "iPhone14,2") == 14.2)
+        #expect(ProcessInfo.processInfo.deviceVersion(from: "iPad14,5") == 14.5)
+        #expect(ProcessInfo.processInfo.deviceVersion(from: "Mac14,2") == nil)
     }
 
 }
