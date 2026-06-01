@@ -21,8 +21,6 @@ extension ScriptStore {
                 "Manic",
                 "Geode",
                 "DukeX",
-                "Duke X",
-                "Duke"
             ],
             resource: ScriptResource(resourceName: "universal", fileName: "universal.js")
         ),
