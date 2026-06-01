@@ -768,7 +768,7 @@ struct LocationSimulationView: View {
     @State private var newBookmarkName = ""
 
     private var pairingFilePath: String {
-        PairingFileStore.prepareURL().path()
+        PairingFileStore.prepareURL().path
     }
 
     private var pairingExists: Bool {
