@@ -12,7 +12,8 @@ import idevice
 typealias RemoteServerHandle = OpaquePointer
 typealias ScreenshotClientHandle = OpaquePointer
 
-final class RunJSViewModel: ObservableObject, @unchecked Sendable {
+final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable {
+    let id = UUID()
     var context: JSContext?
     @Published var logs: [String] = []
     @Published var scriptName: String = "Script"
@@ -34,8 +35,14 @@ final class RunJSViewModel: ObservableObject, @unchecked Sendable {
     }
     
     func runScript(data: Data, name: String? = nil) throws {
-        let scriptContent = String(data: data, encoding: .utf8)
-        scriptName = name ?? "Script"
+        let displayName = name ?? "Script"
+        DispatchQueue.main.async {
+            self.scriptName = displayName
+        }
+
+        guard let scriptContent = String(data: data, encoding: .utf8) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
         
         let getPidFunction: @convention(block) () -> Int = {
             return self.pid
@@ -210,9 +217,18 @@ struct RunJSView: View {
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                ForEach(Array(model.logs.enumerated()), id: \.offset) { index, logStr in
-                    Text(logStr)
-                        .id(index)
+                if model.logs.isEmpty {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Starting script...")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    ForEach(Array(model.logs.enumerated()), id: \.offset) { index, logStr in
+                        Text(logStr)
+                            .id(index)
+                    }
                 }
             }
             .navigationTitle("Running \(model.scriptName)")

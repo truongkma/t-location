@@ -19,7 +19,6 @@ struct HomeView: View {
     @State private var isShowingPairingFilePicker = false
     @State private var debugFeedback: DebugFeedback?
     @State private var pendingExternalURLAction: HomeExternalAction?
-    @State private var isShowingScriptRunner = false
     @State private var scriptRunModel: RunJSViewModel?
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -80,18 +79,15 @@ struct HomeView: View {
             allowedContentTypes: PairingFileStore.supportedContentTypes,
             onCompletion: importPairingFile
         )
-        .sheet(isPresented: $isShowingScriptRunner) {
+        .sheet(item: $scriptRunModel) { model in
             NavigationStack {
-                if let scriptRunModel {
-                    RunJSView(model: scriptRunModel)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { isShowingScriptRunner = false }
-                            }
+                RunJSView(model: model)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") { scriptRunModel = nil }
                         }
-                        .navigationTitle(selectedScript)
-                        .navigationBarTitleDisplayMode(.inline)
-                }
+                    }
+                    .navigationBarTitleDisplayMode(.inline)
             }
         }
     }
@@ -118,11 +114,10 @@ struct HomeView: View {
             return
         }
 
-        scriptRunModel = model
         if let name = notification.userInfo?["scriptName"] as? String {
             selectedScript = name
         }
-        isShowingScriptRunner = true
+        scriptRunModel = model
     }
 
     private func refreshMountStatusIfNeeded() {
@@ -271,7 +266,6 @@ struct HomeView: View {
 
             DispatchQueue.main.async {
                 scriptRunModel = model
-                isShowingScriptRunner = true
             }
 
             do {
