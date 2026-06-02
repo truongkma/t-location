@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @AppStorage("autoQuitAfterEnablingJIT") private var doAutoQuitAfterEnablingJIT = false
     @AppStorage("bundleID") private var bundleID: String = ""
+    @AppStorage(UserDefaults.Keys.confirmExternalJITRequests) private var confirmExternalJITRequests = true
 
     @ObservedObject private var mounting = MountingProgress.shared
 
@@ -180,7 +181,12 @@ struct HomeView: View {
                 config.scriptData = scriptInfo.data
                 config.scriptName = scriptInfo.name
             }
-            pendingExternalURLAction = .enableJIT(config)
+            let action = HomeExternalAction.enableJIT(config)
+            if confirmExternalJITRequests {
+                pendingExternalURLAction = action
+            } else {
+                performExternalURLAction(action)
+            }
         case "kill-process":
             if let pidStr = queryValue(["pid"], in: components), let pid = Int(pidStr) {
                 pendingExternalURLAction = .killProcess(pid)
