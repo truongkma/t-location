@@ -18,6 +18,7 @@ struct SettingsView: View {
     @AppStorage(UserDefaults.Keys.confirmExternalJITRequests) private var confirmExternalJITRequests = true
     @AppStorage("keepAliveAudio") private var keepAliveAudio = true
     @AppStorage("keepAliveLocation") private var keepAliveLocation = true
+    @AppStorage(UserDefaults.Keys.targetDeviceIP) private var targetDeviceIP = DeviceConnectionContext.defaultTargetIPAddress
 
     @State private var isShowingPairingFilePicker = false
     @State private var isImportingFile = false
@@ -134,8 +135,13 @@ struct SettingsView: View {
                     HStack {
                         Text("Target Device IP")
                         Spacer()
-                        Text(DeviceConnectionContext.defaultTargetIPAddress)
+                        TextField(DeviceConnectionContext.defaultTargetIPAddress, text: $targetDeviceIP)
+                            .multilineTextAlignment(.trailing)
                             .foregroundStyle(.secondary)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .keyboardType(.numbersAndPunctuation)
+                            .frame(maxWidth: 160)
                     }
                     Button { openAppFolder() } label: {
                         Label("App Folder", systemImage: "folder")

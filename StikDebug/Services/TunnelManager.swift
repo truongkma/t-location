@@ -103,16 +103,11 @@ final class TunnelManager: ObservableObject {
     }
 
     private func handleInvalidPairingFile() {
-        do {
-            try PairingFileStore.remove()
-            LogManager.shared.addInfoLog("Removed invalid pairing file")
-        } catch {
-            LogManager.shared.addErrorLog("Failed to remove invalid pairing file: \(error.localizedDescription)")
-        }
+        LogManager.shared.addInfoLog("Pairing file reported invalid; keeping existing file")
 
         showAlert(
             title: "Invalid Pairing File",
-            message: "The pairing file is invalid or expired. Please select a new pairing file.",
+            message: "The pairing file may be invalid or expired. You can import a new pairing file to replace it.",
             showOk: true,
             showTryAgain: false,
             primaryButtonText: "Select New File"

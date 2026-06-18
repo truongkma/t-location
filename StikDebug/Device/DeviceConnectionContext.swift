@@ -11,6 +11,12 @@ enum DeviceConnectionContext {
     static let defaultTargetIPAddress = "10.7.0.1"
 
     static var targetIPAddress: String {
-        defaultTargetIPAddress
+        let stored = UserDefaults.standard
+            .string(forKey: UserDefaults.Keys.targetDeviceIP)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let stored, !stored.isEmpty else {
+            return defaultTargetIPAddress
+        }
+        return stored
     }
 }
