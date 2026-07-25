@@ -201,21 +201,7 @@ struct ScriptListView: View {
     // MARK: - File Ops
 
     private func scriptsDirectory() throws -> URL {
-        let directory = try ScriptStore.prepareDirectory()
-        try ensureEditorScripts(in: directory)
-        return directory
-    }
-
-    private func ensureEditorScripts(in directory: URL) throws {
-        let fm = FileManager.default
-        let screenshotURL = directory.appendingPathComponent("screenshot-demo.js")
-        if !fm.fileExists(atPath: screenshotURL.path) {
-            try screenshotDemoScript.write(to: screenshotURL, atomically: true, encoding: .utf8)
-        }
-        let standaloneURL = directory.appendingPathComponent("screenshot-capture.js")
-        if !fm.fileExists(atPath: standaloneURL.path) {
-            try screenshotCaptureScript.write(to: standaloneURL, atomically: true, encoding: .utf8)
-        }
+        try ScriptStore.prepareDirectory()
     }
 
     private func loadScripts() {
@@ -331,58 +317,3 @@ struct ScriptListView: View {
         }
     }
 }
-
-// MARK: - Script content stubs
-
-private let screenshotDemoScript = """
-// Screenshot Demo Script
-// Attaches to the target, captures a PNG screenshot, and detaches.
-
-function takeScreenshotDemo() {
-    log("[ScreenshotDemo] Starting demo");
-
-    const pid = get_pid();
-    log(`[ScreenshotDemo] Target PID: ${pid}`);
-
-    const attachResponse = send_command(`vAttach;${pid.toString(16)}`);
-    log(`[ScreenshotDemo] attach_response = ${attachResponse}`);
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fileName = `screenshot-${timestamp}.png`;
-    const savedPath = take_screenshot(fileName);
-
-    if (savedPath && savedPath.length > 0) {
-        log(`[ScreenshotDemo] Screenshot saved to ${savedPath}`);
-    } else {
-        log("[ScreenshotDemo] Device did not report a saved path.");
-    }
-
-    const detachResponse = send_command("D");
-    log(`[ScreenshotDemo] detach_response = ${detachResponse}`);
-    log("[ScreenshotDemo] Demo complete.");
-}
-
-takeScreenshotDemo();
-"""
-
-private let screenshotCaptureScript = """
-// Screenshot Capture Script
-// Takes a screenshot without sending any debugserver commands.
-
-function captureScreenshot() {
-    log("[ScreenshotCapture] Requesting screenshot without attaching…");
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const fileName = `standalone-${timestamp}.png`;
-    const savedPath = take_screenshot(fileName);
-
-    if (savedPath && savedPath.length > 0) {
-        log(`[ScreenshotCapture] Screenshot saved to ${savedPath}`);
-    } else {
-        log("[ScreenshotCapture] Device did not report a saved path.");
-    }
-
-    log("[ScreenshotCapture] Done.");
-}
-
-captureScreenshot();
-"""

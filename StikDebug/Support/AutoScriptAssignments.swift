@@ -36,7 +36,7 @@ extension ScriptStore {
                 "Flycast",
                 "ARMSX2 iOS"
             ],
-            resource: ScriptResource(resourceName: "UTM-Dolphin", fileName: "UTM-Dolphin.js")
+            resource: ScriptResource(resourceName: "legacy", fileName: "legacy.js")
         ),
         AutoScriptAssignment(
             appNames: [

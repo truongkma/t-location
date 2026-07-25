@@ -175,6 +175,14 @@ struct HomeView: View {
             }
             if let scriptName = queryValue(["script-name", "scriptName", "script_name"], in: components) {
                 config.scriptName = scriptName
+                if config.scriptData == nil {
+                    if let namedScript = ScriptStore.script(named: scriptName) {
+                        config.scriptData = namedScript.data
+                        config.scriptName = namedScript.name
+                    } else {
+                        LogManager.shared.addWarningLog("Script \(scriptName) was not found in the scripts folder")
+                    }
+                }
             }
             if config.scriptData == nil, let bundleID = config.bundleID,
                let scriptInfo = ScriptStore.preferredScript(for: bundleID) {

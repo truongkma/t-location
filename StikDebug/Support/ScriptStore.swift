@@ -20,7 +20,7 @@ enum ScriptStore {
         ScriptResource(resourceName: "maciOS", fileName: "maciOS.js"),
         ScriptResource(resourceName: "universal", fileName: "universal.js"),
         ScriptResource(resourceName: "Geode", fileName: "Geode.js"),
-        ScriptResource(resourceName: "UTM-Dolphin", fileName: "UTM-Dolphin.js")
+        ScriptResource(resourceName: "legacy", fileName: "legacy.js")
     ]
 
     static var directoryURL: URL {
@@ -52,6 +52,16 @@ enum ScriptStore {
 
         let directory = try prepareDirectory(fileManager: fileManager)
         return directory.appendingPathComponent(scriptName)
+    }
+
+    static func script(named scriptName: String, fileManager: FileManager = .default) -> (data: Data, name: String)? {
+        guard let normalizedName = normalizedScriptFileName(scriptName),
+              let scriptURL = try? scriptURL(named: normalizedName, fileManager: fileManager),
+              let data = try? Data(contentsOf: scriptURL) else {
+            return nil
+        }
+
+        return (data, normalizedName)
     }
 
     static func assignedScriptName(for bundleID: String, defaults: UserDefaults = .standard) -> String? {
