@@ -259,12 +259,13 @@ struct HomeView: View {
         .accessibilityLabel(feedback.message)
     }
 
-    private func getJsCallback(_ script: Data, name: String? = nil) -> DebugAppCallback {
+    private func getJsCallback(_ script: Data, name: String? = nil, resumeBundleID: String? = nil) -> DebugAppCallback {
         return { pid, debugProxyHandle, remoteServerHandle, semaphore in
             let model = RunJSViewModel(pid: Int(pid),
                                        debugProxy: debugProxyHandle,
                                        remoteServer: remoteServerHandle,
-                                       semaphore: semaphore)
+                                       semaphore: semaphore,
+                                       resumeBundleID: resumeBundleID)
 
             DispatchQueue.main.async {
                 scriptRunModel = model
@@ -338,9 +339,11 @@ struct HomeView: View {
                 scriptData = preferred.data
             }
 
+            let resumeBundleID = pid == nil ? nil : bundleID
+
             var callback: DebugAppCallback? = nil
             if ProcessInfo.processInfo.hasTXM, let sd = scriptData {
-                callback = getJsCallback(sd, name: scriptName ?? bundleID ?? "Script")
+                callback = getJsCallback(sd, name: scriptName ?? bundleID ?? "Script", resumeBundleID: resumeBundleID)
             }
 
             var lastDebugMessage: String?

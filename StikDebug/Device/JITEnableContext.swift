@@ -642,6 +642,31 @@ final class JITEnableContext {
         }
     }
 
+    func relaunchApp(_ bundleID: String, logger: LogFunc? = nil) -> Bool {
+        do {
+            let pid = try withConnectedRemoteServer { remoteServer in
+                try withProcessControl(remoteServer: remoteServer) { processControl in
+                    var pid: UInt64 = 0
+                    let ffiError = bundleID.withCString { bundleID in
+                        process_control_launch_app(processControl, bundleID, nil, 0, nil, 0, false, false, &pid)
+                    }
+
+                    if let ffiError {
+                        throw error(from: ffiError, fallback: "Failed to return to app")
+                    }
+
+                    return pid
+                }
+            }
+
+            emitLog("Returned to \(bundleID) (PID \(pid))", logger: logger)
+            return true
+        } catch {
+            emitLog("Failed to return to \(bundleID): \(error.localizedDescription)", logger: logger)
+            return false
+        }
+    }
+
     func startSyslogRelay(handler: @escaping SyslogLineHandler, onError: @escaping SyslogErrorHandler) {
         do {
             try ensureTunnel()

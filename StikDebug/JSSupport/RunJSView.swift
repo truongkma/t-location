@@ -22,12 +22,17 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
     var debugProxy: OpaquePointer?
     var remoteServer: OpaquePointer?
     var semaphore: DispatchSemaphore?
-    
-    init(pid: Int, debugProxy: OpaquePointer?, remoteServer: OpaquePointer?, semaphore: DispatchSemaphore?) {
+    let resumeBundleID: String?
+
+    private let resumeLock = NSLock()
+    private var hasResumedApp = false
+
+    init(pid: Int, debugProxy: OpaquePointer?, remoteServer: OpaquePointer?, semaphore: DispatchSemaphore?, resumeBundleID: String? = nil) {
         self.pid = pid
         self.debugProxy = debugProxy
         self.remoteServer = remoteServer
         self.semaphore = semaphore
+        self.resumeBundleID = resumeBundleID
     }
     
     func runScript(path: URL, scriptName: String? = nil) throws {
@@ -57,8 +62,14 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
                 self.context?.exception = JSValue(object: "Script execution is interrupted by StikDebug.", in: self.context!)
                 return ""
             }
-            
-            return handleJSContextSendDebugCommand(self.context, commandStr, self.debugProxy) ?? ""
+
+            let response = handleJSContextSendDebugCommand(self.context, commandStr, self.debugProxy) ?? ""
+
+            if commandStr.hasPrefix("vAttach"), response.hasPrefix("T") {
+                self.resumeTargetApp()
+            }
+
+            return response
         }
         
         let logFunction: @convention(block) (String) -> Void = { logStr in
@@ -78,8 +89,13 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
         let hasTXMFunction: @convention(block) () -> Bool = {
             return ProcessInfo.processInfo.hasTXM
         }
-        
+
+        let resumeAppFunction: @convention(block) () -> String = {
+            return self.resumeTargetApp()
+        }
+
         context = JSContext()
+        context?.setObject(resumeAppFunction, forKeyedSubscript: "resume_app" as NSString)
         context?.setObject(hasTXMFunction, forKeyedSubscript: "hasTXM" as NSString)
         context?.setObject(getPidFunction, forKeyedSubscript: "get_pid" as NSString)
         context?.setObject(sendCommandFunction, forKeyedSubscript: "send_command" as NSString)
@@ -101,6 +117,35 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
         }
     }
     
+    @discardableResult
+    private func resumeTargetApp() -> String {
+        resumeLock.lock()
+        if hasResumedApp {
+            resumeLock.unlock()
+            return "OK"
+        }
+        guard let resumeBundleID else {
+            resumeLock.unlock()
+            return "no app to return to for this session"
+        }
+        hasResumedApp = true
+        resumeLock.unlock()
+
+        appendLog("Returning to \(resumeBundleID)...")
+        let success = JITEnableContext.shared.relaunchApp(resumeBundleID)
+        guard success else {
+            appendLog("Failed to return to \(resumeBundleID) — continuing in the foreground.")
+            return "failed to return to \(resumeBundleID)"
+        }
+        return "OK"
+    }
+
+    private func appendLog(_ message: String) {
+        DispatchQueue.main.async {
+            self.logs.append(message)
+        }
+    }
+
     private func captureScreenshot(named preferredName: String?) -> String {
         if executionInterrupted {
             raiseException("Script execution is interrupted by StikDebug.")
