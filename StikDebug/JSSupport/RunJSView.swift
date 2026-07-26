@@ -132,7 +132,12 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
         resumeLock.unlock()
 
         appendLog("Returning to \(resumeBundleID)...")
-        let success = JITEnableContext.shared.relaunchApp(resumeBundleID)
+        let success: Bool
+        if let remoteServer {
+            success = JITEnableContext.shared.relaunchApp(resumeBundleID, usingRemoteServer: remoteServer)
+        } else {
+            success = JITEnableContext.shared.relaunchApp(resumeBundleID)
+        }
         guard success else {
             appendLog("Failed to return to \(resumeBundleID) — continuing in the foreground.")
             return "failed to return to \(resumeBundleID)"
