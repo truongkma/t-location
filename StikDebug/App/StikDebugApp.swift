@@ -45,6 +45,7 @@ struct StikDebugApp: App {
     private func downloadMissingDeveloperDiskImageFiles() async {
         do {
             try await DeveloperDiskImageService.shared.downloadMissingFiles()
+            MountingProgress.shared.pubMount()
         } catch {
             await MainActor.run {
                 showAlert(

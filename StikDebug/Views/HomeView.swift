@@ -308,8 +308,18 @@ struct HomeView: View {
             let keepAliveLease = DebugKeepAliveLease()
             defer { keepAliveLease.invalidate() }
 
-            if triggeredByURLScheme {
-                sleep(1)
+            if triggeredByURLScheme, !waitForJITPrerequisites() {
+                DispatchQueue.main.async {
+                    withAnimation {
+                        debugFeedback = nil
+                    }
+                    showAlert(
+                        title: "Failed to Enable JIT".localized,
+                        message: "The device connection or Developer Disk Image wasn't ready in time. Open StikDebug directly, wait for it to finish connecting, then try again.".localized,
+                        showOk: true
+                    )
+                }
+                return
             }
 
             let finishProcessing: (Bool, String?) -> Void = { success, detail in
@@ -382,6 +392,17 @@ struct HomeView: View {
             }
             finishProcessing(success, success ? nil : lastDebugMessage)
         }
+    }
+
+    private func waitForJITPrerequisites(timeout: TimeInterval = 20) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if TunnelManager.shared.isConnected && MountingProgress.shared.coolisMounted {
+                return true
+            }
+            usleep(250_000)
+        }
+        return TunnelManager.shared.isConnected && MountingProgress.shared.coolisMounted
     }
 
     private func base64URLToBase64(_ base64url: String) -> String {
