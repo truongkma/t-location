@@ -36,12 +36,19 @@ enum PairingFileStore {
 
     static func replace(with sourceURL: URL, fileManager: FileManager = .default) throws {
         let destination = prepareURL(fileManager: fileManager)
+
+        let tempURL = directoryURL.appendingPathComponent(UUID().uuidString + ".tmp")
+        try? fileManager.removeItem(at: tempURL)
+        try fileManager.copyItem(at: sourceURL, to: tempURL)
+        defer { try? fileManager.removeItem(at: tempURL) }
+
         if fileManager.fileExists(atPath: destination.path) {
-            try fileManager.removeItem(at: destination)
+            _ = try fileManager.replaceItemAt(destination, withItemAt: tempURL)
+        } else {
+            try fileManager.moveItem(at: tempURL, to: destination)
         }
 
         removeLegacyCopies(fileManager: fileManager)
-        try fileManager.copyItem(at: sourceURL, to: destination)
         protectPairingFile(at: destination, fileManager: fileManager)
     }
 
