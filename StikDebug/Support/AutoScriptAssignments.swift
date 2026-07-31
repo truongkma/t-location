@@ -20,6 +20,7 @@ extension ScriptStore {
                 "Manic EMU",
                 "Manic",
                 "DukeX",
+                "TachyonU",
             ],
             resource: ScriptResource(resourceName: "universal", fileName: "universal.js")
         ),
