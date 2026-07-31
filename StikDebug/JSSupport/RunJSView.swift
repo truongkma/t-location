@@ -45,6 +45,8 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
             self.scriptName = displayName
         }
 
+        _ = resumeTargetApp()
+
         guard let scriptContent = String(data: data, encoding: .utf8) else {
             throw CocoaError(.fileReadCorruptFile)
         }
@@ -65,9 +67,6 @@ final class RunJSViewModel: ObservableObject, Identifiable, @unchecked Sendable 
 
             let response = handleJSContextSendDebugCommand(self.context, commandStr, self.debugProxy) ?? ""
 
-            if commandStr.hasPrefix("vAttach"), response.hasPrefix("T") {
-                self.resumeTargetApp()
-            }
 
             return response
         }
