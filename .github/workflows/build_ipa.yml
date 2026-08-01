@@ -58,14 +58,18 @@ jobs:
           rm -rf Payload StikDebug.app
 
       - name: 5. Name workflow artifact
+        id: artifact
         if: env.UPLOAD_IPA == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request')
-        run: cp StikDebug.ipa StikDebug-${{ github.sha }}.ipa
+        run: |
+          file_name="StikDebug-${GITHUB_SHA::7}.ipa"
+          cp StikDebug.ipa "$file_name"
+          echo "file_name=$file_name" >> "$GITHUB_OUTPUT"
 
       - name: 6. Store IPA as Workflow Artifact
         if: env.UPLOAD_IPA == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request')
         uses: actions/upload-artifact@v7
         with:
-          path: StikDebug-${{ github.sha }}.ipa
+          path: ${{ steps.artifact.outputs.file_name }}
           archive: false
           retention-days: 90
 
