@@ -7,14 +7,14 @@ import Foundation
 import UniformTypeIdentifiers
 
 enum PairingFileStore {
-    static let fileName = "rp_pairing_file.plist"
+    static let fileName = "pairingFile.plist"
     static let supportedContentTypes: [UTType] = [
         UTType(filenameExtension: "mobiledevicepairing", conformingTo: .data)!,
         UTType(filenameExtension: "mobiledevicepair", conformingTo: .data)!,
         .propertyList
     ]
 
-    private static let legacyFileName = "pairingFile.plist"
+    private static let legacyFileName = "rp_pairing_file.plist"
 
     static var url: URL {
         directoryURL.appendingPathComponent(fileName)
@@ -25,31 +25,31 @@ enum PairingFileStore {
         let destination = url
         try? fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
 
-        guard !fileManager.fileExists(atPath: destination.path) else {
-            removeLegacyCopies(fileManager: fileManager)
+        if let documentURL = documentSourceURL(fileManager: fileManager) {
+            if !fileManager.fileExists(atPath: destination.path) ||
+                !fileManager.contentsEqual(atPath: documentURL.path, andPath: destination.path) {
+                try? replaceItem(at: destination, with: documentURL, fileManager: fileManager)
+                protectPairingFile(at: destination, fileManager: fileManager)
+            }
             return destination
         }
 
-        migrateLegacyCopy(to: destination, fileManager: fileManager)
+        if !fileManager.fileExists(atPath: destination.path) {
+            migrateLegacyCopy(to: destination, fileManager: fileManager)
+        }
         return destination
     }
 
     static func replace(with sourceURL: URL, fileManager: FileManager = .default) throws {
-        let destination = prepareURL(fileManager: fileManager)
+        try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
 
-        let tempURL = directoryURL.appendingPathComponent(UUID().uuidString + ".tmp")
-        try? fileManager.removeItem(at: tempURL)
-        try fileManager.copyItem(at: sourceURL, to: tempURL)
-        defer { try? fileManager.removeItem(at: tempURL) }
-
-        if fileManager.fileExists(atPath: destination.path) {
-            _ = try fileManager.replaceItemAt(destination, withItemAt: tempURL)
-        } else {
-            try fileManager.moveItem(at: tempURL, to: destination)
+        let documentsDestination = documentsURL
+        if sourceURL.standardizedFileURL != documentsDestination.standardizedFileURL {
+            try replaceItem(at: documentsDestination, with: sourceURL, fileManager: fileManager)
         }
 
-        removeLegacyCopies(fileManager: fileManager)
-        protectPairingFile(at: destination, fileManager: fileManager)
+        try replaceItem(at: url, with: documentsDestination, fileManager: fileManager)
+        protectPairingFile(at: url, fileManager: fileManager)
     }
 
     static func importFromPicker(_ sourceURL: URL, fileManager: FileManager = .default) throws {
@@ -83,24 +83,53 @@ enum PairingFileStore {
 
     private static var legacyURLs: [URL] {
         [
-            URL.documentsDirectory.appendingPathComponent(fileName),
+            directoryURL.appendingPathComponent(legacyFileName),
+            documentsURL,
             URL.documentsDirectory.appendingPathComponent(legacyFileName)
         ]
+    }
+
+    private static var documentsURL: URL {
+        URL.documentsDirectory.appendingPathComponent(fileName)
+    }
+
+    private static func documentSourceURL(fileManager: FileManager) -> URL? {
+        [documentsURL, URL.documentsDirectory.appendingPathComponent(legacyFileName)]
+            .filter { fileManager.fileExists(atPath: $0.path) }
+            .max {
+                let firstDate = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                let secondDate = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                return firstDate < secondDate
+            }
     }
 
     private static func migrateLegacyCopy(to destination: URL, fileManager: FileManager) {
         for legacyURL in legacyURLs where fileManager.fileExists(atPath: legacyURL.path) {
             do {
-                try fileManager.moveItem(at: legacyURL, to: destination)
+                try replaceItem(at: destination, with: legacyURL, fileManager: fileManager)
             } catch {
                 if let data = try? Data(contentsOf: legacyURL) {
                     try? data.write(to: destination, options: .atomic)
-                    try? fileManager.removeItem(at: legacyURL)
                 }
             }
 
             protectPairingFile(at: destination, fileManager: fileManager)
             break
+        }
+    }
+
+    private static func replaceItem(at destination: URL, with source: URL, fileManager: FileManager) throws {
+        let temporary = destination
+            .deletingLastPathComponent()
+            .appendingPathComponent(UUID().uuidString + ".tmp")
+        try? fileManager.removeItem(at: temporary)
+        try fileManager.copyItem(at: source, to: temporary)
+        defer { try? fileManager.removeItem(at: temporary) }
+
+        if fileManager.fileExists(atPath: destination.path) {
+            _ = try fileManager.replaceItemAt(destination, withItemAt: temporary)
+        } else {
+            try fileManager.moveItem(at: temporary, to: destination)
         }
     }
 
