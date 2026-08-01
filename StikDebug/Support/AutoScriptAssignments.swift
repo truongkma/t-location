@@ -21,6 +21,7 @@ extension ScriptStore {
                 "Manic",
                 "DukeX",
                 "TachyonU",
+                "touchHLE"
             ],
             resource: ScriptResource(resourceName: "universal", fileName: "universal.js")
         ),
