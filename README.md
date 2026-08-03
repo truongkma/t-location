@@ -38,11 +38,11 @@
 > **Notice:** StikDebug is no longer available on the App Store. Please use the official download methods below.
 
 <div align="center" style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
-   <a href="https://stikstore.app/altdirect/?url=https://stikdebug.xyz/index.json" target="_blank">
-     <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/AltSource_Blue.png" alt="Add AltSource" width="200">
+   <a href="https://altdirect.app/?url=https://stikdebug.xyz/index.json" target="_blank">
+     <img src="https://github.com/stikdebug/altdirect/blob/main/assets/png/AltSource_Blue.png" alt="Add AltSource" width="200">
    </a>
    <a href="https://github.com/StikDebug/StikDebug/releases/download/3.1.9/StikDebug-3.1.9.ipa" target="_blank">
-     <img src="https://github.com/stikstore/altdirect/blob/main/assets/png/Download_Blue.png" alt="Download .ipa" width="200">
+     <img src="https://github.com/stikdebug/altdirect/blob/main/assets/png/Download_Blue.png" alt="Download .ipa" width="200">
    </a>
 </div>
 
