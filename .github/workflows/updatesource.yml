@@ -32,13 +32,11 @@ jobs:
         echo "Timed out waiting for Build Debug IPA."
         exit 1
 
-    - name: Checkout Website-Stuff
+    - name: Checkout StikDebug
       uses: actions/checkout@v6
       with:
-        repository: StephenDev0/Website-Stuff
         ref: main
-        path: Website-Stuff
-        token: ${{ secrets.WEBSITE_STUFF_TOKEN }}
+        token: ${{ secrets.WEBSITE_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -47,7 +45,7 @@ jobs:
 
     - name: Update StikDebug source
       id: update_source
-      working-directory: Website-Stuff
+      working-directory: Website
       run: |
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
@@ -67,8 +65,8 @@ jobs:
       run: |
         if [[ "${{ steps.update_source.outputs.changes }}" == "true" ]]; then
           echo "## StikDebug source updated" >> $GITHUB_STEP_SUMMARY
-          echo "Website-Stuff/index.json was updated and pushed." >> $GITHUB_STEP_SUMMARY
+          echo "Website/index.json was updated and pushed." >> $GITHUB_STEP_SUMMARY
         else
           echo "## StikDebug source already current" >> $GITHUB_STEP_SUMMARY
-          echo "No change to Website-Stuff/index.json was needed." >> $GITHUB_STEP_SUMMARY
+          echo "No change to Website/index.json was needed." >> $GITHUB_STEP_SUMMARY
         fi
