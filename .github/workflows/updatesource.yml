@@ -32,10 +32,12 @@ jobs:
         echo "Timed out waiting for Build Debug IPA."
         exit 1
 
-    - name: Checkout StikDebug
+    - name: Checkout Website
       uses: actions/checkout@v6
       with:
+        repository: StikDebug/Website
         ref: main
+        path: Website
         token: ${{ secrets.WEBSITE_TOKEN }}
 
     - name: Set up Python
