@@ -768,6 +768,10 @@ struct LocationSimulationView: View {
     @State private var newBookmarkName = ""
     @State private var showSettings = false
 
+    // Current location
+    @StateObject private var currentLocationProvider = CurrentLocationProvider()
+    @State private var showLocationDeniedAlert = false
+
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
     }
@@ -979,6 +983,26 @@ struct LocationSimulationView: View {
                 }
                 .disabled(isBusy || isRouteRunning || isImportingCoordinates)
                 .accessibilityLabel("Import Coordinates")
+
+                Button {
+                    performLocate()
+                } label: {
+                    if currentLocationProvider.isLocating {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "location.fill")
+                    }
+                }
+                .disabled(isBusy || currentLocationProvider.isLocating)
+                .accessibilityLabel("Locate Me")
+
+                Button {
+                    returnToRealLocation()
+                } label: {
+                    Image(systemName: "location.slash.fill")
+                }
+                .disabled(!hasActiveSimulation || isBusy || currentLocationProvider.isLocating || !pairingExists)
+                .accessibilityLabel("Return to Real Location")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 TextField("Search location...", text: $searchText)
@@ -1004,6 +1028,16 @@ struct LocationSimulationView: View {
             Button("Cancel", role: .cancel) { newBookmarkName = "" }
         } message: {
             Text("Enter a name for this location.")
+        }
+        .alert("Location Permission Needed", isPresented: $showLocationDeniedAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("TLocation needs location access to find your current position. Note: while a simulated location is active, iOS reports the simulated position.")
         }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView(bookmarks: $bookmarks) { bookmark in
@@ -1231,7 +1265,7 @@ struct LocationSimulationView: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
-                Button("Stop", action: clear)
+                Button("Stop") { clear() }
                     .buttonStyle(.bordered)
                     .tint(.red)
                     .disabled(!pairingExists || isBusy || !hasActiveSimulation)
@@ -1274,7 +1308,7 @@ struct LocationSimulationView: View {
             routeAttributionLink
 
             HStack(spacing: 12) {
-                Button("Stop", action: clear)
+                Button("Stop") { clear() }
                     .buttonStyle(.bordered)
                     .tint(.red)
                     .disabled(!pairingExists || isBusy || !hasActiveSimulation)
@@ -1359,7 +1393,7 @@ struct LocationSimulationView: View {
         }
     }
 
-    private func clear() {
+    private func clear(onCleared: (() -> Void)? = nil) {
         guard pairingExists, !isBusy else { return }
         routeLoadTask?.cancel()
         routeLoadTask = nil
@@ -1374,6 +1408,7 @@ struct LocationSimulationView: View {
         ) {
             endBackgroundTask()
             BackgroundLocationManager.shared.requestStop()
+            onCleared?()
         }
     }
 
@@ -1419,6 +1454,33 @@ struct LocationSimulationView: View {
             resetRouteSelection()
         }
         self.coordinate = coordinate
+    }
+
+    private func returnToRealLocation() {
+        guard hasActiveSimulation else { return }
+        // Drop the fake position first, give iOS a moment to restore
+        // the real fix, then locate.
+        clear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                performLocate()
+            }
+        }
+    }
+
+    private func performLocate() {
+        currentLocationProvider.locate { result in
+            switch result {
+            case .success(let coordinate):
+                applySelection(coordinate)
+                Haptics.medium()
+            case .failure(.denied):
+                showLocationDeniedAlert = true
+            case .failure(.unavailable):
+                alertTitle = "Could Not Determine Location"
+                alertMessage = "No GPS fix was available. Try again, ideally with a clear view of the sky."
+                showAlert = true
+            }
+        }
     }
 
     private func resetRouteSelection() {
