@@ -95,3 +95,7 @@ iOSInjectionProject/
 .DS_Store
 .vscode/settings.json
 .vscode 
+
+# Internal planning docs (not published)
+docs/
+.superpowers/
