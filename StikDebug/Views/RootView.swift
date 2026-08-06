@@ -1,12 +1,9 @@
 //
-//  MainTabView.swift
-//  StikDebug
-//
-//  Created by Stephen on 3/27/25.
+//  RootView.swift
+//  TLocation
 //
 
 import SwiftUI
-import Foundation
 
 private enum ExternalLocationAction: Identifiable {
     case simulate(URL, Double, Double)
@@ -14,19 +11,15 @@ private enum ExternalLocationAction: Identifiable {
 
     var id: String {
         switch self {
-        case .simulate(let url, _, _):
-            return "simulate-\(url.absoluteString)"
-        case .clear:
-            return "clear-location"
+        case .simulate(let url, _, _): return "simulate-\(url.absoluteString)"
+        case .clear: return "clear-location"
         }
     }
 
     var title: String {
         switch self {
-        case .simulate:
-            return "Simulate Location?"
-        case .clear:
-            return "Clear Location?"
+        case .simulate: return "Simulate Location?"
+        case .clear: return "Clear Location?"
         }
     }
 
@@ -41,99 +34,128 @@ private enum ExternalLocationAction: Identifiable {
 
     var confirmationTitle: String {
         switch self {
-        case .simulate:
-            return "Set Location"
-        case .clear:
-            return "Clear Location"
+        case .simulate: return "Set Location"
+        case .clear: return "Clear Location"
         }
     }
 }
 
-struct MainTabView: View {
-    @AppStorage("primaryTabSelection") private var selection: String = AppFeature.home.id
-    @State private var detachedFeature: AppFeature?
-    @State private var didSetInitialHome = false
+struct RootView: View {
+    @ObservedObject private var tunnel = TunnelManager.shared
+    @ObservedObject private var mounting = MountingProgress.shared
+
+    @State private var isShowingPairingFilePicker = false
     @State private var pendingLocationAction: ExternalLocationAction?
+    @State private var pairingExists = FileManager.default.fileExists(
+        atPath: PairingFileStore.prepareURL().path
+    )
+
+    private let statusTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private var isReady: Bool {
+        pairingExists && tunnel.isConnected && mounting.coolisMounted
+    }
 
     var body: some View {
-        ZStack {
-            Color.clear.ignoresSafeArea()
-
-            TabView(selection: $selection) {
-                ForEach(AppFeature.mainTabs) { feature in
-                    feature.destination
-                        .tabItem { Label(feature.title, systemImage: feature.systemImage) }
-                        .tag(feature.id)
-                }
-            }
-            .onAppear {
-                ensureSelectionIsValid()
-                if !didSetInitialHome {
-                    selection = AppFeature.home.id
-                    didSetInitialHome = true
-                }
-            }
-            .onOpenURL { url in
-                handleURL(url)
-            }
-            .confirmationDialog(
-                pendingLocationAction?.title ?? "External Location Request",
-                isPresented: Binding(
-                    get: { pendingLocationAction != nil },
-                    set: { isPresented in
-                        if !isPresented {
-                            pendingLocationAction = nil
-                        }
+        NavigationStack {
+            LocationSimulationView()
+                .safeAreaInset(edge: .top) {
+                    if !isReady {
+                        connectionBanner
                     }
-                ),
-                titleVisibility: .visible,
-                presenting: pendingLocationAction
-            ) { action in
-                Button(action.confirmationTitle, role: .destructive) {
-                    performLocationAction(action)
-                    pendingLocationAction = nil
                 }
-                Button("Cancel", role: .cancel) {
-                    pendingLocationAction = nil
-                }
-            } message: { action in
-                Text(action.message)
+        }
+        .fileImporter(
+            isPresented: $isShowingPairingFilePicker,
+            allowedContentTypes: PairingFileStore.supportedContentTypes
+        ) { result in
+            importPairingFile(result)
+        }
+        .onAppear {
+            startTunnelInBackground()
+            MountingProgress.shared.checkforMounted()
+        }
+        .onReceive(statusTimer) { _ in
+            pairingExists = FileManager.default.fileExists(atPath: PairingFileStore.prepareURL().path)
+            if mounting.mountingThread == nil, !mounting.coolisMounted {
+                MountingProgress.shared.checkforMounted()
             }
-            .sheet(item: $detachedFeature) { feature in
-                NavigationStack {
-                    feature.destination
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") {
-                                    detachedFeature = nil
-                                }
-                            }
-                        }
-                }
+        }
+        .onOpenURL { url in
+            handleURL(url)
+        }
+        .confirmationDialog(
+            pendingLocationAction?.title ?? "External Location Request",
+            isPresented: Binding(
+                get: { pendingLocationAction != nil },
+                set: { if !$0 { pendingLocationAction = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingLocationAction
+        ) { action in
+            Button(action.confirmationTitle, role: .destructive) {
+                performLocationAction(action)
+                pendingLocationAction = nil
             }
+            Button("Cancel", role: .cancel) { pendingLocationAction = nil }
+        } message: { action in
+            Text(action.message)
         }
     }
 
-    private func ensureSelectionIsValid() {
-        let ids = AppFeature.mainTabs.map { $0.id }
-        if ids.contains(selection) {
-            return
+    private var connectionBanner: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 14) {
+                statusChip("Pairing", ok: pairingExists)
+                statusChip("Tunnel", ok: tunnel.isConnected)
+                statusChip("DDI", ok: mounting.coolisMounted)
+            }
+            if !pairingExists {
+                Button("Import Pairing File") {
+                    isShowingPairingFilePicker = true
+                }
+                .font(.footnote.weight(.semibold))
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
         }
-        selection = AppFeature.home.id
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .background(.ultraThinMaterial)
     }
+
+    private func statusChip(_ label: String, ok: Bool) -> some View {
+        Label(label, systemImage: ok ? "checkmark.circle.fill" : "circle.dashed")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(ok ? .green : .secondary)
+    }
+
+    private func importPairingFile(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                try PairingFileStore.importFromPicker(url)
+                pairingExists = true
+                markTunnelDisconnected()
+                startTunnelInBackground()
+                AlertPresenter.dismissPresentedAlert()
+            } catch {
+                LogManager.shared.addErrorLog("Failed to import pairing file: \(error.localizedDescription)")
+                showAlert(title: "Import Failed", message: error.localizedDescription, showOk: true)
+            }
+        case .failure(let error):
+            LogManager.shared.addErrorLog("Pairing file picker failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - URL scheme (tlocation://)
 
     private func handleURL(_ url: URL) {
         guard let host = url.host()?.lowercased() else { return }
-
         switch host {
-        case "simulate-location", "set-location":
+        case "simulate-location", "set-location", "location", "location-simulation":
             confirmSimulatedLocation(from: url)
-        case "location", "location-simulation":
-            if coordinate(from: url) == nil {
-                openFeature(id: AppFeature.location.id)
-            } else {
-                confirmSimulatedLocation(from: url)
-            }
         case "clear-location", "stop-location":
             pendingLocationAction = .clear
         default:
@@ -141,28 +163,15 @@ struct MainTabView: View {
         }
     }
 
-    private func openFeature(id: String) {
-        guard let feature = AppFeature(rawValue: id) else {
-            return
-        }
-
-        if AppFeature.mainTabs.contains(feature) {
-            selection = feature.id
-        } else {
-            detachedFeature = feature
-        }
-    }
-
     private func confirmSimulatedLocation(from url: URL) {
         guard let coordinate = coordinate(from: url) else {
             showAlert(
                 title: "Invalid Location URL",
-                message: "Use stikdebug://simulate-location?lat=37.3349&lon=-122.0090",
+                message: "Use tlocation://simulate-location?lat=37.3349&lon=-122.0090",
                 showOk: true
             )
             return
         }
-
         guard coordinateIsValid(latitude: coordinate.latitude, longitude: coordinate.longitude) else {
             showAlert(
                 title: "Invalid Coordinates",
@@ -171,7 +180,6 @@ struct MainTabView: View {
             )
             return
         }
-
         pendingLocationAction = .simulate(url, coordinate.latitude, coordinate.longitude)
     }
 
@@ -185,24 +193,10 @@ struct MainTabView: View {
     }
 
     private func simulateLocation(from url: URL) {
-        guard let coordinate = coordinate(from: url) else {
-            showAlert(
-                title: "Invalid Location URL",
-                message: "Use stikdebug://simulate-location?lat=37.3349&lon=-122.0090",
-                showOk: true
-            )
+        guard let coordinate = coordinate(from: url),
+              coordinateIsValid(latitude: coordinate.latitude, longitude: coordinate.longitude) else {
             return
         }
-
-        guard coordinateIsValid(latitude: coordinate.latitude, longitude: coordinate.longitude) else {
-            showAlert(
-                title: "Invalid Coordinates",
-                message: "Latitude must be between -90 and 90. Longitude must be between -180 and 180.",
-                showOk: true
-            )
-            return
-        }
-
         let pairingFile = PairingFileStore.prepareURL()
         guard FileManager.default.fileExists(atPath: pairingFile.path) else {
             showAlert(
@@ -212,7 +206,6 @@ struct MainTabView: View {
             )
             return
         }
-
         LocationSimulationCommandQueue.shared.async {
             let code = simulate_location(
                 DeviceConnectionContext.targetIPAddress,
@@ -220,7 +213,6 @@ struct MainTabView: View {
                 coordinate.longitude,
                 pairingFile.path
             )
-
             DispatchQueue.main.async {
                 if code == 0 {
                     BackgroundLocationManager.shared.requestStart()
@@ -296,11 +288,5 @@ struct MainTabView: View {
             guard let matchRange = Range(match.range, in: text) else { return nil }
             return Double(text[matchRange])
         }
-    }
-}
-
-struct MainTabView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainTabView()
     }
 }

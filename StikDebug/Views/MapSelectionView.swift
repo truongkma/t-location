@@ -766,6 +766,7 @@ struct LocationSimulationView: View {
     @State private var showBookmarks = false
     @State private var showSaveBookmark = false
     @State private var newBookmarkName = ""
+    @State private var showSettings = false
 
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
@@ -952,6 +953,13 @@ struct LocationSimulationView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarLeading) {
                 Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+                .accessibilityLabel("Settings")
+
+                Button {
                     showBookmarks = true
                 } label: {
                     Image(systemName: "bookmark.fill")
@@ -1015,6 +1023,9 @@ struct LocationSimulationView: View {
                 routeEndSelection = endSelection
                 refreshRoute()
             }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
         .fileImporter(
             isPresented: $showCoordinateImporter,
