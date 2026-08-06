@@ -1,6 +1,6 @@
 //
 //  AppBootstrapper.swift
-//  StikDebug
+//  TLocation
 //
 
 import Foundation
@@ -9,31 +9,19 @@ import UIKit
 
 enum AppBootstrapper {
     static func configure() {
-        registerDefaultSettings()
-        startConfiguredKeepAliveServices()
-        applyDocumentPickerCopyWorkaround()
-    }
-
-    private static func registerDefaultSettings() {
-        let os = ProcessInfo.processInfo.operatingSystemVersion
-        let enableAdvancedOptions = os.majorVersion >= 19
-
         UserDefaults.standard.register(defaults: [
-            "enableAdvancedOptions": enableAdvancedOptions,
-            UserDefaults.Keys.txmOverride: false,
-            UserDefaults.Keys.confirmExternalJITRequests: true,
             "keepAliveAudio": true,
             "keepAliveLocation": true
         ])
-    }
 
-    private static func startConfiguredKeepAliveServices() {
-        guard UserDefaults.standard.bool(forKey: "keepAliveAudio") else {
-            return
+        if UserDefaults.standard.bool(forKey: "keepAliveAudio") {
+            BackgroundAudioManager.shared.start()
         }
-        BackgroundAudioManager.shared.start()
+
+        applyDocumentPickerCopyWorkaround()
     }
 
+    // Required so pairing-file imports copy correctly from the Files picker.
     private static func applyDocumentPickerCopyWorkaround() {
         let fixedSelector = NSSelectorFromString("fix_initForOpeningContentTypes:asCopy:")
         let originalSelector = #selector(UIDocumentPickerViewController.init(forOpeningContentTypes:asCopy:))
