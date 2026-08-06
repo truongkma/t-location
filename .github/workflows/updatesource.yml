@@ -40,7 +40,8 @@ jobs:
             --json assets --jq '.assets[] | select(.name=="TLocation.ipa") | .size')
           date=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           jq --arg v "$version" --arg url "$url" --argjson size "$size" --arg date "$date" \
-            '.apps[0].versions = ([{version: $v, date: $date, downloadURL: $url, size: $size, minOSVersion: "17.4"}] + .apps[0].versions | unique_by(.version))' \
+            '.apps[0].versions = ([{version: $v, date: $date, downloadURL: $url, size: $size, minOSVersion: "17.4"}]
+               + [.apps[0].versions[] | select(.version != $v)])' \
             source.json > source.tmp && mv source.tmp source.json
 
       - name: Commit

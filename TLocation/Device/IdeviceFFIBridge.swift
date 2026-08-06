@@ -256,7 +256,7 @@ private enum LocationSimulationState {
 }
 
 enum LocationSimulationCommandQueue {
-    static let shared = DispatchQueue(label: "com.stik.location-sim", qos: .userInitiated)
+    static let shared = DispatchQueue(label: "vn.truongkma.tlocation.location-sim", qos: .userInitiated)
 }
 
 func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Double, _ pairingFile: String) -> Int32 {
