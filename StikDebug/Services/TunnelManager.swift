@@ -151,7 +151,7 @@ private func tunnelConnectionAlertMessage(for error: NSError) -> String {
         recoverySteps = [
             "Close other JIT, debugging, proxy, or VPN apps that may be using the tunnel.",
             "Disconnect and reconnect LocalDevVPN.",
-            "Restart StikDebug, then try again.",
+            "Restart TLocation, then try again.",
             "If it keeps happening, reboot the device to clear the stuck port."
         ]
     } else if error.code == 54 || lowercasedMessage.contains("connection reset") {

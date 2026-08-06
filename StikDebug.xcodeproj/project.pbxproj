@@ -458,11 +458,12 @@
 					"$(PROJECT_DIR)/StikDebug/idevice",
 				);
 				INFOPLIST_FILE = StikDebug/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TLocation;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "StikDebug needs access to devices on your local network so it can connect to the targets you add to the Device Library.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "StikDebug uses location to stay running in the background and maintain your JIT connection.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "StikDebug uses location to stay running in the background and maintain your JIT connection.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "TLocation uses your location to center the map on your position and to keep location simulation running in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "TLocation uses your location to center the map on your position and to keep location simulation running in the background.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -483,8 +484,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 3.1.9;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.stikdebug;
-				PRODUCT_NAME = StikDebugT;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation;
+				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -521,11 +522,12 @@
 					"$(PROJECT_DIR)/StikDebug/idevice",
 				);
 				INFOPLIST_FILE = StikDebug/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TLocation;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "StikDebug needs access to devices on your local network so it can connect to the targets you add to the Device Library.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "StikDebug uses location to stay running in the background and maintain your JIT connection.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "StikDebug uses location to stay running in the background and maintain your JIT connection.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "TLocation uses your location to center the map on your position and to keep location simulation running in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "TLocation uses your location to center the map on your position and to keep location simulation running in the background.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -546,8 +548,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 3.1.9;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.stikdebug;
-				PRODUCT_NAME = StikDebugT;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation;
+				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -581,7 +583,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -614,7 +616,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -638,7 +640,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -661,7 +663,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stik.stikdebug.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";

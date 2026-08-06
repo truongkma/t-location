@@ -10,7 +10,7 @@ import idevice
 
 private enum IdeviceBridge {
     static func makeError(
-        domain: String = "StikDebug",
+        domain: String = "TLocation",
         code: Int = -1,
         message: String
     ) -> NSError {
@@ -29,7 +29,7 @@ private enum IdeviceBridge {
     static func consumeFFIError(
         _ ffiError: UnsafeMutablePointer<IdeviceFfiError>?,
         fallback: String,
-        domain: String = "StikDebug"
+        domain: String = "TLocation"
     ) -> NSError {
         guard let ffiError else {
             return makeError(domain: domain, message: fallback)
@@ -81,7 +81,7 @@ private enum IdeviceBridge {
     static func connectClient(
         fallback: String,
         missingClientMessage: String,
-        domain: String = "StikDebug",
+        domain: String = "TLocation",
         connect: (UnsafeMutablePointer<OpaquePointer?>) -> UnsafeMutablePointer<IdeviceFfiError>?
     ) throws -> OpaquePointer {
         var client: OpaquePointer?
@@ -99,7 +99,7 @@ private enum IdeviceBridge {
     static func withConnectedClient<T>(
         fallback: String,
         missingClientMessage: String,
-        domain: String = "StikDebug",
+        domain: String = "TLocation",
         connect: (UnsafeMutablePointer<OpaquePointer?>) -> UnsafeMutablePointer<IdeviceFfiError>?,
         cleanup: (OpaquePointer) -> Void,
         _ body: (OpaquePointer) throws -> T

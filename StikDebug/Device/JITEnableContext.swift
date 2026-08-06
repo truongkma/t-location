@@ -61,7 +61,7 @@ final class JITEnableContext {
 
     private func makeError(_ message: String, code: Int = -1) -> NSError {
         NSError(
-            domain: "StikDebug",
+            domain: "TLocation",
             code: code,
             userInfo: [NSLocalizedDescriptionKey: message]
         )
@@ -188,7 +188,7 @@ final class JITEnableContext {
         }
 
         do {
-            let newTunnel = try createTunnel(hostname: "StikDebug")
+            let newTunnel = try createTunnel(hostname: "TLocation")
             newAdapter = newTunnel.adapter
             newHandshake = newTunnel.handshake
         } catch let tunnelError as NSError {
