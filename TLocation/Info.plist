@@ -17,8 +17,8 @@
 	</array>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_stikdebug._tcp</string>
-		<string>_stikdebug._udp</string>
+		<string>_tlocation._tcp</string>
+		<string>_tlocation._udp</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
