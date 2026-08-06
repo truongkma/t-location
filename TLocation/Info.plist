@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>vn.truong.tlocation.location</string>
+			<string>vn.truongkma.tlocation.location</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>tlocation</string>

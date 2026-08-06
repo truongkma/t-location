@@ -1,0 +1,16 @@
+{
+  "name": "TLocation Source",
+  "identifier": "vn.truongkma.tlocation.source",
+  "apps": [
+    {
+      "name": "TLocation",
+      "bundleIdentifier": "vn.truongkma.tlocation",
+      "developerName": "truongkma",
+      "subtitle": "GPS location simulator",
+      "localizedDescription": "Simulate your device's GPS location from a single map screen. Derived from StikDebug.",
+      "iconURL": "https://raw.githubusercontent.com/truongkma/t-location/main/assets/tlocation-icon.png",
+      "tintColor": "#2196F3",
+      "versions": []
+    }
+  ]
+}

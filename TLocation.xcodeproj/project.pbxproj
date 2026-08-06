@@ -484,7 +484,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 3.1.9;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation;
 				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
@@ -548,7 +548,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 3.1.9;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation;
 				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
@@ -583,7 +583,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -616,7 +616,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -640,7 +640,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -663,7 +663,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = vn.truong.tlocation.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
