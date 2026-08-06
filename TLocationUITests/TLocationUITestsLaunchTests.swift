@@ -1,13 +1,13 @@
 //
-//  StikDebugUITestsLaunchTests.swift
-//  StikDebugUITests
+//  TLocationUITestsLaunchTests.swift
+//  TLocationUITests
 //
 //  Created by Stephen on 3/26/25.
 //
 
 import XCTest
 
-final class StikDebugUITestsLaunchTests: XCTestCase {
+final class TLocationUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

@@ -1,15 +1,15 @@
 //
-//  StikDebugTests.swift
-//  StikDebugTests
+//  TLocationTests.swift
+//  TLocationTests
 //
 //  Created by Stephen on 3/26/25.
 //
 
 import Foundation
 import Testing
-@testable import StikDebug
+@testable import TLocation
 
-struct StikDebugTests {
+struct TLocationTests {
 
     @Test func txmDetectionUsesClassicTXMBeforeIOS266() async throws {
         #expect(

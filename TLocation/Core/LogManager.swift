@@ -1,6 +1,6 @@
 //
 //  LogManager.swift
-//  StikDebug
+//  TLocation
 //
 //  Created by neoarz on 3/29/25.
 //

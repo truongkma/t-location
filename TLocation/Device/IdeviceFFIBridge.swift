@@ -1,6 +1,6 @@
 //
 //  IdeviceFFIBridge.swift
-//  StikDebug
+//  TLocation
 //
 //  Created by Stephen on 2026/3/30.
 //
@@ -296,7 +296,7 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
             tunnel_create_rppairing(
                 $0,
                 socklen_t(MemoryLayout<sockaddr_in>.stride),
-                "StikDebugLocation",
+                "TLocationSimulation",
                 pairingHandle,
                 nil,
                 nil,

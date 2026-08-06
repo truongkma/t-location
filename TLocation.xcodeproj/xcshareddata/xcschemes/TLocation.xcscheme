@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DC6F1D362D94EADD0071B2B6"
-               BuildableName = "StikDebug.app"
-               BlueprintName = "StikDebug"
-               ReferencedContainer = "container:StikDebug.xcodeproj">
+               BuildableName = "TLocation.app"
+               BlueprintName = "TLocation"
+               ReferencedContainer = "container:TLocation.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DC6F1D472D94EADF0071B2B6"
-               BuildableName = "StikDebugTests.xctest"
-               BlueprintName = "StikDebugTests"
-               ReferencedContainer = "container:StikDebug.xcodeproj">
+               BuildableName = "TLocationTests.xctest"
+               BlueprintName = "TLocationTests"
+               ReferencedContainer = "container:TLocation.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -47,9 +47,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DC6F1D512D94EADF0071B2B6"
-               BuildableName = "StikDebugUITests.xctest"
-               BlueprintName = "StikDebugUITests"
-               ReferencedContainer = "container:StikDebug.xcodeproj">
+               BuildableName = "TLocationUITests.xctest"
+               BlueprintName = "TLocationUITests"
+               ReferencedContainer = "container:TLocation.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -69,9 +69,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DC6F1D362D94EADD0071B2B6"
-            BuildableName = "StikDebug.app"
-            BlueprintName = "StikDebug"
-            ReferencedContainer = "container:StikDebug.xcodeproj">
+            BuildableName = "TLocation.app"
+            BlueprintName = "TLocation"
+            ReferencedContainer = "container:TLocation.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -86,9 +86,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DC6F1D362D94EADD0071B2B6"
-            BuildableName = "StikDebug.app"
-            BlueprintName = "StikDebug"
-            ReferencedContainer = "container:StikDebug.xcodeproj">
+            BuildableName = "TLocation.app"
+            BlueprintName = "TLocation"
+            ReferencedContainer = "container:TLocation.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

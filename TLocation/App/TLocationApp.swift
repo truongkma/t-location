@@ -1,6 +1,6 @@
 //
-//  StikDebugApp.swift
-//  StikDebug
+//  TLocationApp.swift
+//  TLocation
 //
 //  Created by Stephen on 3/26/25.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct StikDebugApp: App {
+struct TLocationApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var shouldAttemptTunnelReconnect = false
 

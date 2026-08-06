@@ -18,13 +18,8 @@
       ],
       "layers" : [
         {
-          "image-name" : "1Bolt 2.svg",
-          "name" : "1Bolt 2"
-        },
-        {
-          "hidden" : true,
-          "image-name" : "1Bolt.svg",
-          "name" : "1Bolt"
+          "image-name" : "Pin.svg",
+          "name" : "Pin"
         }
       ],
       "shadow" : {
@@ -54,8 +49,8 @@
             "solid" : "extended-gray:1.00000,0.30000"
           },
           "glass" : false,
-          "image-name" : "2Grid.svg",
-          "name" : "2Grid"
+          "image-name" : "Pin.svg",
+          "name" : "Pin"
         }
       ],
       "shadow" : {
