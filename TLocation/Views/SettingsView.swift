@@ -33,12 +33,35 @@ private struct BookmarksDocument: FileDocument {
     }
 }
 
+/// Which file picker is currently requested. SwiftUI only reliably presents one
+/// `.fileImporter` per view — stacking two at the same modifier-chain level means
+/// the second one silently never fires — so both "Import Pairing File" and
+/// "Import Bookmarks" route through this single piece of state and a single
+/// `.fileImporter` modifier below.
+private enum PendingImport: Identifiable {
+    case pairingFile
+    case bookmarks
+
+    var id: Int {
+        switch self {
+        case .pairingFile: return 0
+        case .bookmarks: return 1
+        }
+    }
+
+    var allowedContentTypes: [UTType] {
+        switch self {
+        case .pairingFile: return PairingFileStore.supportedContentTypes
+        case .bookmarks: return [.json]
+        }
+    }
+}
+
 struct SettingsView: View {
     @AppStorage("keepAliveAudio") private var keepAliveAudio = true
     @AppStorage("keepAliveLocation") private var keepAliveLocation = true
     @AppStorage(UserDefaults.Keys.targetDeviceIP) private var targetDeviceIP = DeviceConnectionContext.defaultTargetIPAddress
 
-    @State private var isShowingPairingFilePicker = false
     @State private var isImportingFile = false
     /// Cheap existence check only — `prepareURL()` does directory creation and a
     /// full byte-compare, which has no business running while a view body renders.
@@ -46,6 +69,8 @@ struct SettingsView: View {
         atPath: PairingFileStore.url.path
     )
     @State private var pairingImportMessage: (text: String, isError: Bool)?
+    /// Drives the single consolidated `.fileImporter` below — see `PendingImport`.
+    @State private var pendingImport: PendingImport?
     @State private var showDDIConfirmation = false
     @State private var isRedownloadingDDI = false
     @State private var ddiDownloadProgress: Double = 0.0
@@ -56,7 +81,6 @@ struct SettingsView: View {
     // import, so the count row never lies about what is in the store.
     @State private var bookmarks: [LocationBookmark] = []
     @State private var isShowingBookmarkExporter = false
-    @State private var isShowingBookmarkImporter = false
     @State private var bookmarkExportDocument: BookmarksDocument?
     /// Stamped when Export is tapped rather than computed in `body`, which would
     /// rebuild a `DateFormatter` on every render.
@@ -84,7 +108,7 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        isShowingPairingFilePicker = true
+                        pendingImport = .pairingFile
                     } label: {
                         Label("Import Pairing File", systemImage: "doc.badge.plus")
                     }
@@ -95,7 +119,7 @@ struct SettingsView: View {
                     // disabled once a file is in place, and this is the way back.
                     if pairingFileExists {
                         Button("Replace Pairing File") {
-                            isShowingPairingFilePicker = true
+                            pendingImport = .pairingFile
                         }
                         .buttonStyle(.plain)
                         .font(.footnote)
@@ -158,7 +182,7 @@ struct SettingsView: View {
 
                     Button {
                         bookmarkMessage = nil
-                        isShowingBookmarkImporter = true
+                        pendingImport = .bookmarks
                     } label: {
                         Label("Import Bookmarks", systemImage: "square.and.arrow.down")
                     }
@@ -237,53 +261,50 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { bookmarks = BookmarkStore.load() }
         }
-        .fileExporter(
-            isPresented: $isShowingBookmarkExporter,
-            document: bookmarkExportDocument,
-            contentType: .json,
-            defaultFilename: bookmarkExportFilename
-        ) { result in
-            switch result {
-            case .success:
-                bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
-            case .failure(let error):
-                bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
-            }
-            scheduleBookmarkStatusDismiss()
-        }
-        .fileImporter(
-            isPresented: $isShowingBookmarkImporter,
-            allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            importBookmarks(from: result)
-        }
-        .fileImporter(
-            isPresented: $isShowingPairingFilePicker,
-            allowedContentTypes: PairingFileStore.supportedContentTypes,
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else { return }
-                isImportingFile = true
-                pairingImportMessage = nil
-                do {
-                    try PairingFileStore.importFromPicker(url)
-                    isImportingFile = false
-                    pairingFileExists = true
-                    pairingImportMessage = ("Imported successfully", false)
-                    startTunnelInBackground()
-                    schedulePairingStatusDismiss()
-                } catch {
-                    isImportingFile = false
-                    pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
-                    schedulePairingStatusDismiss()
+        // The exporter lives on its own invisible subview (rather than chained
+        // directly alongside the importer below) so its presentation trigger has
+        // its own view identity — the same modifier-conflict class of bug that
+        // broke the two stacked `.fileImporter`s can bite an exporter mixed in
+        // with an importer at the same level, and this sidesteps it entirely.
+        .background(
+            Color.clear
+                .fileExporter(
+                    isPresented: $isShowingBookmarkExporter,
+                    document: bookmarkExportDocument,
+                    contentType: .json,
+                    defaultFilename: bookmarkExportFilename
+                ) { result in
+                    switch result {
+                    case .success:
+                        bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
+                    case .failure(let error):
+                        bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+                    }
+                    scheduleBookmarkStatusDismiss()
                 }
-            case .failure(let error):
-                isImportingFile = false
-                pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
-                schedulePairingStatusDismiss()
+        )
+        // Single consolidated importer for both "Import Pairing File" /
+        // "Replace Pairing File" and "Import Bookmarks" — see `PendingImport`.
+        // `isPresented` derives from `pendingImport`, and clears it on dismiss
+        // (including cancel, which never invokes the completion closure) so a
+        // stale non-nil `pendingImport` can never block the next tap.
+        .fileImporter(
+            isPresented: Binding(
+                get: { pendingImport != nil },
+                set: { isPresented in if !isPresented { pendingImport = nil } }
+            ),
+            allowedContentTypes: pendingImport?.allowedContentTypes ?? PairingFileStore.supportedContentTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            let requested = pendingImport
+            pendingImport = nil
+            switch requested {
+            case .bookmarks:
+                importBookmarks(from: result)
+            case .pairingFile:
+                importPairingFile(from: result)
+            case nil:
+                break
             }
         }
         .confirmationDialog("Redownload DDI Files?", isPresented: $showDDIConfirmation, titleVisibility: .visible) {
@@ -291,6 +312,33 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
+        }
+    }
+
+    // MARK: - Pairing File
+
+    private func importPairingFile(from result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            isImportingFile = true
+            pairingImportMessage = nil
+            do {
+                try PairingFileStore.importFromPicker(url)
+                isImportingFile = false
+                pairingFileExists = true
+                pairingImportMessage = ("Imported successfully", false)
+                startTunnelInBackground()
+                schedulePairingStatusDismiss()
+            } catch {
+                isImportingFile = false
+                pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
+                schedulePairingStatusDismiss()
+            }
+        case .failure(let error):
+            isImportingFile = false
+            pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
+            schedulePairingStatusDismiss()
         }
     }
 
