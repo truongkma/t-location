@@ -34,6 +34,13 @@ struct SettingsView: View {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 
+    /// Red once the signature has lapsed, orange inside the last day, otherwise
+    /// the same muted grey as every other detail value in this form.
+    private var signingExpiryColor: Color {
+        if AppSigningInfo.hasExpired { return .red }
+        return AppSigningInfo.isExpiringSoon ? .orange : .secondary
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -105,6 +112,18 @@ struct SettingsView: View {
                 }
 
                 Section("Advanced") {
+                    // Omitted entirely when there is no embedded provisioning profile
+                    // to read — an App Store or TrollStore install has no expiry.
+                    if let expiry = AppSigningInfo.formattedExpirationDate,
+                       let remaining = AppSigningInfo.remainingPhrase {
+                        HStack {
+                            Text("Signing expires")
+                            Spacer()
+                            Text("\(expiry) (\(remaining))")
+                                .foregroundStyle(signingExpiryColor)
+                        }
+                    }
+
                     HStack {
                         Text("Target Device IP")
                         Spacer()

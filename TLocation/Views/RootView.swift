@@ -8,6 +8,38 @@ import UIKit
 
 private enum RootViewLinks {
     static let localDevVPNAppStore = URL(string: "https://apps.apple.com/us/app/localdevvpn/id6755608044")!
+
+    /// Tried in order. SideStore renamed itself out of the AltStore lineage but both
+    /// schemes are still in the wild, so guess the current one first and let the
+    /// website catch anyone running neither.
+    static let sideStore: [URL] = [
+        URL(string: "sidestore://")!,
+        URL(string: "altstore://")!,
+        URL(string: "https://sidestore.io")!
+    ]
+
+    static let localDevVPN: [URL] = [
+        URL(string: "stosvpn://")!,
+        localDevVPNAppStore
+    ]
+}
+
+/// Opens the first URL in `candidates` that the system actually resolves, chaining
+/// through `open`'s completion handler.
+///
+/// Deliberately declaration-free: no `LSApplicationQueriesSchemes` entry and no
+/// `canOpenURL` check. A scheme that does not resolve — app missing, or renamed
+/// since LocalDevVPN was StosVPN — just reports failure and hands off to the next
+/// candidate, so a wrong guess costs nothing but is invisible to the user.
+///
+/// A free function rather than a method so the recursive step does not have to
+/// capture the enclosing `View` value in an escaping closure.
+private func openFirstResolving(_ candidates: [URL]) {
+    guard let next = candidates.first else { return }
+    UIApplication.shared.open(next) { success in
+        guard !success else { return }
+        openFirstResolving(Array(candidates.dropFirst()))
+    }
 }
 
 private enum ExternalLocationAction: Identifiable {
@@ -49,12 +81,19 @@ struct RootView: View {
     @ObservedObject private var tunnel = TunnelManager.shared
     @ObservedObject private var mounting = MountingProgress.shared
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var isShowingPairingFilePicker = false
     @State private var isShowingSettings = false
     @State private var pendingLocationAction: ExternalLocationAction?
     @State private var pairingExists = FileManager.default.fileExists(
         atPath: PairingFileStore.prepareURL().path
     )
+    @State private var isShowingExpiryWarning = false
+    @State private var suppressExpiryWarning = false
+    /// The expiry warning is decided once per launch. Without this, dismissing with
+    /// "Later" would only last until the app next came back to the foreground.
+    @State private var hasEvaluatedExpiryWarning = false
 
     private let statusTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -74,13 +113,22 @@ struct RootView: View {
             // discards the safe area.
             ZStack {
                 LocationSimulationView()
-                    .allowsHitTesting(isReady)
+                    .allowsHitTesting(isReady && !isShowingExpiryWarning)
 
-                if !isReady {
+                // Strictly one card at a time — `else if`, not two independent
+                // `if`s, so the two can never stack on top of each other. The
+                // expiry warning wins: an unreadable map is recoverable in
+                // seconds, a lapsed signature means a reinstall. Dismissing it
+                // reveals the readiness overlay underneath, whose blocking
+                // behaviour is unchanged (the map stops hit-testing for either).
+                if isShowingExpiryWarning {
+                    expiryOverlay
+                } else if !isReady {
                     readinessOverlay
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: isReady)
+            .animation(.easeInOut(duration: 0.2), value: isShowingExpiryWarning)
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
@@ -94,6 +142,10 @@ struct RootView: View {
         .onAppear {
             startTunnelInBackground()
             MountingProgress.shared.checkforMounted()
+            evaluateExpiryWarning()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active { evaluateExpiryWarning() }
         }
         .onReceive(statusTimer) { _ in
             // Cheap existence check only. `prepareURL()` does directory creation and a
@@ -126,6 +178,114 @@ struct RootView: View {
         } message: { action in
             Text(action.message)
         }
+    }
+
+    // MARK: - Signing expiry warning
+
+    /// Decides once per launch whether to warn that the signature is about to lapse.
+    /// Every early return still marks the decision as made, so "Later" holds for the
+    /// rest of the session even across foreground/background cycles.
+    private func evaluateExpiryWarning() {
+        guard !hasEvaluatedExpiryWarning else { return }
+        hasEvaluatedExpiryWarning = true
+
+        // No embedded profile (App Store build, TrollStore, unsigned): nothing to say.
+        guard let expiry = AppSigningInfo.expirationDate,
+              AppSigningInfo.isExpiringSoon else { return }
+
+        // Suppression is keyed to this exact expiry date, so a SideStore refresh —
+        // new certificate, new expiry — starts warning again next week.
+        let suppressed = UserDefaults.standard.object(
+            forKey: UserDefaults.Keys.suppressedExpiryWarning
+        ) as? Double
+        if let suppressed, abs(suppressed - expiry.timeIntervalSince1970) < 1 { return }
+
+        isShowingExpiryWarning = true
+    }
+
+    private func dismissExpiryWarning() {
+        if suppressExpiryWarning, let expiry = AppSigningInfo.expirationDate {
+            UserDefaults.standard.set(
+                expiry.timeIntervalSince1970,
+                forKey: UserDefaults.Keys.suppressedExpiryWarning
+            )
+        }
+        isShowingExpiryWarning = false
+    }
+
+    private var expiryTitle: String {
+        guard let remaining = AppSigningInfo.timeRemaining else { return "TLocation has expired" }
+        return remaining <= 0
+            ? "TLocation has expired"
+            : "TLocation expires in \(AppSigningInfo.durationPhrase(remaining))"
+    }
+
+    private var expiryBody: String {
+        AppSigningInfo.hasExpired
+            ? "The signing certificate for this install has lapsed, so TLocation will not launch again until it is re-signed. Open SideStore and refresh TLocation to fix it."
+            : "Open SideStore and refresh TLocation to re-sign it. If the signature fully expires the app will not launch and must be reinstalled."
+    }
+
+    /// Same visual language as the readiness overlay: full-screen material scrim
+    /// plus a rounded material card. Uses no iOS-26-only API, so it needs no
+    /// availability gate — `.regularMaterial` is the floor on iOS 17.4.
+    private var expiryOverlay: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+
+            expiryCard
+                .padding(.horizontal, 24)
+        }
+        .transition(.opacity)
+    }
+
+    private var expiryCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(expiryTitle, systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundStyle(AppSigningInfo.hasExpired ? .red : .orange)
+                Text(expiryBody)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Refreshing keeps your pairing file and bookmarks.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Toggle(isOn: $suppressExpiryWarning) {
+                Text("Don't show again for this expiry")
+                    .font(.subheadline)
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    openSideStore()
+                    dismissExpiryWarning()
+                } label: {
+                    Label("Open SideStore", systemImage: "arrow.up.forward.app")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    dismissExpiryWarning()
+                } label: {
+                    Text("Later")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+            .font(.subheadline.weight(.medium))
+        }
+        .padding(22)
+        .frame(maxWidth: 420)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
     }
 
     // MARK: - Readiness overlay
@@ -266,16 +426,12 @@ struct RootView: View {
         .accessibilityLabel("\(title): \(isDone ? "done" : "pending")")
     }
 
-    /// Deliberately declaration-free: no `LSApplicationQueriesSchemes` entry and
-    /// no installed-check. If the scheme does not resolve — app missing, or the
-    /// scheme renamed since LocalDevVPN was StosVPN — `open` reports failure and
-    /// the App Store page takes over, so a wrong guess costs nothing.
     private func openLocalDevVPN() {
-        guard let schemeURL = URL(string: "stosvpn://") else { return }
-        UIApplication.shared.open(schemeURL) { success in
-            guard !success else { return }
-            UIApplication.shared.open(RootViewLinks.localDevVPNAppStore)
-        }
+        openFirstResolving(RootViewLinks.localDevVPN)
+    }
+
+    private func openSideStore() {
+        openFirstResolving(RootViewLinks.sideStore)
     }
 
     private func retryConnection() {
