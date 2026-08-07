@@ -1350,7 +1350,6 @@ struct LocationSimulationView: View {
         guard pairingExists, !isBusy else { return }
         cancelRoutePlayback(resetMarker: true)
         resetRouteSelection()
-        stopResendLoop()
         coordinate = requested
         simulate(at: requested)
     }
