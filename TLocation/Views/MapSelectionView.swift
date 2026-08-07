@@ -138,18 +138,8 @@ private enum CoordinateImportParser {
     }
 }
 
-// MARK: - Bookmark Model
-
-struct LocationBookmark: Identifiable, Codable {
-    var id: UUID = UUID()
-    var name: String
-    var latitude: Double
-    var longitude: Double
-
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-    }
-}
+// `LocationBookmark` and its persistence now live in Support/BookmarkStore.swift,
+// so Settings can export and import the same list this view edits.
 
 // MARK: - Search Completer
 
@@ -561,7 +551,12 @@ struct LocationSimulationView: View {
                 saveBookmarks()
             }
         }
-        .sheet(isPresented: $showSettings) {
+        // Settings can import bookmarks into the store behind this view's
+        // `@State` copy, so the copy is refreshed the moment the sheet closes.
+        // `onDismiss` is used rather than relying on `.onAppear` firing again,
+        // which is a SwiftUI implementation detail this view should not depend
+        // on for correctness.
+        .sheet(isPresented: $showSettings, onDismiss: loadBookmarks) {
             SettingsView()
         }
         .onReceive(NotificationCenter.default.publisher(for: .simulateLocationRequested)) { notification in
@@ -596,15 +591,11 @@ struct LocationSimulationView: View {
     // MARK: - Bookmarks
 
     private func loadBookmarks() {
-        guard let data = UserDefaults.standard.data(forKey: "locationBookmarks"),
-              let decoded = try? JSONDecoder().decode([LocationBookmark].self, from: data) else { return }
-        bookmarks = decoded
+        bookmarks = BookmarkStore.load()
     }
 
     private func saveBookmarks() {
-        if let data = try? JSONEncoder().encode(bookmarks) {
-            UserDefaults.standard.set(data, forKey: "locationBookmarks")
-        }
+        BookmarkStore.save(bookmarks)
     }
 
     private func addBookmark() {

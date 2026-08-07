@@ -4,11 +4,33 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 import UIKit
 
 private enum SettingsLinks {
     static let pairingFileGuide = URL(string: "https://github.com/StikDebug/StikDebug-Guide/blob/main/pairing_file.md")!
     static let localDevVPN = URL(string: "https://apps.apple.com/us/app/localdevvpn/id6755608044")!
+}
+
+/// Wraps the encoded bookmark JSON for `.fileExporter`, which hands the user the
+/// system save sheet (Files, iCloud Drive, and anything else with a document
+/// provider). Read-only: the export never round-trips back through this type.
+private struct BookmarksDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
 }
 
 struct SettingsView: View {
@@ -29,6 +51,17 @@ struct SettingsView: View {
     @State private var ddiDownloadProgress: Double = 0.0
     @State private var ddiStatusMessage: String = ""
     @State private var ddiResultMessage: (text: String, isError: Bool)?
+
+    // Bookmarks. Loaded once when the sheet appears and kept in step with every
+    // import, so the count row never lies about what is in the store.
+    @State private var bookmarks: [LocationBookmark] = []
+    @State private var isShowingBookmarkExporter = false
+    @State private var isShowingBookmarkImporter = false
+    @State private var bookmarkExportDocument: BookmarksDocument?
+    /// Stamped when Export is tapped rather than computed in `body`, which would
+    /// rebuild a `DateFormatter` on every render.
+    @State private var bookmarkExportFilename = ""
+    @State private var bookmarkMessage: (text: String, isError: Bool)?
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -111,6 +144,39 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Bookmarks") {
+                    Text(bookmarkCountText)
+                        .foregroundStyle(bookmarks.isEmpty ? .secondary : .primary)
+
+                    Button {
+                        exportBookmarksPressed()
+                    } label: {
+                        Label("Export Bookmarks", systemImage: "square.and.arrow.up")
+                    }
+                    .foregroundStyle(.primary)
+                    .disabled(bookmarks.isEmpty)
+
+                    Button {
+                        bookmarkMessage = nil
+                        isShowingBookmarkImporter = true
+                    } label: {
+                        Label("Import Bookmarks", systemImage: "square.and.arrow.down")
+                    }
+                    .foregroundStyle(.primary)
+
+                    if let bookmarkMessage {
+                        Label(
+                            bookmarkMessage.text,
+                            systemImage: bookmarkMessage.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(bookmarkMessage.isError ? .red : .green)
+                    } else {
+                        Text("Exported bookmarks are saved as a JSON file you can keep in Files or iCloud Drive and import again after reinstalling.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+
                 Section("Advanced") {
                     // Omitted entirely when there is no embedded provisioning profile
                     // to read — an App Store or TrollStore install has no expiry.
@@ -169,6 +235,28 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { bookmarks = BookmarkStore.load() }
+        }
+        .fileExporter(
+            isPresented: $isShowingBookmarkExporter,
+            document: bookmarkExportDocument,
+            contentType: .json,
+            defaultFilename: bookmarkExportFilename
+        ) { result in
+            switch result {
+            case .success:
+                bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
+            case .failure(let error):
+                bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+            }
+            scheduleBookmarkStatusDismiss()
+        }
+        .fileImporter(
+            isPresented: $isShowingBookmarkImporter,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            importBookmarks(from: result)
         }
         .fileImporter(
             isPresented: $isShowingPairingFilePicker,
@@ -203,6 +291,78 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
+        }
+    }
+
+    // MARK: - Bookmarks
+
+    private var bookmarkCountText: String {
+        switch bookmarks.count {
+        case 0: return "No saved locations"
+        case 1: return "1 saved location"
+        default: return "\(bookmarks.count) saved locations"
+        }
+    }
+
+    private func exportBookmarksPressed() {
+        bookmarkMessage = nil
+        // Re-read rather than trusting the cached copy: the map may have added
+        // a bookmark since this sheet was opened.
+        bookmarks = BookmarkStore.load()
+        guard !bookmarks.isEmpty else { return }
+
+        do {
+            bookmarkExportDocument = BookmarksDocument(data: try BookmarkStore.exportData(bookmarks))
+            bookmarkExportFilename = BookmarkStore.exportFileName()
+            isShowingBookmarkExporter = true
+        } catch {
+            bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+            scheduleBookmarkStatusDismiss()
+        }
+    }
+
+    /// Merges the picked file into the saved list. Nothing already saved is ever
+    /// removed, and any failure surfaces as a message in the section rather than
+    /// as silence or a crash.
+    private func importBookmarks(from result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            do {
+                let imported = try BookmarkStore.decode(try Data(contentsOf: url))
+                let merge = BookmarkStore.merge(imported, into: BookmarkStore.load())
+                BookmarkStore.save(merge.bookmarks)
+                bookmarks = merge.bookmarks
+
+                if merge.added == 0 && merge.skipped == 0 {
+                    bookmarkMessage = ("That file contains no bookmarks.", false)
+                } else if merge.skipped == 0 {
+                    bookmarkMessage = ("Imported \(merge.added) \(merge.added == 1 ? "bookmark" : "bookmarks").", false)
+                } else {
+                    bookmarkMessage = ("Imported \(merge.added), skipped \(merge.skipped) already saved.", false)
+                }
+            } catch {
+                bookmarkMessage = ("Import failed: the file is not a valid TLocation bookmarks file.", true)
+            }
+        case .failure(let error):
+            bookmarkMessage = ("Import failed: \(error.localizedDescription)", true)
+        }
+        scheduleBookmarkStatusDismiss()
+    }
+
+    /// Clears the status line after a few seconds, but only if it still shows
+    /// the message this call was scheduled for — a second import landing in the
+    /// meantime keeps its own full window.
+    private func scheduleBookmarkStatusDismiss() {
+        let pending = bookmarkMessage?.text
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            await MainActor.run {
+                if bookmarkMessage?.text == pending { bookmarkMessage = nil }
+            }
         }
     }
 
