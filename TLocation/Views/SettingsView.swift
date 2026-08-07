@@ -18,6 +18,11 @@ struct SettingsView: View {
 
     @State private var isShowingPairingFilePicker = false
     @State private var isImportingFile = false
+    /// Cheap existence check only — `prepareURL()` does directory creation and a
+    /// full byte-compare, which has no business running while a view body renders.
+    @State private var pairingFileExists = FileManager.default.fileExists(
+        atPath: PairingFileStore.url.path
+    )
     @State private var pairingImportMessage: (text: String, isError: Bool)?
     @State private var showDDIConfirmation = false
     @State private var isRedownloadingDDI = false
@@ -33,12 +38,30 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Pairing File") {
+                    if pairingFileExists {
+                        Label("Pairing file imported", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+
                     Button {
                         isShowingPairingFilePicker = true
                     } label: {
                         Label("Import Pairing File", systemImage: "doc.badge.plus")
                     }
-                    .disabled(isImportingFile)
+                    .disabled(isImportingFile || pairingFileExists)
+
+                    // A pairing file expires, so replacing one must stay possible.
+                    // Deliberately secondary: the prominent action above is
+                    // disabled once a file is in place, and this is the way back.
+                    if pairingFileExists {
+                        Button("Replace Pairing File") {
+                            isShowingPairingFilePicker = true
+                        }
+                        .buttonStyle(.plain)
+                        .font(.footnote)
+                        .foregroundStyle(.tint)
+                        .disabled(isImportingFile)
+                    }
 
                     if isImportingFile {
                         HStack(spacing: 10) {
@@ -141,6 +164,7 @@ struct SettingsView: View {
                 do {
                     try PairingFileStore.importFromPicker(url)
                     isImportingFile = false
+                    pairingFileExists = true
                     pairingImportMessage = ("Imported successfully", false)
                     startTunnelInBackground()
                     schedulePairingStatusDismiss()

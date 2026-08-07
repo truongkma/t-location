@@ -4,6 +4,11 @@
 //
 
 import SwiftUI
+import UIKit
+
+private enum RootViewLinks {
+    static let localDevVPNAppStore = URL(string: "https://apps.apple.com/us/app/localdevvpn/id6755608044")!
+}
 
 private enum ExternalLocationAction: Identifiable {
     case simulate(URL, Double, Double)
@@ -180,11 +185,25 @@ struct RootView: View {
                 }
                 .buttonStyle(.borderedProminent)
 
+                // Only useful while the tunnel is down — that is the one failure
+                // this button can actually fix.
+                if !tunnel.isConnected {
+                    Button {
+                        openLocalDevVPN()
+                    } label: {
+                        Label("Open LocalDevVPN", systemImage: "network")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
                 HStack(spacing: 10) {
                     Button {
                         retryConnection()
                     } label: {
-                        Label("Retry Connection", systemImage: "arrow.clockwise")
+                        // "Retry Connection" wrapped onto two lines in this
+                        // half-width slot on a narrow device.
+                        Label("Retry", systemImage: "arrow.clockwise")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -245,6 +264,18 @@ struct RootView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(isDone ? "done" : "pending")")
+    }
+
+    /// Deliberately declaration-free: no `LSApplicationQueriesSchemes` entry and
+    /// no installed-check. If the scheme does not resolve — app missing, or the
+    /// scheme renamed since LocalDevVPN was StosVPN — `open` reports failure and
+    /// the App Store page takes over, so a wrong guess costs nothing.
+    private func openLocalDevVPN() {
+        guard let schemeURL = URL(string: "stosvpn://") else { return }
+        UIApplication.shared.open(schemeURL) { success in
+            guard !success else { return }
+            UIApplication.shared.open(RootViewLinks.localDevVPNAppStore)
+        }
     }
 
     private func retryConnection() {

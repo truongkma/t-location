@@ -243,6 +243,18 @@ struct LocationSimulationView: View {
     /// centring. Tune here if it ever needs to change.
     private static let defaultSpanMeters: CLLocationDistance = 800
 
+    /// True from the moment "Return to Real Location" is tapped until a real fix
+    /// is pinned or the retry window expires, so the button can show a spinner
+    /// across the whole wait (`isLocating` goes false between attempts).
+    @State private var isReturningToRealLocation = false
+    /// Attempts made while waiting for iOS to release the simulated fix, spaced
+    /// `realLocationRetryInterval` apart — roughly a 5 s window in total.
+    private static let realLocationAttemptLimit = 5
+    private static let realLocationRetryInterval: TimeInterval = 1.0
+    /// A fix this close to the coordinate we were faking is still the simulated
+    /// position, not a real one.
+    private static let realLocationMatchToleranceMeters: CLLocationDistance = 50
+
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
     }
@@ -391,15 +403,16 @@ struct LocationSimulationView: View {
             mapControlButton(
                 systemImage: "location.fill",
                 accessibilityLabel: "Locate Me",
-                isDisabled: isBusy || currentLocationProvider.isLocating,
-                showsProgress: currentLocationProvider.isLocating,
+                isDisabled: isBusy || currentLocationProvider.isLocating || isReturningToRealLocation,
+                showsProgress: currentLocationProvider.isLocating && !isReturningToRealLocation,
                 action: performLocate
             )
 
             mapControlButton(
                 systemImage: "location.slash.fill",
                 accessibilityLabel: "Return to Real Location",
-                isDisabled: !hasActiveSimulation || isBusy || currentLocationProvider.isLocating || !pairingExists,
+                isDisabled: !hasActiveSimulation || isBusy || currentLocationProvider.isLocating || isReturningToRealLocation || !pairingExists,
+                showsProgress: isReturningToRealLocation,
                 action: returnToRealLocation
             )
 
@@ -465,6 +478,11 @@ struct LocationSimulationView: View {
         ZStack(alignment: .bottom) {
             MapReader { proxy in
                 Map(position: $position) {
+                    // Standard blue dot for the device's own position, so the
+                    // user can tell themselves apart from the red simulation
+                    // pin. Only draws once location permission is granted.
+                    UserAnnotation()
+
                     if let coordinate {
                         Marker("Pin", coordinate: coordinate)
                             .tint(.red)
@@ -683,6 +701,7 @@ struct LocationSimulationView: View {
         errorTitle: String,
         errorMessage: @escaping (Int32) -> String,
         operation: @escaping () -> Int32,
+        onFailure: (() -> Void)? = nil,
         onSuccess: @escaping () -> Void
     ) {
         isBusy = true
@@ -693,6 +712,7 @@ struct LocationSimulationView: View {
                 if code == 0 {
                     onSuccess()
                 } else {
+                    onFailure?()
                     alertTitle = errorTitle
                     alertMessage = errorMessage(code)
                     showAlert = true
@@ -701,13 +721,14 @@ struct LocationSimulationView: View {
         }
     }
 
-    private func clear(onCleared: (() -> Void)? = nil) {
+    private func clear(onFailure: (() -> Void)? = nil, onCleared: (() -> Void)? = nil) {
         guard pairingExists, !isBusy else { return }
         stopResendLoop()
         runLocationCommand(
             errorTitle: "Clear Failed",
             errorMessage: { code in "Could not clear simulated location (error \(code))." },
-            operation: clear_simulated_location
+            operation: clear_simulated_location,
+            onFailure: onFailure
         ) {
             endBackgroundTask()
             BackgroundLocationManager.shared.requestStop()
@@ -771,15 +792,81 @@ struct LocationSimulationView: View {
         }
     }
 
+    /// Stops the simulation and then waits for iOS to actually hand back a real
+    /// fix. Clearing alone is not enough: for a second or two afterwards
+    /// `CLLocationManager` still reports the *simulated* coordinate, and pinning
+    /// that is indistinguishable from "nothing happened". So the pin is dropped
+    /// up front and re-established only from a fix that is meaningfully away
+    /// from the position we were faking.
     private func returnToRealLocation() {
-        guard hasActiveSimulation else { return }
-        // Drop the fake position first, give iOS a moment to restore
-        // the real fix, then locate.
+        // Mirrors `clear()`'s own guard, so the spinner flag below can never be
+        // left set by a call that clear() drops on the floor.
+        guard hasActiveSimulation, pairingExists, !isBusy,
+              let simulated = simulatedCoordinate else { return }
+        // Clear the pin immediately so no stale marker can mislead the user
+        // while the lookup runs.
+        coordinate = nil
+        isReturningToRealLocation = true
         clear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                performLocate()
+            isReturningToRealLocation = false
+        } onCleared: {
+            pollForRealLocation(awayFrom: simulated, attemptsRemaining: Self.realLocationAttemptLimit)
+        }
+    }
+
+    private func pollForRealLocation(
+        awayFrom simulated: CLLocationCoordinate2D,
+        attemptsRemaining: Int
+    ) {
+        func retryOrGiveUp(stillSimulated: Bool) {
+            guard attemptsRemaining > 1 else {
+                isReturningToRealLocation = false
+                if stillSimulated {
+                    alertTitle = "Location Not Released Yet"
+                    alertMessage = "The simulation was stopped, but iOS is still reporting the simulated position. It usually settles within a few seconds — tap Locate Me again then."
+                } else {
+                    alertTitle = "Could Not Determine Location"
+                    alertMessage = "No GPS fix was available. Try again, ideally with a clear view of the sky."
+                }
+                showAlert = true
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.realLocationRetryInterval) {
+                pollForRealLocation(
+                    awayFrom: simulated,
+                    attemptsRemaining: attemptsRemaining - 1
+                )
             }
         }
+
+        currentLocationProvider.locate { result in
+            switch result {
+            case .success(let fix):
+                // A tolerance rather than exact equality: a genuine fix jitters
+                // by a few metres, so only a clearly different position counts
+                // as iOS having let go of the simulated one.
+                if distanceInMeters(from: fix, to: simulated) > Self.realLocationMatchToleranceMeters {
+                    isReturningToRealLocation = false
+                    applySelection(fix)
+                    Haptics.medium()
+                } else {
+                    retryOrGiveUp(stillSimulated: true)
+                }
+            case .failure(.denied):
+                isReturningToRealLocation = false
+                showLocationDeniedAlert = true
+            case .failure(.unavailable):
+                retryOrGiveUp(stillSimulated: false)
+            }
+        }
+    }
+
+    private func distanceInMeters(
+        from first: CLLocationCoordinate2D,
+        to second: CLLocationCoordinate2D
+    ) -> CLLocationDistance {
+        CLLocation(latitude: first.latitude, longitude: first.longitude)
+            .distance(from: CLLocation(latitude: second.latitude, longitude: second.longitude))
     }
 
     private func performLocate() {
