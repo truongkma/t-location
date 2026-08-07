@@ -573,9 +573,18 @@ struct LocationSimulationView: View {
         }
         .onAppear {
             loadBookmarks()
+            // A live foreground location session for as long as the map is
+            // visible. Without it the only Core Location session in the app is
+            // BackgroundLocationManager's, which `clear()` shuts down — leaving
+            // `UserAnnotation` with a stale grey dot and `.userLocation` camera
+            // positions with nothing to follow after "Return to Real Location".
+            currentLocationProvider.startTracking()
             centerOnLaunchLocationIfNeeded()
         }
         .onDisappear {
+            // Balances the `startTracking()` above: no GPS runs while the map
+            // is off screen.
+            currentLocationProvider.stopTracking()
             stopResendLoop()
             if backgroundTaskID != .invalid {
                 BackgroundLocationManager.shared.requestStop()
@@ -819,6 +828,13 @@ struct LocationSimulationView: View {
     /// self-healing by construction, so there is nothing to retry and nothing
     /// to alert about beyond a genuine FFI failure (handled by `clear()`'s own
     /// alert).
+    ///
+    /// This relies on `currentLocationProvider`'s tracking session, started in
+    /// `.onAppear` and only stopped in `.onDisappear`. It therefore outlives
+    /// the `BackgroundLocationManager.requestStop()` that `clear()` performs —
+    /// a different `CLLocationManager` entirely — so a live session is
+    /// guaranteed to be running at the moment the camera is handed back to
+    /// `.userLocation` below.
     private func returnToRealLocation() {
         // Mirrors `clear()`'s own guard, so the spinner flag below can never be
         // left set by a call that clear() drops on the floor.
