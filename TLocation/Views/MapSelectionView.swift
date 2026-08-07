@@ -723,9 +723,29 @@ final class LocationSearchCompleter: NSObject, ObservableObject, MKLocalSearchCo
     }
 }
 
+/// Circular glass/material backing for the floating map buttons. Uses iOS 26's
+/// Liquid Glass when available and falls back to `.ultraThinMaterial` on iOS 17.4+.
+private struct FloatingCircleBackground: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(in: .circle)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.08)))
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+        }
+    }
+}
+
 struct LocationSimulationView: View {
     @State private var coordinate: CLLocationCoordinate2D?
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+    /// Last zoom span reported by the map camera, so recentring never rescales.
+    /// `nil` until the map has reported a region at least once.
+    @State private var cameraSpan: MKCoordinateSpan?
 
     @State private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     @State private var resendTimer: Timer?
@@ -835,7 +855,7 @@ struct LocationSimulationView: View {
         if routeStartSelection != nil || routeEndSelection != nil {
             return "Pick both route endpoints to build the drive."
         }
-        return "Plan a route from the toolbar."
+        return "Plan a route from the map controls."
     }
 
     private var routeAttributionLink: some View {
@@ -880,6 +900,172 @@ struct LocationSimulationView: View {
         }
     }
 
+    // MARK: - Floating map controls
+
+    /// Everything that used to live in the navigation bar, drawn as Apple-Maps
+    /// style floating overlays: full-width search capsule on top, completion list
+    /// under it, and a right-hand column of circular action buttons.
+    private var mapOverlayControls: some View {
+        VStack(spacing: 10) {
+            floatingSearchField
+                .padding(.horizontal, 16)
+
+            if !searchCompleter.results.isEmpty {
+                searchResultsList
+            }
+
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                floatingControlColumn
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 10)
+    }
+
+    private var floatingSearchFieldBase: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            TextField("Search location...", text: $searchText)
+                .textFieldStyle(.plain)
+                .autocorrectionDisabled()
+                .submitLabel(.go)
+                .onChange(of: searchText) { _, newValue in
+                    searchCompleter.update(query: newValue)
+                }
+                .onSubmit {
+                    applyCoordinatesFromSearchText()
+                }
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                    searchCompleter.results = []
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear Search")
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 48)
+    }
+
+    @ViewBuilder
+    private var floatingSearchField: some View {
+        if #available(iOS 26, *) {
+            floatingSearchFieldBase
+                .glassEffect(in: .capsule)
+        } else {
+            floatingSearchFieldBase
+                .background(.ultraThinMaterial, in: Capsule())
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
+        }
+    }
+
+    private var floatingControlColumn: some View {
+        VStack(spacing: 10) {
+            mapControlButton(
+                systemImage: "location.fill",
+                accessibilityLabel: "Locate Me",
+                isDisabled: isBusy || currentLocationProvider.isLocating,
+                showsProgress: currentLocationProvider.isLocating,
+                action: performLocate
+            )
+
+            mapControlButton(
+                systemImage: "location.slash.fill",
+                accessibilityLabel: "Return to Real Location",
+                isDisabled: !hasActiveSimulation || isBusy || currentLocationProvider.isLocating || !pairingExists,
+                action: returnToRealLocation
+            )
+
+            mapControlButton(
+                systemImage: "bookmark.fill",
+                accessibilityLabel: "Bookmarks",
+                isDisabled: false,
+                action: { showBookmarks = true }
+            )
+
+            mapControlButton(
+                systemImage: "point.topleft.down.curvedto.point.bottomright.up",
+                accessibilityLabel: "Route",
+                isDisabled: isBusy || isRouteRunning,
+                action: { showRouteSearch = true }
+            )
+
+            mapControlButton(
+                systemImage: "square.and.arrow.down",
+                accessibilityLabel: "Import Coordinates",
+                isDisabled: isBusy || isRouteRunning || isImportingCoordinates,
+                action: { showCoordinateImporter = true }
+            )
+
+            // Settings stays a first-class button: it is the fallback route to
+            // importing a pairing file when the connection banner is dismissed.
+            mapControlButton(
+                systemImage: "gearshape.fill",
+                accessibilityLabel: "Settings",
+                isDisabled: false,
+                action: { showSettings = true }
+            )
+        }
+    }
+
+    private func mapControlButton(
+        systemImage: String,
+        accessibilityLabel: String,
+        isDisabled: Bool,
+        showsProgress: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Group {
+                if showsProgress {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 17, weight: .semibold))
+                }
+            }
+            .frame(width: 48, height: 48)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.tint)
+        .modifier(FloatingCircleBackground())
+        .opacity(isDisabled ? 0.4 : 1)
+        .disabled(isDisabled)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// Bottom cluster (coordinates readout + Stop / Simulate / Bookmark, or the
+    /// route controls). Given a material backing so it stays legible on a map.
+    private var bottomControlCluster: some View {
+        VStack(spacing: 12) {
+            if isImportingCoordinates {
+                ProgressView("Importing coordinates…")
+                    .font(.footnote)
+            }
+
+            if hasRouteContext {
+                routeControls
+            } else {
+                pinControls
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 24)
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             MapReader { proxy in
@@ -909,114 +1095,36 @@ struct LocationSimulationView: View {
                 .mapStyle(.standard(elevation: .realistic))
                 .onTapGesture { point in
                     if let loc = proxy.convert(point, from: .local) {
-                        applySelection(loc)
+                        // A tapped point is already on screen, so there is nothing
+                        // to recentre — moving the camera here would throw away the
+                        // zoom level the user just chose.
+                        applySelection(loc, recenter: false)
                     }
                 }
                 .mapControls {
                     MapCompass()
                 }
+                // Remember whatever zoom the user has settled on so that a later
+                // recentre keeps it instead of snapping back to a fixed span.
+                .onMapCameraChange(frequency: .onEnd) { context in
+                    cameraSpan = context.region.span
+                }
             }
                 .ignoresSafeArea()
-                .onChange(of: coordinate.map(CoordinateSnapshot.init)) { _, new in
-                    if let new {
-                        position = .region(
-                            MKCoordinateRegion(
-                                center: new.coordinate,
-                                latitudinalMeters: 1000,
-                                longitudinalMeters: 1000
-                            )
-                        )
-                    }
-                }
 
-            VStack(spacing: 0) {
-                if !searchCompleter.results.isEmpty {
-                    searchResultsList
-                }
-
-                Spacer()
-
-                VStack(spacing: 12) {
-                    if isImportingCoordinates {
-                        ProgressView("Importing coordinates…")
-                            .font(.footnote)
-                    }
-
-                    if hasRouteContext {
-                        routeControls
-                    } else {
-                        pinControls
-                    }
-                }
-                .padding(.bottom, 24)
-                .padding(.horizontal, 16)
-                .padding(.horizontal, 16)
-            }
+            bottomControlCluster
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarLeading) {
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                }
-                .accessibilityLabel("Settings")
-
-                Button {
-                    showBookmarks = true
-                } label: {
-                    Image(systemName: "bookmark.fill")
-                }
-
-                Button {
-                    showRouteSearch = true
-                } label: {
-                    Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
-                }
-                .disabled(isBusy || isRouteRunning)
-
-                Button {
-                    showCoordinateImporter = true
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
-                }
-                .disabled(isBusy || isRouteRunning || isImportingCoordinates)
-                .accessibilityLabel("Import Coordinates")
-
-                Button {
-                    performLocate()
-                } label: {
-                    if currentLocationProvider.isLocating {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "location.fill")
-                    }
-                }
-                .disabled(isBusy || currentLocationProvider.isLocating)
-                .accessibilityLabel("Locate Me")
-
-                Button {
-                    returnToRealLocation()
-                } label: {
-                    Image(systemName: "location.slash.fill")
-                }
-                .disabled(!hasActiveSimulation || isBusy || currentLocationProvider.isLocating || !pairingExists)
-                .accessibilityLabel("Return to Real Location")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                TextField("Search location...", text: $searchText)
-                    .padding(.leading, 6)
-                    .autocorrectionDisabled()
-                    .submitLabel(.go)
-                    .onChange(of: searchText) { _, newValue in
-                        searchCompleter.update(query: newValue)
-                    }
-                    .onSubmit {
-                        applyCoordinatesFromSearchText()
-                    }
-            }
+        // The controls live *above* the map inside the same ZStack, so a tap that
+        // lands on one of them is consumed there and never reaches the map's
+        // `.onTapGesture` (no accidental pin drop). Empty regions of the overlay
+        // have no background and stay transparent to hit-testing, so tapping bare
+        // map still drops a pin exactly as before.
+        .overlay(alignment: .top) {
+            mapOverlayControls
         }
+        // iOS 26 collapses an overcrowded `.topBarLeading` group into a single "…"
+        // control, which hid every button on device. The bar carries nothing now.
+        .toolbar(.hidden, for: .navigationBar)
         .alert(alertTitle, isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -1351,6 +1459,7 @@ struct LocationSimulationView: View {
         cancelRoutePlayback(resetMarker: true)
         resetRouteSelection()
         coordinate = requested
+        recenterCamera(on: requested)
         simulate(at: requested)
     }
 
@@ -1472,12 +1581,36 @@ struct LocationSimulationView: View {
         }
     }
 
-    private func applySelection(_ coordinate: CLLocationCoordinate2D) {
+    /// - Parameter recenter: `true` for programmatic selections (search result,
+    ///   bookmark, Locate Me, imported coordinate, URL scheme), which may target a
+    ///   point that is off screen. Pass `false` for map taps, where the point is
+    ///   already visible and moving the camera would destroy the user's zoom.
+    private func applySelection(_ coordinate: CLLocationCoordinate2D, recenter: Bool = true) {
         guard !isRouteRunning else { return }
         if hasRouteContext {
             resetRouteSelection()
         }
         self.coordinate = coordinate
+        if recenter {
+            recenterCamera(on: coordinate)
+        }
+    }
+
+    /// Recentres on `target` while preserving the current zoom span. Falls back to
+    /// the historical 1000 m × 1000 m framing only if the camera has not reported a
+    /// region yet.
+    private func recenterCamera(on target: CLLocationCoordinate2D) {
+        if let cameraSpan {
+            position = .region(MKCoordinateRegion(center: target, span: cameraSpan))
+        } else {
+            position = .region(
+                MKCoordinateRegion(
+                    center: target,
+                    latitudinalMeters: 1000,
+                    longitudinalMeters: 1000
+                )
+            )
+        }
     }
 
     private func returnToRealLocation() {

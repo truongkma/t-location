@@ -45,6 +45,7 @@ struct RootView: View {
     @ObservedObject private var mounting = MountingProgress.shared
 
     @State private var isShowingPairingFilePicker = false
+    @State private var isShowingSettings = false
     @State private var pendingLocationAction: ExternalLocationAction?
     @State private var pairingExists = FileManager.default.fileExists(
         atPath: PairingFileStore.prepareURL().path
@@ -58,12 +59,26 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            LocationSimulationView()
-                .safeAreaInset(edge: .top) {
-                    if !isReady {
-                        connectionBanner
-                    }
+            // Until pairing + tunnel + DDI are all up, every control on the map is
+            // disabled anyway. Rather than leave a normal-looking but silently dead
+            // map, cover it with a blocking readiness overlay that says exactly what
+            // is missing. The overlay is the last child of the ZStack (drawn on top)
+            // and the map explicitly stops hit-testing beneath it, so nothing can be
+            // tapped through — no accidental pin drops. A safe-area inset banner was
+            // used here before and did not render on device, because the map below
+            // discards the safe area.
+            ZStack {
+                LocationSimulationView()
+                    .allowsHitTesting(isReady)
+
+                if !isReady {
+                    readinessOverlay
                 }
+            }
+            .animation(.easeInOut(duration: 0.2), value: isReady)
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
         }
         .fileImporter(
             isPresented: $isShowingPairingFilePicker,
@@ -108,32 +123,134 @@ struct RootView: View {
         }
     }
 
-    private var connectionBanner: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 14) {
-                statusChip("Pairing", ok: pairingExists)
-                statusChip("Tunnel", ok: tunnel.isConnected)
-                statusChip("DDI", ok: mounting.coolisMounted)
-            }
-            if !pairingExists {
-                Button("Import Pairing File") {
-                    isShowingPairingFilePicker = true
-                }
-                .font(.footnote.weight(.semibold))
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
+    // MARK: - Readiness overlay
+
+    /// Full-screen blocking overlay shown until pairing, tunnel and DDI are all up.
+    /// The scrim is an opaque-to-touches material layer, so it swallows every tap
+    /// that misses the card; the map underneath additionally has hit-testing off.
+    private var readinessOverlay: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+
+            readinessCard
+                .padding(.horizontal, 24)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
+        .transition(.opacity)
     }
 
-    private func statusChip(_ label: String, ok: Bool) -> some View {
-        Label(label, systemImage: ok ? "checkmark.circle.fill" : "circle.dashed")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(ok ? .green : .secondary)
+    private var readinessCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Device Not Connected", systemImage: "bolt.horizontal.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.orange)
+                Text("TLocation needs a connection to this device before it can simulate a location.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                readinessRow(
+                    title: "Pairing file imported",
+                    isDone: pairingExists,
+                    guidance: "Import your pairing file."
+                )
+                readinessRow(
+                    title: "Device tunnel connected",
+                    isDone: tunnel.isConnected,
+                    guidance: "Open LocalDevVPN and connect the VPN, and make sure Wi-Fi is joined to a network."
+                )
+                readinessRow(
+                    title: "Developer Disk Image mounted",
+                    isDone: mounting.coolisMounted,
+                    guidance: "Waiting for the Developer Disk Image to download and mount.",
+                    showsProgress: mounting.mountingThread != nil
+                )
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    isShowingPairingFilePicker = true
+                } label: {
+                    Label("Import Pairing File", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                HStack(spacing: 10) {
+                    Button {
+                        retryConnection()
+                    } label: {
+                        Label("Retry Connection", systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+
+                    // Settings must stay reachable from here: it holds the target IP
+                    // field and "Redownload DDI", the recovery tools for this screen.
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Label("Settings", systemImage: "gearshape.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .font(.subheadline.weight(.medium))
+        }
+        .padding(22)
+        .frame(maxWidth: 420)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
+    }
+
+    private func readinessRow(
+        title: String,
+        isDone: Bool,
+        guidance: String,
+        showsProgress: Bool = false
+    ) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Group {
+                if isDone {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else if showsProgress {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "circle.dashed")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .font(.body)
+            .frame(width: 22, height: 22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(isDone ? .secondary : .primary)
+                if !isDone {
+                    Text(guidance)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(isDone ? "done" : "pending")")
+    }
+
+    private func retryConnection() {
+        markTunnelDisconnected()
+        startTunnelInBackground()
+        MountingProgress.shared.checkforMounted()
     }
 
     private func importPairingFile(_ result: Result<URL, Error>) {
