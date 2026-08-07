@@ -243,17 +243,17 @@ struct LocationSimulationView: View {
     /// centring. Tune here if it ever needs to change.
     private static let defaultSpanMeters: CLLocationDistance = 800
 
-    /// True from the moment "Return to Real Location" is tapped until a real fix
-    /// is pinned or the retry window expires, so the button can show a spinner
-    /// across the whole wait (`isLocating` goes false between attempts).
+    /// True from the moment "Return to Real Location" is tapped until the
+    /// `clear()` FFI call finishes, so the button can show a spinner across
+    /// that single async hop.
     @State private var isReturningToRealLocation = false
-    /// Attempts made while waiting for iOS to release the simulated fix, spaced
-    /// `realLocationRetryInterval` apart — roughly a 5 s window in total.
-    private static let realLocationAttemptLimit = 5
-    private static let realLocationRetryInterval: TimeInterval = 1.0
-    /// A fix this close to the coordinate we were faking is still the simulated
-    /// position, not a real one.
-    private static let realLocationMatchToleranceMeters: CLLocationDistance = 50
+
+    /// Brief, non-modal confirmation shown in the bottom control area (e.g.
+    /// after "Return to Real Location"). Auto-clears itself a few seconds
+    /// after being set; see `showStatusMessage`.
+    @State private var statusMessage: String?
+    @State private var statusMessageWorkItem: DispatchWorkItem?
+    private static let statusMessageDuration: TimeInterval = 3.0
 
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
@@ -659,11 +659,30 @@ struct LocationSimulationView: View {
                 .buttonStyle(.bordered)
                 .tint(.blue)
             }
+        } else if let statusMessage {
+            Text(statusMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .transition(.opacity)
+                .animation(.default, value: statusMessage)
         } else {
             Text("Tap map to drop pin")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    /// Shows a transient, non-modal message in the bottom control area (where
+    /// the pin readout / "Tap map to drop pin" hint normally lives) and clears
+    /// it automatically after `statusMessageDuration`. Re-entrant: a new call
+    /// cancels any pending auto-clear from a previous message so they can't
+    /// race and wipe each other's text early.
+    private func showStatusMessage(_ message: String) {
+        statusMessageWorkItem?.cancel()
+        statusMessage = message
+        let workItem = DispatchWorkItem { statusMessage = nil }
+        statusMessageWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.statusMessageDuration, execute: workItem)
     }
 
     private func simulate() {
@@ -792,81 +811,29 @@ struct LocationSimulationView: View {
         }
     }
 
-    /// Stops the simulation and then waits for iOS to actually hand back a real
-    /// fix. Clearing alone is not enough: for a second or two afterwards
-    /// `CLLocationManager` still reports the *simulated* coordinate, and pinning
-    /// that is indistinguishable from "nothing happened". So the pin is dropped
-    /// up front and re-established only from a fix that is meaningfully away
-    /// from the position we were faking.
+    /// Stops the simulation and hands the camera back to the user's live
+    /// position. No polling and no distance comparison: the map already
+    /// renders `UserAnnotation()`, so once iOS actually releases the
+    /// simulated fix the blue dot — and now the camera, following it — settle
+    /// onto the real position by themselves, however long that takes. This is
+    /// self-healing by construction, so there is nothing to retry and nothing
+    /// to alert about beyond a genuine FFI failure (handled by `clear()`'s own
+    /// alert).
     private func returnToRealLocation() {
         // Mirrors `clear()`'s own guard, so the spinner flag below can never be
         // left set by a call that clear() drops on the floor.
-        guard hasActiveSimulation, pairingExists, !isBusy,
-              let simulated = simulatedCoordinate else { return }
+        guard hasActiveSimulation, pairingExists, !isBusy else { return }
         // Clear the pin immediately so no stale marker can mislead the user
-        // while the lookup runs.
+        // while the simulation is torn down.
         coordinate = nil
         isReturningToRealLocation = true
         clear {
             isReturningToRealLocation = false
         } onCleared: {
-            pollForRealLocation(awayFrom: simulated, attemptsRemaining: Self.realLocationAttemptLimit)
+            isReturningToRealLocation = false
+            position = .userLocation(fallback: .automatic)
+            showStatusMessage("Simulation stopped — following your real location")
         }
-    }
-
-    private func pollForRealLocation(
-        awayFrom simulated: CLLocationCoordinate2D,
-        attemptsRemaining: Int
-    ) {
-        func retryOrGiveUp(stillSimulated: Bool) {
-            guard attemptsRemaining > 1 else {
-                isReturningToRealLocation = false
-                if stillSimulated {
-                    alertTitle = "Location Not Released Yet"
-                    alertMessage = "The simulation was stopped, but iOS is still reporting the simulated position. It usually settles within a few seconds — tap Locate Me again then."
-                } else {
-                    alertTitle = "Could Not Determine Location"
-                    alertMessage = "No GPS fix was available. Try again, ideally with a clear view of the sky."
-                }
-                showAlert = true
-                return
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + Self.realLocationRetryInterval) {
-                pollForRealLocation(
-                    awayFrom: simulated,
-                    attemptsRemaining: attemptsRemaining - 1
-                )
-            }
-        }
-
-        currentLocationProvider.locate { result in
-            switch result {
-            case .success(let fix):
-                // A tolerance rather than exact equality: a genuine fix jitters
-                // by a few metres, so only a clearly different position counts
-                // as iOS having let go of the simulated one.
-                if distanceInMeters(from: fix, to: simulated) > Self.realLocationMatchToleranceMeters {
-                    isReturningToRealLocation = false
-                    applySelection(fix)
-                    Haptics.medium()
-                } else {
-                    retryOrGiveUp(stillSimulated: true)
-                }
-            case .failure(.denied):
-                isReturningToRealLocation = false
-                showLocationDeniedAlert = true
-            case .failure(.unavailable):
-                retryOrGiveUp(stillSimulated: false)
-            }
-        }
-    }
-
-    private func distanceInMeters(
-        from first: CLLocationCoordinate2D,
-        to second: CLLocationCoordinate2D
-    ) -> CLLocationDistance {
-        CLLocation(latitude: first.latitude, longitude: first.longitude)
-            .distance(from: CLLocation(latitude: second.latitude, longitude: second.longitude))
     }
 
     private func performLocate() {
@@ -920,40 +887,78 @@ struct BookmarksView: View {
     let onSelect: (LocationBookmark) -> Void
     let onDelete: (IndexSet) -> Void
 
+    @State private var searchText = ""
+
+    /// Bookmarks matching `searchText` by name or formatted coordinate,
+    /// preserving `bookmarks`' order. `localizedStandardContains` is
+    /// case- *and* diacritic-insensitive, which matters for names like
+    /// "Hà Nội" that should still match a plain "ha noi" query.
+    private var filteredBookmarks: [LocationBookmark] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return bookmarks }
+        return bookmarks.filter { bookmark in
+            bookmark.name.localizedStandardContains(query) ||
+            formattedCoordinate(bookmark).localizedStandardContains(query)
+        }
+    }
+
+    private func formattedCoordinate(_ bookmark: LocationBookmark) -> String {
+        String(format: "%.6f, %.6f", bookmark.latitude, bookmark.longitude)
+    }
+
+    /// `offsets` indexes into the filtered/displayed list, not `bookmarks`
+    /// itself, so it is remapped by identity before being handed to
+    /// `onDelete` — otherwise, with an active filter hiding earlier entries,
+    /// deleting a visible row would remove the wrong bookmark.
+    private func deleteFiltered(at offsets: IndexSet) {
+        let idsToDelete = Set(offsets.map { filteredBookmarks[$0].id })
+        let originalOffsets = IndexSet(bookmarks.indices.filter { idsToDelete.contains(bookmarks[$0].id) })
+        onDelete(originalOffsets)
+    }
+
     var body: some View {
         NavigationStack {
-            Group {
-                if bookmarks.isEmpty {
-                    ContentUnavailableView(
-                        "No Bookmarks",
-                        systemImage: "bookmark.slash",
-                        description: Text("Drop a pin on the map and tap the bookmark icon to save a location.")
-                    )
-                } else {
-                    List {
-                        ForEach(bookmarks) { bookmark in
-                            Button {
-                                onSelect(bookmark)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(bookmark.name)
-                                        .foregroundStyle(.primary)
-                                    Text(String(format: "%.6f, %.6f", bookmark.latitude, bookmark.longitude))
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
+            if bookmarks.isEmpty {
+                ContentUnavailableView(
+                    "No Bookmarks",
+                    systemImage: "bookmark.slash",
+                    description: Text("Drop a pin on the map and tap the bookmark icon to save a location.")
+                )
+                .navigationTitle("Bookmarks")
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                Group {
+                    if filteredBookmarks.isEmpty {
+                        ContentUnavailableView(
+                            "No Matches",
+                            systemImage: "magnifyingglass",
+                            description: Text("No bookmarks match \"\(searchText)\".")
+                        )
+                    } else {
+                        List {
+                            ForEach(filteredBookmarks) { bookmark in
+                                Button {
+                                    onSelect(bookmark)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(bookmark.name)
+                                            .foregroundStyle(.primary)
+                                        Text(formattedCoordinate(bookmark))
+                                            .font(.caption.monospaced())
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
+                            .onDelete(perform: deleteFiltered)
                         }
-                        .onDelete(perform: onDelete)
                     }
                 }
-            }
-            .navigationTitle("Bookmarks")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if !bookmarks.isEmpty {
+                .navigationTitle("Bookmarks")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
                     EditButton()
                 }
+                .searchable(text: $searchText, prompt: "Search bookmarks")
             }
         }
     }
