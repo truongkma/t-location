@@ -34,6 +34,8 @@ AltStore works the same way.
 
 Add this source in SideStore to get updates automatically: `https://raw.githubusercontent.com/truongkma/t-location/main/source.json`.
 
+Note: the source lists no installable version until the first release tag is pushed. Until then it will appear empty in SideStore — install the `.ipa` manually as described above.
+
 ## Build from source
 
 ```bash

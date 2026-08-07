@@ -76,10 +76,15 @@ struct RootView: View {
             MountingProgress.shared.checkforMounted()
         }
         .onReceive(statusTimer) { _ in
-            pairingExists = FileManager.default.fileExists(atPath: PairingFileStore.prepareURL().path)
+            // Cheap existence check only. `prepareURL()` does directory creation and a
+            // full byte-compare, which must not run on the main thread once per second.
+            pairingExists = FileManager.default.fileExists(atPath: PairingFileStore.url.path)
             if mounting.mountingThread == nil, !mounting.coolisMounted {
                 MountingProgress.shared.checkforMounted()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showPairingFilePicker)) { _ in
+            isShowingPairingFilePicker = true
         }
         .onOpenURL { url in
             handleURL(url)
@@ -186,66 +191,50 @@ struct RootView: View {
     private func performLocationAction(_ action: ExternalLocationAction) {
         switch action {
         case .simulate(let url, _, _):
-            simulateLocation(from: url)
+            requestSimulatedLocation(from: url)
         case .clear:
-            clearSimulatedLocation()
+            requestClearSimulatedLocation()
         }
     }
 
-    private func simulateLocation(from url: URL) {
+    /// Hands the request to `LocationSimulationView`, which is the single owner of the
+    /// simulation state (map pin, 4s resend loop, route playback, background task).
+    /// Calling the FFI here instead would leave that state out of sync: the resend loop
+    /// would revive a cleared position, and a URL-started simulation could not be stopped
+    /// from the map.
+    private func requestSimulatedLocation(from url: URL) {
         guard let coordinate = coordinate(from: url),
               coordinateIsValid(latitude: coordinate.latitude, longitude: coordinate.longitude) else {
             return
         }
-        let pairingFile = PairingFileStore.prepareURL()
-        guard FileManager.default.fileExists(atPath: pairingFile.path) else {
-            showAlert(
-                title: "Pairing File Required",
-                message: "Import a pairing file before simulating location from a URL.",
-                showOk: true
-            )
-            return
-        }
-        LocationSimulationCommandQueue.shared.async {
-            let code = simulate_location(
-                DeviceConnectionContext.targetIPAddress,
-                coordinate.latitude,
-                coordinate.longitude,
-                pairingFile.path
-            )
-            DispatchQueue.main.async {
-                if code == 0 {
-                    BackgroundLocationManager.shared.requestStart()
-                    LogManager.shared.addInfoLog(
-                        String(format: "Simulated location from URL: %.6f, %.6f", coordinate.latitude, coordinate.longitude)
-                    )
-                } else {
-                    showAlert(
-                        title: "Location Simulation Failed",
-                        message: "Could not simulate location from URL (error \(code)). Make sure the device is connected and the DDI is mounted.",
-                        showOk: true
-                    )
-                }
-            }
-        }
+        guard requirePairingFile(
+            message: "Import a pairing file before simulating location from a URL."
+        ) else { return }
+
+        LogManager.shared.addInfoLog(
+            String(format: "Requested simulated location from URL: %.6f, %.6f", coordinate.latitude, coordinate.longitude)
+        )
+        LocationSimulationRequest.postSimulate(
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude
+        )
     }
 
-    private func clearSimulatedLocation() {
-        LocationSimulationCommandQueue.shared.async {
-            let code = clear_simulated_location()
-            DispatchQueue.main.async {
-                if code == 0 {
-                    BackgroundLocationManager.shared.requestStop()
-                    LogManager.shared.addInfoLog("Cleared simulated location from URL")
-                } else {
-                    showAlert(
-                        title: "Clear Location Failed",
-                        message: "Could not clear simulated location from URL (error \(code)).",
-                        showOk: true
-                    )
-                }
-            }
+    private func requestClearSimulatedLocation() {
+        guard requirePairingFile(
+            message: "Import a pairing file before clearing the simulated location from a URL."
+        ) else { return }
+
+        LogManager.shared.addInfoLog("Requested clear of simulated location from URL")
+        LocationSimulationRequest.postClear()
+    }
+
+    private func requirePairingFile(message: String) -> Bool {
+        guard FileManager.default.fileExists(atPath: PairingFileStore.prepareURL().path) else {
+            showAlert(title: "Pairing File Required", message: message, showOk: true)
+            return false
         }
+        return true
     }
 
     private func coordinate(from url: URL) -> (latitude: Double, longitude: Double)? {

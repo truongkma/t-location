@@ -1068,6 +1068,13 @@ struct LocationSimulationView: View {
         ) { result in
             importCoordinates(result)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .simulateLocationRequested)) { notification in
+            guard let requested = LocationSimulationRequest.coordinate(from: notification) else { return }
+            startExternalSimulation(at: requested)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clearSimulatedLocationRequested)) { _ in
+            clear()
+        }
         .onAppear {
             loadBookmarks()
         }
@@ -1332,7 +1339,25 @@ struct LocationSimulationView: View {
     }
 
     private func simulate() {
-        guard pairingExists, let coord = coordinate, !isBusy else { return }
+        simulate(at: coordinate)
+    }
+
+    /// Starts a simulation requested from outside the map (e.g. the `tlocation://`
+    /// URL scheme). Routed through `simulate(at:)` so the pin, `simulatedCoordinate`,
+    /// the resend loop and the background task all end up in the same state as a
+    /// simulation started by tapping "Simulate Location".
+    private func startExternalSimulation(at requested: CLLocationCoordinate2D) {
+        guard pairingExists, !isBusy else { return }
+        cancelRoutePlayback(resetMarker: true)
+        resetRouteSelection()
+        stopResendLoop()
+        coordinate = requested
+        simulate(at: requested)
+    }
+
+    private func simulate(at target: CLLocationCoordinate2D?) {
+        guard pairingExists, let coord = target, !isBusy else { return }
+        coordinate = coord
         runLocationCommand(
             errorTitle: "Simulation Failed",
             errorMessage: { code in
