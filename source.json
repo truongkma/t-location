@@ -10,7 +10,15 @@
       "localizedDescription": "Simulate your device's GPS location from a single map screen. Derived from StikDebug.",
       "iconURL": "https://raw.githubusercontent.com/truongkma/t-location/main/assets/tlocation-icon.png",
       "tintColor": "#2196F3",
-      "versions": []
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2026-08-07T04:40:40Z",
+          "downloadURL": "https://github.com/truongkma/t-location/releases/download/1.0.0/TLocation.ipa",
+          "size": 10045101,
+          "minOSVersion": "17.4"
+        }
+      ]
     }
   ]
 }
