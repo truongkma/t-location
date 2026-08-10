@@ -106,6 +106,15 @@ struct SettingsView: View {
     @State private var ddiStatusMessage: String = ""
     @State private var ddiResultMessage: (text: String, isError: Bool)?
 
+    /// Which import the user asked for, kept separate from `pendingImport`.
+    ///
+    /// `pendingImport` drives the picker's `isPresented`, so choosing a file
+    /// dismisses the picker and clears it — and that happens before the
+    /// completion closure runs. Reading `pendingImport` there therefore found
+    /// `nil` and silently did nothing. This copy is cleared only after the
+    /// result has been routed, so it is still valid when the completion fires.
+    @State private var requestedImport: PendingImport?
+
     // Bookmarks. Loaded once when the sheet appears and kept in step with every
     // import, so the count row never lies about what is in the store.
     @State private var bookmarks: [LocationBookmark] = []
@@ -146,6 +155,7 @@ struct SettingsView: View {
 
                     Button {
                         pendingImport = .pairingFile
+                        requestedImport = .pairingFile
                     } label: {
                         Label("Import Pairing File", systemImage: "doc.badge.plus")
                     }
@@ -157,6 +167,7 @@ struct SettingsView: View {
                     if pairingFileExists {
                         Button("Replace Pairing File") {
                             pendingImport = .pairingFile
+                            requestedImport = .pairingFile
                         }
                         .buttonStyle(.plain)
                         .font(.footnote)
@@ -210,6 +221,7 @@ struct SettingsView: View {
                     Button {
                         bookmarkMessage = nil
                         pendingImport = .bookmarks
+                        requestedImport = .bookmarks
                     } label: {
                         Label("Import Bookmarks", systemImage: "square.and.arrow.down")
                     }
@@ -341,7 +353,8 @@ struct SettingsView: View {
             allowedContentTypes: pendingImport?.allowedContentTypes ?? PairingFileStore.supportedContentTypes,
             allowsMultipleSelection: false
         ) { result in
-            let requested = pendingImport
+            let requested = requestedImport
+            requestedImport = nil
             pendingImport = nil
             switch requested {
             case .bookmarks:
@@ -451,6 +464,7 @@ struct SettingsView: View {
                 Button {
                     syncMessage = nil
                     pendingImport = .bookmarkSyncFile
+                    requestedImport = .bookmarkSyncFile
                 } label: {
                     Label("Link Sync File", systemImage: "link")
                 }
