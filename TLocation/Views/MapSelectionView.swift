@@ -549,6 +549,13 @@ struct LocationSimulationView: View {
             } onDelete: { offsets in
                 bookmarks.remove(atOffsets: offsets)
                 saveBookmarks()
+            } onRename: { id, newName in
+                // Looked up by `id` here too, so the in-memory list mutated
+                // in place and persisted stays correct regardless of the
+                // sheet's current search filter.
+                guard let index = bookmarks.firstIndex(where: { $0.id == id }) else { return }
+                bookmarks[index].name = newName
+                saveBookmarks()
             }
         }
         // Settings can import bookmarks into the store behind this view's
@@ -893,8 +900,18 @@ struct BookmarksView: View {
     @Binding var bookmarks: [LocationBookmark]
     let onSelect: (LocationBookmark) -> Void
     let onDelete: (IndexSet) -> Void
+    /// Called with the bookmark's stable `id` (never a list index) and the
+    /// already-trimmed/fallback-applied new name.
+    let onRename: (UUID, String) -> Void
 
     @State private var searchText = ""
+    // The bookmark being renamed is tracked by `id`, not by its position in
+    // `filteredBookmarks` — the same trap already fixed for delete. A search
+    // can hide earlier entries, so "the first visible row" and "the first
+    // bookmark overall" are not the same thing.
+    @State private var renamingBookmarkID: UUID?
+    @State private var renameText = ""
+    @State private var showRenameAlert = false
 
     /// Bookmarks matching `searchText` by name or formatted coordinate,
     /// preserving `bookmarks`' order. `localizedStandardContains` is
@@ -923,6 +940,42 @@ struct BookmarksView: View {
         onDelete(originalOffsets)
     }
 
+    /// Used by the explicit swipe-action Delete button (as opposed to the
+    /// implicit `.onDelete` swipe/edit-mode affordance), which already has
+    /// the exact bookmark in hand and can map straight to `bookmarks` by
+    /// `id` without going through a filtered-list offset at all.
+    private func deleteBookmark(_ bookmark: LocationBookmark) {
+        guard let index = bookmarks.firstIndex(where: { $0.id == bookmark.id }) else { return }
+        onDelete(IndexSet(integer: index))
+    }
+
+    /// Called from a swipe action / context menu on a specific row, so
+    /// `bookmark` is already the correct one regardless of any active search
+    /// filter — it came straight from that row's `ForEach` element, not from
+    /// an index into `bookmarks`.
+    private func beginRename(_ bookmark: LocationBookmark) {
+        renamingBookmarkID = bookmark.id
+        renameText = bookmark.name
+        showRenameAlert = true
+    }
+
+    /// Looks the target back up by `id` (never by position) before applying
+    /// the edit, since `filteredBookmarks` may have reordered or hidden
+    /// entries relative to `bookmarks` by the time Save is tapped.
+    private func commitRename() {
+        defer {
+            renamingBookmarkID = nil
+            renameText = ""
+        }
+        guard let id = renamingBookmarkID,
+              let bookmark = bookmarks.first(where: { $0.id == id }) else { return }
+        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newName = trimmed.isEmpty
+            ? String(format: "%.4f, %.4f", bookmark.latitude, bookmark.longitude)
+            : trimmed
+        onRename(id, newName)
+    }
+
     var body: some View {
         NavigationStack {
             if bookmarks.isEmpty {
@@ -945,6 +998,10 @@ struct BookmarksView: View {
                         List {
                             ForEach(filteredBookmarks) { bookmark in
                                 Button {
+                                    // Renaming never touches selection: this
+                                    // action only fires from a direct tap on
+                                    // the row body, not from the swipe
+                                    // action or context menu below.
                                     onSelect(bookmark)
                                 } label: {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -953,6 +1010,33 @@ struct BookmarksView: View {
                                         Text(formattedCoordinate(bookmark))
                                             .font(.caption.monospaced())
                                             .foregroundStyle(.secondary)
+                                    }
+                                }
+                                // Trailing swipe replaces the implicit
+                                // onDelete swipe action for this edge, so
+                                // Delete is re-added explicitly alongside
+                                // Rename to avoid losing swipe-to-delete.
+                                // EditButton's edit-mode delete affordance is
+                                // unaffected — that comes from `.onDelete`
+                                // below, independent of `.swipeActions`.
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        deleteBookmark(bookmark)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    Button {
+                                        beginRename(bookmark)
+                                    } label: {
+                                        Label("Rename", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
+                                .contextMenu {
+                                    Button {
+                                        beginRename(bookmark)
+                                    } label: {
+                                        Label("Rename", systemImage: "pencil")
                                     }
                                 }
                             }
@@ -967,6 +1051,16 @@ struct BookmarksView: View {
                 }
                 .searchable(text: $searchText, prompt: "Search bookmarks")
             }
+        }
+        .alert("Rename Bookmark", isPresented: $showRenameAlert) {
+            TextField("Name", text: $renameText)
+            Button("Save") { commitRename() }
+            Button("Cancel", role: .cancel) {
+                renamingBookmarkID = nil
+                renameText = ""
+            }
+        } message: {
+            Text("Enter a new name for this location.")
         }
     }
 }
