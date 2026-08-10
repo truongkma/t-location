@@ -389,8 +389,40 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         return LocationSimulationStatus.locationSet
     }
 
+    // Only the freshly built session is logged. The early return above — the
+    // path the 4-second resend loop takes on every tick — deliberately stays
+    // silent, so this line marks a user-initiated simulation (or a rebuild
+    // after the session died) and cannot flood the log.
+    LogManager.shared.addInfoLog(
+        String(
+            format: "simulate_location: the device accepted %.6f, %.6f on a new session",
+            latitude,
+            longitude
+        )
+    )
+
     return LocationSimulationStatus.ok
 }
+
+/// How long the connection stack is held open after a successful
+/// `location_simulation_clear` before it is torn down.
+///
+/// `location_simulation_clear` is documented in `idevice.h` only as "Clears the
+/// location set … an IdeviceFfiError on error, null on success" — nothing
+/// promises the device has *acted* on the clear by the time it returns, and
+/// `location_simulation_free`/`remote_server_free`/`rsd_handshake_free`/
+/// `adapter_free` document no ordering requirement beyond "the handle must be
+/// valid or NULL". Freeing the handle and collapsing the tunnel microseconds
+/// later was therefore able to abort the clear in flight while the call still
+/// reported success — matching the observed symptom of a successful return with
+/// the device still simulating, intermittently.
+///
+/// 300 ms is roughly two orders of magnitude more than a round trip over the
+/// local RSD tunnel (single-digit milliseconds), which is ample headroom for a
+/// race that only lost occasionally, while staying under the ~400 ms at which a
+/// button tap stops feeling immediate. It is spent on the serial
+/// `LocationSimulationCommandQueue`, never on the main thread.
+private let locationClearSettleInterval: TimeInterval = 0.3
 
 func clear_simulated_location() -> Int32 {
     guard let locationSimulation = LocationSimulationState.locationSimulation else {
@@ -400,16 +432,25 @@ func clear_simulated_location() -> Int32 {
         return LocationSimulationStatus.locationClear
     }
 
-    let ffiError = location_simulation_clear(locationSimulation)
-    LocationSimulationState.cleanup()
-
-    if let ffiError {
+    if let ffiError = location_simulation_clear(locationSimulation) {
         LogManager.shared.addErrorLog(
             "clear_simulated_location failed (code \(LocationSimulationStatus.locationClear)): the device rejected the clear — \(IdeviceBridge.detail(from: ffiError))"
         )
         idevice_error_free(ffiError)
+        // A rejected clear means the session is of no further use, so it is torn
+        // down immediately: a non-zero return still leaves nothing allocated.
+        LocationSimulationState.cleanup()
         return LocationSimulationStatus.locationClear
     }
+
+    // See `locationClearSettleInterval`: give the device the connection it needs
+    // to actually process the clear before the stack that carries it is freed.
+    Thread.sleep(forTimeInterval: locationClearSettleInterval)
+    LocationSimulationState.cleanup()
+
+    LogManager.shared.addInfoLog(
+        "clear_simulated_location: the device accepted the clear; session closed after a \(Int(locationClearSettleInterval * 1000)) ms settle"
+    )
 
     return LocationSimulationStatus.ok
 }
