@@ -59,15 +59,6 @@ private enum PendingImport: Identifiable {
     }
 }
 
-/// What the single `.fileExporter` is currently being used for. Both uses write
-/// the same JSON through the same save sheet; they differ only in what happens
-/// to the URL the sheet hands back — discarded for a one-shot export, kept as a
-/// security-scoped bookmark for a sync file.
-private enum BookmarkExportPurpose {
-    case oneShotExport
-    case newSyncFile
-}
-
 /// File-scope so it is built once rather than on every render of the sync rows.
 private let syncTimestampFormatter: DateFormatter = {
     let formatter = DateFormatter()
@@ -108,8 +99,8 @@ struct SettingsView: View {
     @State private var bookmarks: [LocationBookmark] = []
     @State private var isShowingBookmarkExporter = false
     @State private var bookmarkExportDocument: BookmarksDocument?
-    /// Stamped when Export is tapped rather than computed in `body`, which would
-    /// rebuild a `DateFormatter` on every render.
+    /// Stamped when Create Sync File is tapped rather than computed in `body`,
+    /// which would rebuild a `DateFormatter` on every render.
     @State private var bookmarkExportFilename = ""
     @State private var bookmarkMessage: (text: String, isError: Bool)?
 
@@ -118,7 +109,6 @@ struct SettingsView: View {
     @ObservedObject private var syncFile = BookmarkSyncFile.shared
     @State private var isSyncing = false
     @State private var syncMessage: (text: String, isError: Bool)?
-    @State private var bookmarkExportPurpose: BookmarkExportPurpose = .oneShotExport
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -206,14 +196,6 @@ struct SettingsView: View {
                 Section("Bookmarks") {
                     Text(bookmarkCountText)
                         .foregroundStyle(bookmarks.isEmpty ? .secondary : .primary)
-
-                    Button {
-                        exportBookmarksPressed()
-                    } label: {
-                        Label("Export Bookmarks", systemImage: "square.and.arrow.up")
-                    }
-                    .foregroundStyle(.primary)
-                    .disabled(bookmarks.isEmpty)
 
                     Button {
                         bookmarkMessage = nil
@@ -317,35 +299,20 @@ struct SettingsView: View {
                     contentType: .json,
                     defaultFilename: bookmarkExportFilename
                 ) { result in
-                    let purpose = bookmarkExportPurpose
-                    bookmarkExportPurpose = .oneShotExport
-
                     switch result {
                     case .success(let url):
-                        switch purpose {
-                        case .oneShotExport:
-                            bookmarkMessage = (String(localized: "Exported \(bookmarks.count) saved locations."), false)
-                            scheduleBookmarkStatusDismiss()
-                        case .newSyncFile:
-                            // The save sheet has already written the bookmarks
-                            // into the new file; linking it records the URL
-                            // bookmark and reconciles the two sides.
-                            linkSyncFile(at: url, wasJustCreated: true)
-                        }
+                        // The save sheet has already written the bookmarks
+                        // into the new file; linking it records the URL
+                        // bookmark and reconciles the two sides.
+                        linkSyncFile(at: url, wasJustCreated: true)
                     case .failure(let error):
                         // Cancelling the save sheet reports itself as a failure.
-                        // It is not one, and saying "Export failed" for a
-                        // deliberate Cancel would be nonsense.
+                        // It is not one, and saying "Could not create a sync
+                        // file" for a deliberate Cancel would be nonsense.
                         guard !isUserCancellation(error) else { return }
                         let detail = error.localizedDescription
-                        switch purpose {
-                        case .oneShotExport:
-                            bookmarkMessage = (String(localized: "Export failed: \(detail)"), true)
-                            scheduleBookmarkStatusDismiss()
-                        case .newSyncFile:
-                            syncMessage = (String(localized: "Could not create a sync file: \(detail)"), true)
-                            scheduleSyncStatusDismiss()
-                        }
+                        syncMessage = (String(localized: "Could not create a sync file: \(detail)"), true)
+                        scheduleSyncStatusDismiss()
                     }
                 }
         )
@@ -520,10 +487,8 @@ struct SettingsView: View {
         do {
             bookmarkExportDocument = BookmarksDocument(data: try BookmarkStore.exportData(bookmarks))
             bookmarkExportFilename = BookmarkStore.syncFileName
-            bookmarkExportPurpose = .newSyncFile
             isShowingBookmarkExporter = true
         } catch {
-            bookmarkExportPurpose = .oneShotExport
             let detail = error.localizedDescription
             syncMessage = (String(localized: "Could not create a sync file: \(detail)"), true)
             scheduleSyncStatusDismiss()
@@ -680,24 +645,6 @@ struct SettingsView: View {
         bookmarks.isEmpty
             ? String(localized: "No saved locations")
             : String(localized: "\(bookmarks.count) saved locations")
-    }
-
-    private func exportBookmarksPressed() {
-        bookmarkMessage = nil
-        // Re-read rather than trusting the cached copy: the map may have added
-        // a bookmark since this sheet was opened.
-        bookmarks = BookmarkStore.load()
-        guard !bookmarks.isEmpty else { return }
-
-        do {
-            bookmarkExportDocument = BookmarksDocument(data: try BookmarkStore.exportData(bookmarks))
-            bookmarkExportFilename = BookmarkStore.exportFileName()
-            isShowingBookmarkExporter = true
-        } catch {
-            let detail = error.localizedDescription
-            bookmarkMessage = (String(localized: "Export failed: \(detail)"), true)
-            scheduleBookmarkStatusDismiss()
-        }
     }
 
     /// Merges the picked file into the saved list. Nothing already saved is ever

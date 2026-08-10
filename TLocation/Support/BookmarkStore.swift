@@ -88,21 +88,9 @@ enum BookmarkStore {
         try JSONDecoder().decode([LocationBookmark].self, from: data)
     }
 
-    /// `TLocation-Bookmarks-YYYY-MM-DD`, without an extension — `.fileExporter`
-    /// appends the one matching the content type. A fixed POSIX locale and
-    /// calendar keep the name in ISO order regardless of device settings.
-    static func exportFileName(date: Date = Date()) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return "TLocation-Bookmarks-\(formatter.string(from: date))"
-    }
-
-    /// Name offered when creating a file to link as the sync file. Undated,
-    /// unlike `exportFileName()`: this one file is written over for as long as
-    /// the link lasts, so a date in its name would only ever be misleading.
+    /// Name offered when creating a file to link as the sync file. This one
+    /// file is written over for as long as the link lasts, so a date in its
+    /// name would only ever be misleading.
     static let syncFileName = "TLocation-Bookmarks-Sync"
 
     struct MergeResult {
