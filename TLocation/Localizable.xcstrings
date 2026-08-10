@@ -252,6 +252,22 @@
         }
       }
     },
+    "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vị trí giả lập từ phiên trước vẫn đang hoạt động trên thiết bị này. Hãy dùng Về vị trí thật để kết thúc."
+          }
+        }
+      }
+    },
     "Adds a few metres of random movement so the simulated position looks like a real GPS fix.": {
       "localizations": {
         "en": {
@@ -2356,6 +2372,22 @@
         }
       }
     },
+    "Return to Real Location?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return to Real Location?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Về vị trí thật?"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "en": {
@@ -3410,6 +3442,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tệp đồng bộ không phải tệp vị trí đã lưu hợp lệ của TLocation."
+          }
+        }
+      }
+    },
+    "This stops the simulated location and returns this device to its real position.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This stops the simulated location and returns this device to its real position."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thao tác này sẽ dừng giả lập vị trí và đưa thiết bị về vị trí thật."
           }
         }
       }

@@ -259,16 +259,21 @@ enum LocationSimulationCommandQueue {
     static let shared = DispatchQueue(label: "vn.truongkma.tlocation.location-sim", qos: .userInitiated)
 }
 
-func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Double, _ pairingFile: String) -> Int32 {
-    if let locationSimulation = LocationSimulationState.locationSimulation {
-        if let ffiError = location_simulation_set(locationSimulation, latitude, longitude) {
-            idevice_error_free(ffiError)
-            LocationSimulationState.cleanup()
-        } else {
-            return LocationSimulationStatus.ok
-        }
-    }
-
+/// Brings up everything a location-simulation call needs — tunnel adapter and RSD
+/// handshake built from the pairing file, remote server, location-simulation
+/// handle — and parks the handles in `LocationSimulationState`.
+///
+/// Shared by `simulate_location` and `clear_simulated_location`. Clearing needs it
+/// just as much as simulating does: a simulation lives in the device's DDI
+/// location-simulation service and outlives this process, so after a force-quit
+/// there is no session left to reuse and "no session in memory" must not be
+/// allowed to mean "cannot clear".
+///
+/// Returns `LocationSimulationStatus.ok` on success, leaving
+/// `LocationSimulationState.locationSimulation` non-nil. On every failure path the
+/// partially built state is torn down before returning, so no handle is leaked and
+/// a non-zero result always means there is nothing left to clean up.
+private func establishLocationSimulation(deviceIP: String, pairingFile: String) -> Int32 {
     var address = sockaddr_in()
     address.sin_family = sa_family_t(AF_INET)
     address.sin_port = in_port_t(49152).bigEndian
@@ -333,7 +338,27 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         return LocationSimulationStatus.locationSimulation
     }
 
+    // `location_simulation_new` takes ownership of the remote server, so the
+    // pointer is dropped here rather than freed by `cleanup()` later.
     LocationSimulationState.remoteServer = nil
+
+    return LocationSimulationStatus.ok
+}
+
+func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Double, _ pairingFile: String) -> Int32 {
+    if let locationSimulation = LocationSimulationState.locationSimulation {
+        if let ffiError = location_simulation_set(locationSimulation, latitude, longitude) {
+            idevice_error_free(ffiError)
+            LocationSimulationState.cleanup()
+        } else {
+            return LocationSimulationStatus.ok
+        }
+    }
+
+    let setupCode = establishLocationSimulation(deviceIP: deviceIP, pairingFile: pairingFile)
+    guard setupCode == LocationSimulationStatus.ok else {
+        return setupCode
+    }
 
     let locationSetError = location_simulation_set(
         LocationSimulationState.locationSimulation,
@@ -349,9 +374,50 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
     return LocationSimulationStatus.ok
 }
 
+/// Clears the simulated position on the device.
+///
+/// Only ever called from an explicit user action (the map's Stop button, Return to
+/// Real Location, the confirmed `tlocation://clear-location` URL, and the "Stop
+/// Simulating Location" shortcut). Nothing in the app may call this on its own —
+/// silently dropping someone back to their real position is worse than any bug
+/// this function fixes.
+///
+/// A missing in-memory session is *not* an error. The simulation runs in the
+/// device's DDI location-simulation service, so it survives TLocation being
+/// force-quit or killed while `LocationSimulationState` does not: on the next
+/// launch iOS is still reporting the simulated position and this is the only thing
+/// that can stop it. So when there is no session, one is established first — the
+/// same setup `simulate_location` performs — and the clear is issued over it.
+///
+/// The device IP and pairing-file path are read here rather than taken as
+/// parameters, so every existing caller keeps working unchanged; both come from
+/// the same places the rest of the app reads them from.
+///
+/// Failure codes stay distinguishable: a connection that could not be established
+/// reports the setup's own code (1, 2, 3, 9 or 10), while 12 means the connection
+/// was fine and the clear itself was rejected. Clearing when nothing is simulated
+/// is not a rejection — the service accepts it — so it reports success, which is
+/// what a user who just wants their real location back expects.
 func clear_simulated_location() -> Int32 {
+    if LocationSimulationState.locationSimulation == nil {
+        let pairingFile = PairingFileStore.prepareURL().path
+        // Without a pairing file no tunnel can be built at all. Report that
+        // rather than sitting in a connection attempt that cannot succeed.
+        guard FileManager.default.fileExists(atPath: pairingFile) else {
+            return LocationSimulationStatus.pairingRead
+        }
+
+        let setupCode = establishLocationSimulation(
+            deviceIP: DeviceConnectionContext.targetIPAddress,
+            pairingFile: pairingFile
+        )
+        guard setupCode == LocationSimulationStatus.ok else {
+            return setupCode
+        }
+    }
+
     guard let locationSimulation = LocationSimulationState.locationSimulation else {
-        return LocationSimulationStatus.locationClear
+        return LocationSimulationStatus.locationSimulation
     }
 
     let ffiError = location_simulation_clear(locationSimulation)

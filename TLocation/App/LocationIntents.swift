@@ -310,8 +310,14 @@ enum LocationIntentRunner {
     // MARK: Stop
 
     static func stop() async throws {
-        // Clearing still needs the pairing file: without one there was never a
-        // session to clear, and saying so is more useful than error 12.
+        // Clearing genuinely needs the pairing file now: with no live session
+        // `clear_simulated_location` builds one from it before clearing, which is
+        // what lets a shortcut stop a simulation that outlived the app. Checking
+        // here turns a missing file into a sentence rather than a bare code 2.
+        //
+        // Note this is a real device round trip even when the app never simulated
+        // anything in this launch — which is the entire point, since the device may
+        // well still be simulating from a previous one.
         _ = try requirePairingFile()
 
         let code = try await run(
@@ -384,8 +390,14 @@ enum LocationIntentRunner {
     /// from there, and so does this. The notification is posted from the same
     /// hop because `MapSelectionView` observes it with `onReceive`, which
     /// delivers on whatever thread posted.
+    /// The persisted record is written before the notification, so a map that is on
+    /// screen sees the new value the moment it is told to sync, and a map that is
+    /// not reads it on its next launch. Intents are the one path that can change
+    /// the device's simulation with no UI in the process at all, which is exactly
+    /// why the record has to be updated here rather than in a view.
     private static func publishSimulation(latitude: Double, longitude: Double) async {
         await MainActor.run {
+            ActiveSimulationStore.markStarted(latitude: latitude, longitude: longitude)
             BackgroundLocationManager.shared.requestStart()
             LocationSimulationRequest.postSimulateApplied(latitude: latitude, longitude: longitude)
         }
@@ -393,6 +405,7 @@ enum LocationIntentRunner {
 
     private static func publishClear() async {
         await MainActor.run {
+            ActiveSimulationStore.markCleared()
             BackgroundLocationManager.shared.requestStop()
             LocationSimulationRequest.postClearApplied()
         }

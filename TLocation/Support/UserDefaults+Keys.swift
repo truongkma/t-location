@@ -20,6 +20,17 @@ extension UserDefaults {
         /// the sync file. Absent until the first one succeeds.
         static let bookmarkSyncLastSyncedAt = "bookmarkSyncLastSyncedAt"
 
+        /// `true` between a successful simulate and the successful clear that ends
+        /// it. Persisted because the simulation itself is, in effect: it lives in
+        /// the device's DDI location-simulation service and keeps running after
+        /// TLocation is force-quit. See `ActiveSimulationStore`.
+        static let simulationIsActive = "simulationIsActive"
+        /// Coordinate last handed to the device, written alongside
+        /// `simulationIsActive` so a relaunched app can put the pin back. Absent
+        /// whenever `simulationIsActive` is.
+        static let simulationLatitude = "simulationLatitude"
+        static let simulationLongitude = "simulationLongitude"
+
         /// `AppLanguage.rawValue` for the language override chosen in Settings.
         /// Absent (or "system") means follow the device language. See
         /// `LanguageSettings`.
