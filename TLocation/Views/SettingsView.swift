@@ -54,7 +54,15 @@ private enum PendingImport: Identifiable {
     var allowedContentTypes: [UTType] {
         switch self {
         case .pairingFile: return PairingFileStore.supportedContentTypes
-        case .bookmarks, .bookmarkSyncFile: return [.json]
+        // A `.json` file only reports `public.json` when whoever wrote it said
+        // so. The same bytes arriving from iCloud Drive, a messaging app or a
+        // Files copy often carry `public.text` or just `public.data`, and a
+        // picker limited to `.json` greys those out — the file is visible but
+        // cannot be chosen. Accepting the broader types keeps them selectable;
+        // `BookmarkStore.decode` is what actually validates the contents, and
+        // it already reports a clear error for anything that is not a
+        // TLocation bookmarks file.
+        case .bookmarks, .bookmarkSyncFile: return [.json, .plainText, .text, .data]
         }
     }
 }
