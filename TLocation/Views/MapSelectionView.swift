@@ -217,6 +217,34 @@ private struct CalloutBackground: ViewModifier {
     }
 }
 
+/// Enlarges a tappable chip's *hit region* to Apple's ~44×44pt minimum without
+/// growing the chip drawn on screen: the padding is applied after the chip's
+/// own background/overlay are already sized, so those keep their original
+/// (smaller) dimensions, and `.contentShape` is what actually makes the
+/// padded, invisible margin respond to taps.
+///
+/// `30pt` visible chip (`LocationSimulationView.calloutChipSize`) + `7pt`
+/// padding per side = `44pt` reported frame. That reported frame is what
+/// `HStack` actually reserves screen space for, so two adjacent chips wearing
+/// this modifier can never overlap each other — the layout system hands each
+/// one its own non-overlapping slice before this modifier ever runs. The
+/// `8pt` `HStack` spacing between chips (see `pinCallout`) adds a further
+/// explicit gap on top of that guarantee, so the two 44×44 regions end up
+/// comfortably separated rather than merely touching edge-to-edge.
+///
+/// Only ever applied to interactive chips (Copy, unsaved Save). The saved
+/// badge is not a button and must not pick this up, or it would gain a
+/// tappable footprint it should never have.
+private struct CalloutTapTarget: ViewModifier {
+    static let padding: CGFloat = 7
+
+    func body(content: Content) -> some View {
+        content
+            .padding(Self.padding)
+            .contentShape(Rectangle())
+    }
+}
+
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -246,6 +274,14 @@ struct LocationSimulationView: View {
     @State private var bookmarks: [LocationBookmark] = []
     @State private var showBookmarks = false
     @State private var showSettings = false
+    /// Drives the "Save Bookmark" name-entry alert opened from the callout's
+    /// unsaved bookmark chip. `newBookmarkName` is pre-filled with the
+    /// coordinate-derived default in `beginSaveBookmark` and always cleared
+    /// again afterwards — by `saveCurrentPinAsBookmark` on Save, by
+    /// `cancelSaveBookmark` on Cancel — so the next tap always opens a fresh
+    /// prompt rather than showing leftover text from a previous pin.
+    @State private var showSaveBookmarkAlert = false
+    @State private var newBookmarkName = ""
 
     /// Measured size of the pin callout, used to work out the screen rectangle
     /// the annotation occupies so a tap that lands on it is not also treated as
@@ -504,7 +540,14 @@ struct LocationSimulationView: View {
     private static let pinGlyphHeight: CGFloat = 30
     private static let pinGlyphWidth: CGFloat = 20
     /// Keeps a long bookmark name from stretching the callout across the map.
-    private static let calloutMaxWidth: CGFloat = 240
+    /// `276` rather than the original `240`: growing the copy/bookmark chips
+    /// from a `26pt` glyph to a `30pt` one wearing a `44×44` `CalloutTapTarget`
+    /// adds `18pt` to each chip's reported width (was 26, now 44), for a
+    /// worst-case width growth of `36pt` (the `8pt` `HStack` spacing between
+    /// them is unchanged). `276pt` is still well under half of a 375pt-wide
+    /// screen, so the callout stays a compact callout — clear of the floating
+    /// control column and the bottom cluster — rather than a panel.
+    private static let calloutMaxWidth: CGFloat = 276
 
     /// Saved state: a solid, saturated blue chip with a white glyph.
     private static let bookmarkSavedTint = Color(red: 0.04, green: 0.28, blue: 0.78)
@@ -545,6 +588,12 @@ struct LocationSimulationView: View {
                     .truncationMode(.tail)
             }
 
+            // `8pt`, same as before: each interactive chip now also carries its
+            // own `7pt` invisible touch margin (`CalloutTapTarget`), so this
+            // explicit gap sits *on top of* that margin. `HStack` never overlaps
+            // sibling frames, so the two 44×44 hit regions are disjoint by
+            // construction; this spacing just makes that separation comfortable
+            // rather than the two regions merely touching edge-to-edge.
             HStack(spacing: 8) {
                 Text(Self.formattedCoordinate(coordinate))
                     .font(.caption2.monospaced())
@@ -561,6 +610,7 @@ struct LocationSimulationView: View {
                         fill: Color.primary.opacity(0.10),
                         stroke: Color.primary.opacity(0.12)
                     )
+                    .modifier(CalloutTapTarget())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Copy Coordinates")
@@ -586,7 +636,7 @@ struct LocationSimulationView: View {
 
     /// Saved → an inert badge (no button, so it cannot possibly add a second
     /// bookmark for a place the callout is already naming). Unsaved → a button
-    /// that saves immediately.
+    /// that opens the "Save Bookmark" name prompt (`beginSaveBookmark`).
     @ViewBuilder
     private func bookmarkChip(saved: Bool) -> some View {
         if saved {
@@ -599,7 +649,7 @@ struct LocationSimulationView: View {
             .accessibilityLabel("Saved to Bookmarks")
         } else {
             Button {
-                saveCurrentPinAsBookmark()
+                beginSaveBookmark()
             } label: {
                 calloutChip(
                     systemImage: "bookmark",
@@ -607,11 +657,18 @@ struct LocationSimulationView: View {
                     fill: Self.bookmarkUnsavedTint.opacity(0.20),
                     stroke: Self.bookmarkUnsavedTint.opacity(0.70)
                 )
+                .modifier(CalloutTapTarget())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Save Bookmark")
         }
     }
+
+    /// Visible diameter of a callout chip. A small step up from the original
+    /// `26pt` — big enough to read as a slightly larger target on its own, but
+    /// still a compact glyph, not a chunky button. `CalloutTapTarget` adds the
+    /// rest of the way to a 44pt hit region on top of this.
+    private static let calloutChipSize: CGFloat = 30
 
     private func calloutChip(
         systemImage: String,
@@ -620,9 +677,9 @@ struct LocationSimulationView: View {
         stroke: Color
     ) -> some View {
         Image(systemName: systemImage)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(glyphColor)
-            .frame(width: 26, height: 26)
+            .frame(width: Self.calloutChipSize, height: Self.calloutChipSize)
             .background(Circle().fill(fill))
             .overlay(Circle().strokeBorder(stroke, lineWidth: 1))
             .contentShape(Circle())
@@ -649,6 +706,12 @@ struct LocationSimulationView: View {
 
     /// Whether `point` (map-local coordinates) falls inside the annotation —
     /// callout plus pin — currently drawn for `coordinate`.
+    ///
+    /// `calloutSize` is measured off the live view hierarchy (see the
+    /// `GeometryReader` in `pinCallout`), so this guard automatically follows
+    /// whatever the callout actually renders at — including the taller/wider
+    /// footprint `CalloutTapTarget`'s enlarged chips now produce — with no
+    /// separate constant to keep in sync by hand.
     private func isInsidePinAnnotation(_ point: CGPoint, proxy: MapProxy) -> Bool {
         guard let coordinate,
               calloutSize != .zero,
@@ -666,20 +729,51 @@ struct LocationSimulationView: View {
         showStatusMessage(String(localized: "Coordinates copied"))
     }
 
-    /// Saves the pin with a coordinate-derived name and no prompt — the callout
-    /// icon is a one-tap action, and the bookmarks sheet already has Rename for
-    /// giving it a better name afterwards.
+    /// The coordinate-derived name used both as the alert's pre-filled text and
+    /// as the fallback when the user clears the field and hits Save anyway —
+    /// the same default the rest of the app already falls back to (see
+    /// `BookmarksView.commitRename`).
+    private static func defaultBookmarkName(for coordinate: CLLocationCoordinate2D) -> String {
+        String(format: "%.4f, %.4f", coordinate.latitude, coordinate.longitude)
+    }
+
+    /// Opens the "Save Bookmark" name prompt, pre-filled with the
+    /// coordinate-derived default so hitting Save immediately accepts it.
+    /// Mirrors the duplicate guard in `saveCurrentPinAsBookmark` so the chip
+    /// can never be re-tapped into opening the prompt for an already-saved pin.
+    private func beginSaveBookmark() {
+        guard let coord = coordinate,
+              BookmarkStore.bookmark(nearest: coord, in: bookmarks) == nil else { return }
+        newBookmarkName = Self.defaultBookmarkName(for: coord)
+        showSaveBookmarkAlert = true
+    }
+
+    /// Cancels the "Save Bookmark" prompt without saving anything, clearing the
+    /// draft name so the next tap on the chip opens a freshly pre-filled alert
+    /// rather than showing whatever was left over from before.
+    private func cancelSaveBookmark() {
+        showSaveBookmarkAlert = false
+        newBookmarkName = ""
+    }
+
+    /// Commits the "Save Bookmark" prompt: trims the typed name and, if that
+    /// leaves nothing, falls back to the same coordinate-derived default the
+    /// field was pre-filled with — the behaviour `BookmarksView.commitRename`
+    /// already uses for an emptied rename.
     ///
     /// Always stores `coordinate`, the exact anchor the user chose; natural GPS
     /// drift never touches it (see `savedBookmarkAtPin`). The duplicate guard
     /// repeats the callout's own check, so even if the badge were somehow tapped
     /// while showing "saved" no second bookmark could be created.
     private func saveCurrentPinAsBookmark() {
+        defer { newBookmarkName = "" }
         guard let coord = coordinate,
               BookmarkStore.bookmark(nearest: coord, in: bookmarks) == nil else { return }
+        let trimmed = newBookmarkName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmed.isEmpty ? Self.defaultBookmarkName(for: coord) : trimmed
         bookmarks.append(
             LocationBookmark(
-                name: String(format: "%.4f, %.4f", coord.latitude, coord.longitude),
+                name: name,
                 latitude: coord.latitude,
                 longitude: coord.longitude
             )
@@ -767,6 +861,18 @@ struct LocationSimulationView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
+        }
+        // Restores the name prompt the callout's one-tap save temporarily
+        // replaced. Wording and structure match the pre-callout "Save
+        // Bookmark" alert (see git history on this file) so it still looks
+        // consistent with the rest of the app, notably `BookmarksView`'s own
+        // "Rename Bookmark" alert below.
+        .alert("Save Bookmark", isPresented: $showSaveBookmarkAlert) {
+            TextField("Name", text: $newBookmarkName)
+            Button("Save") { saveCurrentPinAsBookmark() }
+            Button("Cancel", role: .cancel) { cancelSaveBookmark() }
+        } message: {
+            Text("Enter a name for this location.")
         }
         .alert("Location Permission Needed", isPresented: $showLocationDeniedAlert) {
             Button("Open Settings") {
