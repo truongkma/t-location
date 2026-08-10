@@ -481,7 +481,7 @@
 					"$(PROJECT_DIR)/TLocation/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation;
 				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -545,7 +545,7 @@
 					"$(PROJECT_DIR)/TLocation/idevice",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = vn.truongkma.tlocation;
 				PRODUCT_NAME = TLocation;
 				PROVISIONING_PROFILE_SPECIFIER = "";
