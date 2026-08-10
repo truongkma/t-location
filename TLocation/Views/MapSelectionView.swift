@@ -568,10 +568,18 @@ struct LocationSimulationView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .simulateLocationRequested)) { notification in
             guard let requested = LocationSimulationRequest.coordinate(from: notification) else { return }
-            startExternalSimulation(at: requested)
+            if LocationSimulationRequest.isAlreadyApplied(notification) {
+                adoptExternalSimulation(at: requested)
+            } else {
+                startExternalSimulation(at: requested)
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .clearSimulatedLocationRequested)) { _ in
-            clear()
+        .onReceive(NotificationCenter.default.publisher(for: .clearSimulatedLocationRequested)) { notification in
+            if LocationSimulationRequest.isAlreadyApplied(notification) {
+                adoptExternalClear()
+            } else {
+                clear()
+            }
         }
         .onAppear {
             loadBookmarks()
@@ -705,6 +713,40 @@ struct LocationSimulationView: View {
         coordinate = requested
         recenterCamera(on: requested)
         simulate(at: requested)
+    }
+
+    /// Adopts a simulation a Shortcuts intent has *already* applied to the
+    /// device. The FFI is deliberately not called again — the position is
+    /// already set — but the pin, the camera, the background task and above all
+    /// the 4-second resend loop have to move onto the new coordinate, or the
+    /// loop would resend the map's older position and silently undo the
+    /// shortcut.
+    private func adoptExternalSimulation(at requested: CLLocationCoordinate2D) {
+        // Exactly one keep-alive activation should be outstanding while a
+        // simulation is running. The intent took one of its own before posting;
+        // if this view was already holding one, release it so the two do not
+        // stack and leave background location running after the next stop.
+        if hasActiveSimulation {
+            BackgroundLocationManager.shared.requestStop()
+        }
+        coordinate = requested
+        recenterCamera(on: requested)
+        beginBackgroundTask()
+        startResendLoop(with: requested)
+    }
+
+    /// Counterpart of `adoptExternalSimulation`: the intent has already cleared
+    /// the device and released its keep-alive activation, so calling `clear()`
+    /// here would only re-run `clear_simulated_location()` on an already-torn-down
+    /// session — error 12 and a spurious alert.
+    ///
+    /// This is `clear()`'s success path minus the FFI call and the keep-alive
+    /// release, so the map ends up exactly where the Stop button would leave it:
+    /// resend loop stopped, background task ended, and the pin still on screen
+    /// ready to be re-simulated.
+    private func adoptExternalClear() {
+        stopResendLoop()
+        endBackgroundTask()
     }
 
     private func simulate(at target: CLLocationCoordinate2D?) {
