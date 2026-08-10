@@ -317,6 +317,20 @@ private func establishLocationSimulation(deviceIP: String, pairingFile: String) 
         return LocationSimulationStatus.providerCreate
     }
 
+    // "No error" is not the same as "produced a handle". Every out-parameter below
+    // is checked as well, because a NULL-without-error would otherwise be reported
+    // as `.ok` and leave the *previous* stages' handles parked in
+    // `LocationSimulationState` — which the next `simulate_location` would
+    // overwrite and leak, and which breaks the contract this function documents:
+    // a non-zero result means there is nothing left to clean up. `cleanup()` is
+    // idempotent and frees only what is actually set, so it is safe on every
+    // partial state.
+    guard LocationSimulationState.adapter != nil,
+          LocationSimulationState.handshake != nil else {
+        LocationSimulationState.cleanup()
+        return LocationSimulationStatus.providerCreate
+    }
+
     let remoteServerError = remote_server_connect_rsd(
         LocationSimulationState.adapter,
         LocationSimulationState.handshake,
@@ -328,12 +342,26 @@ private func establishLocationSimulation(deviceIP: String, pairingFile: String) 
         return LocationSimulationStatus.remoteServer
     }
 
+    guard LocationSimulationState.remoteServer != nil else {
+        LocationSimulationState.cleanup()
+        return LocationSimulationStatus.remoteServer
+    }
+
     let locationSimulationError = location_simulation_new(
         LocationSimulationState.remoteServer,
         &LocationSimulationState.locationSimulation
     )
     if let locationSimulationError {
         idevice_error_free(locationSimulationError)
+        LocationSimulationState.cleanup()
+        return LocationSimulationStatus.locationSimulation
+    }
+
+    // Handled exactly like the error branch above — including leaving the remote
+    // server for `cleanup()` to free. `location_simulation_new` only takes
+    // ownership when it hands back a handle; "no handle" is treated as "ownership
+    // not transferred", the same assumption the failure path has always made.
+    guard LocationSimulationState.locationSimulation != nil else {
         LocationSimulationState.cleanup()
         return LocationSimulationStatus.locationSimulation
     }

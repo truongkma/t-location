@@ -217,6 +217,27 @@ private struct CalloutBackground: ViewModifier {
     }
 }
 
+/// One-shot ticket shared by a device command and the deadline watching it:
+/// exactly one caller of `claim()` ever gets `true`.
+///
+/// The idevice FFI is synchronous and cannot be aborted, so a command that
+/// overruns its budget is left to finish on `LocationSimulationCommandQueue`.
+/// This is what stops that abandoned call from walking back into the UI
+/// afterwards and firing success handlers behind a failure the user has already
+/// been shown.
+private final class LocationCommandOutcome: @unchecked Sendable {
+    private let lock = NSLock()
+    private var claimed = false
+
+    func claim() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if claimed { return false }
+        claimed = true
+        return true
+    }
+}
+
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -289,6 +310,24 @@ struct LocationSimulationView: View {
     @State private var statusMessage: String?
     @State private var statusMessageWorkItem: DispatchWorkItem?
     private static let statusMessageDuration: TimeInterval = 3.0
+
+    /// A statement about what the *device* is doing that the user has not acted on
+    /// yet — currently only a simulation carried over from a previous launch.
+    ///
+    /// Deliberately not a `statusMessage`: that one clears itself after three
+    /// seconds, and at launch the readiness overlay is normally still covering the
+    /// map long after those three seconds are up, so the one notice the user most
+    /// needs was the one they never saw. This stays until they dismiss it or the
+    /// simulation it describes ends. It is text only — nothing here, and nothing
+    /// that sets it, touches the device.
+    @State private var carriedOverSimulationNotice: String?
+
+    /// How long the UI waits for a device command before handing the controls
+    /// back. Comparable to what a Shortcuts intent budgets for the same work (see
+    /// `LocationIntentRunner`: a connection allowance plus a command allowance),
+    /// because it *is* the same work — with no live session the FFI builds a
+    /// tunnel from the pairing file before it can do anything else.
+    private static let commandTimeout: TimeInterval = 45
 
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
@@ -518,14 +557,47 @@ struct LocationSimulationView: View {
     /// message). Given a material backing so it stays legible on a map.
     private var bottomControlCluster: some View {
         VStack(spacing: 12) {
+            carriedOverSimulationBanner
             pinControls
         }
         .animation(.default, value: statusMessage)
+        .animation(.default, value: carriedOverSimulationNotice)
         .padding(.vertical, 14)
         .padding(.horizontal, 20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
+    }
+
+    /// The persistent counterpart of `statusMessage`, drawn in the same bottom
+    /// cluster and above it. Carries a dismiss control rather than a timer, and
+    /// no action button: the only thing to do about it is "Return to Real
+    /// Location", which is already on screen and always enabled.
+    @ViewBuilder
+    private var carriedOverSimulationBanner: some View {
+        if let carriedOverSimulationNotice {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+
+                Text(carriedOverSimulationNotice)
+                    .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    self.carriedOverSimulationNotice = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
+            }
+            .transition(.opacity)
+        }
     }
 
     // MARK: - Pin callout
@@ -1071,6 +1143,9 @@ struct LocationSimulationView: View {
             ActiveSimulationStore.markCleared()
         }
         hasPersistedSimulation = coordinate != nil
+        // Whichever way this went, the notice has been overtaken: the previous
+        // session's simulation has either been ended or replaced by this one.
+        carriedOverSimulationNotice = nil
     }
 
     /// Re-reads the persisted record after something *else* in the process changed
@@ -1078,8 +1153,28 @@ struct LocationSimulationView: View {
     /// writes the record from `LocationIntentRunner` before telling the map.
     private func refreshPersistedSimulation() {
         hasPersistedSimulation = ActiveSimulationStore.isActive
+        // Same reasoning as `setSimulationActive`: an intent has just changed what
+        // the device is doing, so a notice about an older session is stale.
+        carriedOverSimulationNotice = nil
     }
 
+    /// Runs one device command on `LocationSimulationCommandQueue` and gives the
+    /// controls back either when it answers or when `commandTimeout` expires,
+    /// whichever comes first.
+    ///
+    /// The deadline exists because "Return to Real Location" is enabled with no
+    /// live session at all: the FFI then has to build a tunnel from the pairing
+    /// file, and with the VPN up but the device not answering that sits on a TCP
+    /// connect for tens of seconds. Without a bound, `isBusy` stayed true for the
+    /// whole of it and every control on the map — Simulate, Stop, Locate Me,
+    /// Return to Real — was dead with no way to cancel.
+    ///
+    /// Nothing here reaches into `LocationSimulationState`: the FFI call itself is
+    /// still the only thing that touches it and it still runs on
+    /// `LocationSimulationCommandQueue`, alone. Expiring the deadline does not
+    /// abort the call — it cannot be aborted — it only stops the UI waiting on it.
+    /// A command started afterwards queues behind the abandoned one on that same
+    /// serial queue, so the handles are never contended.
     private func runLocationCommand(
         errorTitle: String,
         errorMessage: @escaping (Int32) -> String,
@@ -1088,20 +1183,50 @@ struct LocationSimulationView: View {
         onSuccess: @escaping () -> Void
     ) {
         isBusy = true
+        let outcome = LocationCommandOutcome()
+
         LocationSimulationCommandQueue.shared.async {
             let code = operation()
             DispatchQueue.main.async {
+                guard outcome.claim() else {
+                    // The deadline already fired and the user has been told this
+                    // did not work. Whatever the device eventually answered is
+                    // logged and goes no further: running the handlers now would
+                    // re-arm the resend loop, or flip the persisted flag, behind a
+                    // message that says the command failed.
+                    LogManager.shared.addInfoLog(
+                        "Location command finished after the UI stopped waiting (code \(code))"
+                    )
+                    return
+                }
                 isBusy = false
                 if code == 0 {
                     onSuccess()
                 } else {
                     onFailure?()
-                    alertTitle = errorTitle
-                    alertMessage = errorMessage(code)
-                    showAlert = true
+                    presentAlert(title: errorTitle, message: errorMessage(code))
                 }
             }
         }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.commandTimeout) {
+            guard outcome.claim() else { return }
+            isBusy = false
+            onFailure?()
+            LogManager.shared.addErrorLog(
+                "Location command timed out after \(Int(Self.commandTimeout))s waiting for the device"
+            )
+            presentAlert(
+                title: String(localized: "Device Not Responding"),
+                message: String(localized: "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation.")
+            )
+        }
+    }
+
+    private func presentAlert(title: String, message: String) {
+        alertTitle = title
+        alertMessage = message
+        showAlert = true
     }
 
     /// Ends the simulation on the device. Reached only from the Stop button, from
@@ -1213,18 +1338,25 @@ struct LocationSimulationView: View {
         }
     }
 
-    /// Recentres on `target` while preserving the current zoom span. Falls back to
-    /// the historical 1000 m × 1000 m framing only if the camera has not reported a
-    /// region yet.
-    private func recenterCamera(on target: CLLocationCoordinate2D) {
+    /// Recentres on `target` while preserving the current zoom span.
+    ///
+    /// - Parameter fallbackSpanMeters: framing to use when the camera has not
+    ///   reported a region yet. Defaults to the historical 1000 m × 1000 m for
+    ///   every mid-session caller; the launch-time restore passes
+    ///   `defaultSpanMeters` instead, since it is the one caller that always runs
+    ///   before the map has reported anything and should match the launch centring.
+    private func recenterCamera(
+        on target: CLLocationCoordinate2D,
+        fallbackSpanMeters: CLLocationDistance = 1000
+    ) {
         if let cameraSpan {
             position = .region(MKCoordinateRegion(center: target, span: cameraSpan))
         } else {
             position = .region(
                 MKCoordinateRegion(
                     center: target,
-                    latitudinalMeters: 1000,
-                    longitudinalMeters: 1000
+                    latitudinalMeters: fallbackSpanMeters,
+                    longitudinalMeters: fallbackSpanMeters
                 )
             )
         }
@@ -1347,23 +1479,39 @@ struct LocationSimulationView: View {
 
         hasPersistedSimulation = true
 
+        // Claimed for the whole restore, not just the branch that moves the camera.
+        // `centerOnLaunchLocationIfNeeded()` stands down while a simulation is
+        // active, so leaving the one-shot unclaimed here used to arm a delayed
+        // surprise: the moment the user cleared, the next `.onAppear` — the
+        // Settings sheet closing is enough — would find no active simulation and
+        // yank the camera to the real location. Either way this launch has decided
+        // where the map starts.
+        hasCenteredOnLaunch = true
+
         if let restored = ActiveSimulationStore.coordinate {
             coordinate = restored
-            // `centerOnLaunchLocationIfNeeded()` stands down while a simulation is
-            // active, so it will not fight this; claim the one-shot outright and
-            // frame the restored pin instead, which is the thing the user needs to
-            // see. Without a stored coordinate there is nothing to frame, so the
-            // map is simply left where it is.
-            hasCenteredOnLaunch = true
-            recenterCamera(on: restored)
+            // Framed at the same street-level zoom the launch centring uses.
+            // `cameraSpan` is always nil this early — the map has not reported a
+            // region yet — so without naming the default explicitly this fell
+            // through to `recenterCamera`'s wider 1000 m fallback.
+            recenterCamera(on: restored, fallbackSpanMeters: Self.defaultSpanMeters)
         }
+        // Without a stored coordinate there is nothing to frame, so the map is
+        // simply left where it is; the notice below is then the only signal, which
+        // is exactly why it has to be one the user will actually see.
 
         // Stated as fact, not as a hedge: a simulation held by the DDI service does
         // not expire and the device never reverts on its own (confirmed on
         // hardware), so it is still running until the user stops it. It names the
         // control that actually works here — with no pin there is no Stop button,
         // but "Return to Real Location" is always enabled.
-        showStatusMessage(String(localized: "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it."))
+        //
+        // Persistent rather than transient: this runs at launch, when the readiness
+        // overlay is usually still covering the map, and a three-second message
+        // would be long gone by the time the overlay lifts. `RootView`'s readiness
+        // card carries the same fact for the window where the map is not visible at
+        // all.
+        carriedOverSimulationNotice = String(localized: "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it.")
     }
 
     private func locationUpdateCode(for coordinate: CLLocationCoordinate2D) -> Int32 {

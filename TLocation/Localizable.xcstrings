@@ -252,6 +252,22 @@
         }
       }
     },
+    "A simulated location from a previous session is still active on this device. Once this device is connected, use Return to Real Location on the map to end it.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A simulated location from a previous session is still active on this device. Once this device is connected, use Return to Real Location on the map to end it."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vị trí giả lập từ phiên trước vẫn đang hoạt động trên thiết bị này. Sau khi thiết bị đã kết nối, hãy dùng Về vị trí thật trên bản đồ để kết thúc."
+          }
+        }
+      }
+    },
     "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it.": {
       "localizations": {
         "en": {
@@ -956,6 +972,22 @@
         }
       }
     },
+    "Device Not Responding": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device Not Responding"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thiết bị không phản hồi"
+          }
+        }
+      }
+    },
     "Disconnect and reconnect LocalDevVPN.": {
       "localizations": {
         "en": {
@@ -968,6 +1000,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ngắt rồi kết nối lại LocalDevVPN."
+          }
+        }
+      }
+    },
+    "Dismiss": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ qua"
           }
         }
       }
@@ -2692,6 +2740,22 @@
         }
       }
     },
+    "Simulated location still active": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulated location still active"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vị trí giả lập vẫn đang hoạt động"
+          }
+        }
+      }
+    },
     "Simulating %@": {
       "localizations": {
         "en": {
@@ -3058,6 +3122,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "TLocation không thể xoá vị trí giả lập (lỗi %lld). Có thể vị trí đã được xoá trước đó."
+          }
+        }
+      }
+    },
+    "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation không kết nối được tới thiết bị này kịp thời. Hãy bật LocalDevVPN và đảm bảo Wi-Fi đã vào mạng, rồi thử lại. Nếu lệnh vẫn tới được thiết bị thì nó có thể vẫn có hiệu lực; Về vị trí thật sẽ kết thúc mọi phiên giả lập vị trí."
           }
         }
       }
