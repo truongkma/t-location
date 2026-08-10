@@ -55,7 +55,7 @@ final class DeveloperDiskImageService {
         let totalStages = Double(Self.downloadItems.count + 1)
         var completedStages = 0.0
 
-        progressHandler?(0.0, "Removing existing DDI files...")
+        progressHandler?(0.0, String(localized: "Removing existing DDI files…"))
         for item in Self.downloadItems {
             let fileURL = URL.documentsDirectory.appendingPathComponent(item.relativePath)
             if fileManager.fileExists(atPath: fileURL.path) {
@@ -64,17 +64,20 @@ final class DeveloperDiskImageService {
         }
 
         completedStages += 1.0
-        progressHandler?(completedStages / totalStages, "Starting downloads...")
+        progressHandler?(completedStages / totalStages, String(localized: "Starting downloads…"))
 
         for item in Self.downloadItems {
-            progressHandler?(completedStages / totalStages, "Downloading \(item.name)...")
+            // `item.name` stays English: these are the literal artefact names
+            // inside Apple's DDI package, not prose.
+            let name = item.name
+            progressHandler?(completedStages / totalStages, String(localized: "Downloading \(name)…"))
             let destinationURL = URL.documentsDirectory.appendingPathComponent(item.relativePath)
             try await downloadFile(from: item.urlString, to: destinationURL)
             completedStages += 1.0
-            progressHandler?(completedStages / totalStages, "\(item.name) ready")
+            progressHandler?(completedStages / totalStages, String(localized: "\(name) ready"))
         }
 
-        progressHandler?(1.0, "DDI download complete.")
+        progressHandler?(1.0, String(localized: "DDI download complete."))
     }
 
     private static let downloadItems: [DDIDownloadItem] = [
@@ -110,11 +113,11 @@ enum DDIDownloadError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL(let string):
-            return "Invalid download URL: \(string)"
+            return String(localized: "Invalid download URL: \(string)")
         case .invalidResponse:
-            return "The DDI server returned an invalid response."
+            return String(localized: "The DDI server returned an invalid response.")
         case .badStatus(let statusCode):
-            return "The DDI server returned HTTP \(statusCode)."
+            return String(localized: "The DDI server returned HTTP \(statusCode).")
         }
     }
 }

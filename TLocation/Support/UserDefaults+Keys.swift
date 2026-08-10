@@ -19,5 +19,10 @@ extension UserDefaults {
         /// `timeIntervalSince1970` of the last successful read from or write to
         /// the sync file. Absent until the first one succeeds.
         static let bookmarkSyncLastSyncedAt = "bookmarkSyncLastSyncedAt"
+
+        /// `AppLanguage.rawValue` for the language override chosen in Settings.
+        /// Absent (or "system") means follow the device language. See
+        /// `LanguageSettings`.
+        static let appLanguage = "appLanguage"
     }
 }

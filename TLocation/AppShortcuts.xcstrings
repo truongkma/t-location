@@ -1,0 +1,72 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Simulate a saved location in ${applicationName}": {
+      "localizations": {
+        "en": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Simulate a saved location in ${applicationName}",
+              "Simulate ${bookmark} in ${applicationName}"
+            ]
+          }
+        },
+        "vi": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Giả lập vị trí đã lưu trong ${applicationName}",
+              "Giả lập ${bookmark} trong ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Simulate coordinates in ${applicationName}": {
+      "localizations": {
+        "en": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Simulate coordinates in ${applicationName}",
+              "Set a simulated location in ${applicationName}"
+            ]
+          }
+        },
+        "vi": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Giả lập toạ độ trong ${applicationName}",
+              "Đặt vị trí giả lập trong ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Stop simulating location in ${applicationName}": {
+      "localizations": {
+        "en": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Stop simulating location in ${applicationName}",
+              "Clear the simulated location in ${applicationName}"
+            ]
+          }
+        },
+        "vi": {
+          "stringSet": {
+            "state": "translated",
+            "values": [
+              "Dừng giả lập vị trí trong ${applicationName}",
+              "Xoá vị trí giả lập trong ${applicationName}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

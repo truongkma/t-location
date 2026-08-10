@@ -14,6 +14,8 @@ enum AppBootstrapper {
             "keepAliveLocation": true
         ])
 
+        LanguageSettings.restoreAtLaunch()
+
         if UserDefaults.standard.bool(forKey: "keepAliveAudio") {
             BackgroundAudioManager.shared.start()
         }

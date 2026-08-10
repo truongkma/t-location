@@ -43,7 +43,7 @@ enum LocationIntentError: Swift.Error, CustomLocalizedStringResourceConvertible,
         case .timedOut(let step):
             return "\(step) timed out. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again."
         case .developerDiskImageNotMounted:
-            return "The Developer Disk Image is not mounted yet. Open TLocation and wait for setup to finish, then try again."
+            return "The Developer Disk Image (DDI) is not mounted yet. Open TLocation and wait for setup to finish, then try again."
         case .invalidLatitude(let value):
             return "Latitude \(value) is out of range. It must be between -90 and 90."
         case .invalidLongitude(let value):
@@ -51,7 +51,7 @@ enum LocationIntentError: Swift.Error, CustomLocalizedStringResourceConvertible,
         case .bookmarkUnavailable:
             return "That saved location no longer exists in TLocation."
         case .simulationFailed(let code):
-            return "TLocation could not simulate the location (error \(code)). Make sure the device is connected and the Developer Disk Image is mounted."
+            return "TLocation could not simulate the location (error \(code)). Make sure the device is connected and the Developer Disk Image (DDI) is mounted."
         case .clearFailed(let code):
             return "TLocation could not clear the simulated location (error \(code)). It may already have been cleared."
         }
@@ -209,7 +209,10 @@ struct StopSimulationIntent: AppIntent {
 // MARK: - Shortcuts
 
 /// Every phrase must contain `\(.applicationName)` — the system rejects the
-/// shortcut otherwise. English only for now; localisation is handled separately.
+/// shortcut otherwise. The phrases themselves are translated in
+/// `AppShortcuts.xcstrings`, which Xcode extracts these literals into; every
+/// translated phrase must keep the `${applicationName}` token for the same
+/// reason.
 struct TLocationShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
@@ -288,7 +291,7 @@ enum LocationIntentRunner {
         let code = try await run(
             on: LocationSimulationCommandQueue.shared,
             timeout: commandTimeout,
-            step: "Simulating the location"
+            step: String(localized: "Simulating the location")
         ) {
             simulate_location(deviceIP, latitude, longitude, pairingFilePath)
         }
@@ -314,7 +317,7 @@ enum LocationIntentRunner {
         let code = try await run(
             on: LocationSimulationCommandQueue.shared,
             timeout: commandTimeout,
-            step: "Clearing the simulated location"
+            step: String(localized: "Clearing the simulated location")
         ) {
             clear_simulated_location()
         }
@@ -347,7 +350,7 @@ enum LocationIntentRunner {
     /// mountable over this tunnel.
     private static func ensureDeviceReady() async throws {
         do {
-            try await run(on: tunnelQueue, timeout: tunnelTimeout, step: "Connecting to the device") {
+            try await run(on: tunnelQueue, timeout: tunnelTimeout, step: String(localized: "Connecting to the device")) {
                 try JITEnableContext.shared.ensureTunnel()
             }
         } catch let error as LocationIntentError {
@@ -364,7 +367,7 @@ enum LocationIntentRunner {
         let mountedCount = try? await run(
             on: tunnelQueue,
             timeout: commandTimeout,
-            step: "Checking the Developer Disk Image"
+            step: String(localized: "Checking the Developer Disk Image")
         ) {
             try JITEnableContext.shared.getMountedDeviceCount()
         }

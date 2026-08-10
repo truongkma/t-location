@@ -48,9 +48,10 @@ struct TLocationApp: App {
             MountingProgress.shared.pubMount()
         } catch {
             await MainActor.run {
+                let detail = error.localizedDescription
                 showAlert(
-                    title: "An Error has Occurred",
-                    message: "[Download DDI Error]: \(error.localizedDescription)",
+                    title: String(localized: "An Error has Occurred"),
+                    message: String(localized: "Could not download the Developer Disk Image (DDI): \(detail)"),
                     showOk: true
                 )
             }

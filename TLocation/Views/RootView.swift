@@ -55,24 +55,28 @@ private enum ExternalLocationAction: Identifiable {
 
     var title: String {
         switch self {
-        case .simulate: return "Simulate Location?"
-        case .clear: return "Clear Location?"
+        case .simulate: return String(localized: "Simulate Location?")
+        case .clear: return String(localized: "Clear Location?")
         }
     }
 
     var message: String {
         switch self {
         case .simulate(_, let latitude, let longitude):
-            return String(format: "An external link wants to set the simulated location to %.6f, %.6f.", latitude, longitude)
+            // Formatted first so the sentence carries one ready-made
+            // coordinate string rather than two bare numbers a translator
+            // would have to keep in the English order.
+            let coordinate = String(format: "%.6f, %.6f", latitude, longitude)
+            return String(localized: "An external link wants to set the simulated location to \(coordinate).")
         case .clear:
-            return "An external link wants to clear the simulated location."
+            return String(localized: "An external link wants to clear the simulated location.")
         }
     }
 
     var confirmationTitle: String {
         switch self {
-        case .simulate: return "Set Location"
-        case .clear: return "Clear Location"
+        case .simulate: return String(localized: "Set Location")
+        case .clear: return String(localized: "Clear Location")
         }
     }
 }
@@ -162,7 +166,7 @@ struct RootView: View {
             handleURL(url)
         }
         .confirmationDialog(
-            pendingLocationAction?.title ?? "External Location Request",
+            pendingLocationAction?.title ?? String(localized: "External Location Request"),
             isPresented: Binding(
                 get: { pendingLocationAction != nil },
                 set: { if !$0 { pendingLocationAction = nil } }
@@ -214,16 +218,17 @@ struct RootView: View {
     }
 
     private var expiryTitle: String {
-        guard let remaining = AppSigningInfo.timeRemaining else { return "TLocation has expired" }
-        return remaining <= 0
-            ? "TLocation has expired"
-            : "TLocation expires in \(AppSigningInfo.durationPhrase(remaining))"
+        guard let remaining = AppSigningInfo.timeRemaining, remaining > 0 else {
+            return String(localized: "TLocation has expired")
+        }
+        let duration = AppSigningInfo.durationPhrase(remaining)
+        return String(localized: "TLocation expires in \(duration)")
     }
 
     private var expiryBody: String {
         AppSigningInfo.hasExpired
-            ? "The signing certificate for this install has lapsed, so TLocation will not launch again until it is re-signed. Open SideStore and refresh TLocation to fix it."
-            : "Open SideStore and refresh TLocation to re-sign it. If the signature fully expires the app will not launch and must be reinstalled."
+            ? String(localized: "The signing certificate for this install has lapsed, so TLocation will not launch again until it is re-signed. Open SideStore and refresh TLocation to fix it.")
+            : String(localized: "Open SideStore and refresh TLocation to re-sign it. If the signature fully expires the app will not launch and must be reinstalled.")
     }
 
     /// Same visual language as the readiness overlay: full-screen material scrim
@@ -319,19 +324,19 @@ struct RootView: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 readinessRow(
-                    title: "Pairing file imported",
+                    title: String(localized: "Pairing file imported"),
                     isDone: pairingExists,
-                    guidance: "Import your pairing file."
+                    guidance: String(localized: "Import your pairing file.")
                 )
                 readinessRow(
-                    title: "Device tunnel connected",
+                    title: String(localized: "Connected to this device"),
                     isDone: tunnel.isConnected,
-                    guidance: "Open LocalDevVPN and connect the VPN, and make sure Wi-Fi is joined to a network."
+                    guidance: String(localized: "Open LocalDevVPN and connect the VPN, and make sure Wi-Fi is joined to a network.")
                 )
                 readinessRow(
-                    title: "Developer Disk Image mounted",
+                    title: String(localized: "Developer Disk Image mounted"),
                     isDone: mounting.coolisMounted,
-                    guidance: "Waiting for the Developer Disk Image to download and mount.",
+                    guidance: String(localized: "Waiting for the Developer Disk Image (DDI) to download and mount."),
                     showsProgress: mounting.mountingThread != nil
                 )
             }
@@ -423,7 +428,11 @@ struct RootView: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(isDone ? "done" : "pending")")
+        .accessibilityLabel(
+            isDone
+                ? String(localized: "\(title): done")
+                : String(localized: "\(title): pending")
+        )
     }
 
     private func openLocalDevVPN() {
@@ -451,7 +460,7 @@ struct RootView: View {
                 AlertPresenter.dismissPresentedAlert()
             } catch {
                 LogManager.shared.addErrorLog("Failed to import pairing file: \(error.localizedDescription)")
-                showAlert(title: "Import Failed", message: error.localizedDescription, showOk: true)
+                showAlert(title: String(localized: "Import Failed"), message: error.localizedDescription, showOk: true)
             }
         case .failure(let error):
             LogManager.shared.addErrorLog("Pairing file picker failed: \(error.localizedDescription)")
@@ -475,7 +484,8 @@ struct RootView: View {
     private func confirmSimulatedLocation(from url: URL) {
         guard let coordinate = coordinate(from: url) else {
             showAlert(
-                title: "Invalid Location URL",
+                title: String(localized: "Invalid Location URL"),
+                // A literal URL template: nothing here is translatable.
                 message: "Use tlocation://simulate-location?lat=37.3349&lon=-122.0090",
                 showOk: true
             )
@@ -483,8 +493,8 @@ struct RootView: View {
         }
         guard coordinateIsValid(latitude: coordinate.latitude, longitude: coordinate.longitude) else {
             showAlert(
-                title: "Invalid Coordinates",
-                message: "Latitude must be between -90 and 90. Longitude must be between -180 and 180.",
+                title: String(localized: "Invalid Coordinates"),
+                message: String(localized: "Latitude must be between -90 and 90. Longitude must be between -180 and 180."),
                 showOk: true
             )
             return
@@ -512,7 +522,7 @@ struct RootView: View {
             return
         }
         guard requirePairingFile(
-            message: "Import a pairing file before simulating location from a URL."
+            message: String(localized: "Import a pairing file before simulating location from a URL.")
         ) else { return }
 
         LogManager.shared.addInfoLog(
@@ -526,7 +536,7 @@ struct RootView: View {
 
     private func requestClearSimulatedLocation() {
         guard requirePairingFile(
-            message: "Import a pairing file before clearing the simulated location from a URL."
+            message: String(localized: "Import a pairing file before clearing the simulated location from a URL.")
         ) else { return }
 
         LogManager.shared.addInfoLog("Requested clear of simulated location from URL")
@@ -535,7 +545,7 @@ struct RootView: View {
 
     private func requirePairingFile(message: String) -> Bool {
         guard FileManager.default.fileExists(atPath: PairingFileStore.prepareURL().path) else {
-            showAlert(title: "Pairing File Required", message: message, showOk: true)
+            showAlert(title: String(localized: "Pairing File Required"), message: message, showOk: true)
             return false
         }
         return true

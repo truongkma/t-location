@@ -55,21 +55,25 @@ enum AppSigningInfo {
 
     /// Human phrase for a positive duration: "5 days", "18 hours", "45 minutes".
     /// Rounded down, so the app never claims more time than is left.
+    ///
+    /// Each branch is a whole localised string carrying its own count, chosen by
+    /// the String Catalog's plural variations — never a number glued onto a
+    /// separately translated unit word.
     static func durationPhrase(_ interval: TimeInterval) -> String {
         let seconds = max(0, interval)
         let days = Int(seconds / 86_400)
-        if days >= 1 { return days == 1 ? "1 day" : "\(days) days" }
+        if days >= 1 { return String(localized: "\(days) days") }
         let hours = Int(seconds / 3_600)
-        if hours >= 1 { return hours == 1 ? "1 hour" : "\(hours) hours" }
+        if hours >= 1 { return String(localized: "\(hours) hours") }
         let minutes = Int(seconds / 60)
-        if minutes >= 1 { return minutes == 1 ? "1 minute" : "\(minutes) minutes" }
-        return "less than a minute"
+        if minutes >= 1 { return String(localized: "\(minutes) minutes") }
+        return String(localized: "less than a minute")
     }
 
     /// "5 days" / "18 hours" left, or "Expired" once past. `nil` when unknown.
     static var remainingPhrase: String? {
         guard let remaining = timeRemaining else { return nil }
-        return remaining <= 0 ? "Expired" : durationPhrase(remaining)
+        return remaining <= 0 ? String(localized: "Expired") : durationPhrase(remaining)
     }
 
     // MARK: - Profile parsing

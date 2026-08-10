@@ -426,7 +426,7 @@ struct LocationSimulationView: View {
 
     private func mapControlButton(
         systemImage: String,
-        accessibilityLabel: String,
+        accessibilityLabel: LocalizedStringKey,
         isDisabled: Bool,
         showsProgress: Bool = false,
         action: @escaping () -> Void
@@ -753,9 +753,9 @@ struct LocationSimulationView: View {
         guard pairingExists, let coord = target, !isBusy else { return }
         coordinate = coord
         runLocationCommand(
-            errorTitle: "Simulation Failed",
+            errorTitle: String(localized: "Simulation Failed"),
             errorMessage: { code in
-                "Could not simulate location (error \(code)). Make sure the device is connected and the DDI is mounted."
+                String(localized: "Could not simulate location (error \(code)). Make sure the device is connected and the Developer Disk Image (DDI) is mounted.")
             },
             operation: { locationUpdateCode(for: coord) }
         ) {
@@ -793,8 +793,10 @@ struct LocationSimulationView: View {
         guard pairingExists, !isBusy else { return }
         stopResendLoop()
         runLocationCommand(
-            errorTitle: "Clear Failed",
-            errorMessage: { code in "Could not clear simulated location (error \(code))." },
+            errorTitle: String(localized: "Clear Failed"),
+            errorMessage: { code in
+                String(localized: "Could not clear simulated location (error \(code)).")
+            },
             operation: clear_simulated_location,
             onFailure: onFailure
         ) {
@@ -888,7 +890,7 @@ struct LocationSimulationView: View {
         } onCleared: {
             isReturningToRealLocation = false
             position = .userLocation(fallback: .automatic)
-            showStatusMessage("Simulation stopped — following your real location")
+            showStatusMessage(String(localized: "Simulation stopped — following your real location"))
         }
     }
 
@@ -901,8 +903,8 @@ struct LocationSimulationView: View {
             case .failure(.denied):
                 showLocationDeniedAlert = true
             case .failure(.unavailable):
-                alertTitle = "Could Not Determine Location"
-                alertMessage = "No GPS fix was available. Try again, ideally with a clear view of the sky."
+                alertTitle = String(localized: "Could Not Determine Location")
+                alertMessage = String(localized: "No GPS fix was available. Try again, ideally with a clear view of the sky.")
                 showAlert = true
             }
         }

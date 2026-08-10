@@ -91,7 +91,7 @@ final class TunnelManager: ObservableObject {
         }
 
         showAlert(
-            title: "Connection Error",
+            title: String(localized: "Connection Error"),
             message: tunnelConnectionAlertMessage(for: error),
             showOk: false,
             showTryAgain: true
@@ -106,11 +106,11 @@ final class TunnelManager: ObservableObject {
         LogManager.shared.addInfoLog("Pairing file reported invalid; keeping existing file")
 
         showAlert(
-            title: "Invalid Pairing File",
-            message: "The pairing file may be invalid or expired. You can import a new pairing file to replace it.",
+            title: String(localized: "Invalid Pairing File"),
+            message: String(localized: "The pairing file may be invalid or expired. You can import a new pairing file to replace it."),
             showOk: true,
             showTryAgain: false,
-            primaryButtonText: "Select New File"
+            primaryButtonText: String(localized: "Select New File")
         ) { _ in
             NotificationCenter.default.post(name: .showPairingFilePicker, object: nil)
         }
@@ -146,65 +146,73 @@ private func tunnelConnectionAlertMessage(for error: NSError) -> String {
     let likelyCause: String
     let recoverySteps: [String]
 
+    let defaultIP = DeviceConnectionContext.defaultTargetIPAddress
+
     if error.code == 48 || lowercasedMessage.contains("address already in use") || lowercasedMessage.contains("port already in use") {
-        likelyCause = "A port needed for the tunnel is already in use."
+        likelyCause = String(localized: "A port needed for the connection to this device is already in use.")
         recoverySteps = [
-            "Close other JIT, debugging, proxy, or VPN apps that may be using the tunnel.",
-            "Disconnect and reconnect LocalDevVPN.",
-            "Restart TLocation, then try again.",
-            "If it keeps happening, reboot the device to clear the stuck port."
+            String(localized: "Close other JIT, debugging, proxy, or VPN apps that may be using the connection."),
+            String(localized: "Disconnect and reconnect LocalDevVPN."),
+            String(localized: "Restart TLocation, then try again."),
+            String(localized: "If it keeps happening, reboot the device to clear the stuck port.")
         ]
     } else if error.code == 54 || lowercasedMessage.contains("connection reset") {
-        likelyCause = "The device or VPN closed the tunnel connection before setup finished."
+        likelyCause = String(localized: "The device or VPN closed the connection before setup finished.")
         recoverySteps = [
-            "Open LocalDevVPN and confirm the VPN is connected.",
-            "Make sure LocalDevVPN is using the default \(DeviceConnectionContext.defaultTargetIPAddress) address.",
-            "Reconnect Wi-Fi and LocalDevVPN, then try again.",
-            "If this keeps happening, select a fresh pairing file."
+            String(localized: "Open LocalDevVPN and confirm the VPN is connected."),
+            String(localized: "Make sure LocalDevVPN is using the default \(defaultIP) address."),
+            String(localized: "Reconnect Wi-Fi and LocalDevVPN, then try again."),
+            String(localized: "If this keeps happening, select a fresh pairing file.")
         ]
     } else if error.code == -18 || lowercasedMessage.contains("parse target ip") {
-        likelyCause = "The configured target IP address is not valid."
+        likelyCause = String(localized: "The configured target IP address is not valid.")
         recoverySteps = [
-            "Open Settings and check the target IP address.",
-            "Use the default \(DeviceConnectionContext.defaultTargetIPAddress)."
+            String(localized: "Open Settings and check the target IP address."),
+            String(localized: "Use the default \(defaultIP).")
         ]
     } else if lowercasedMessage.contains("timed out") || lowercasedMessage.contains("timeout") {
-        likelyCause = "The app could not reach the device before the connection timed out."
+        likelyCause = String(localized: "The app could not reach the device before the connection timed out.")
         recoverySteps = [
-            "Confirm Wi-Fi and LocalDevVPN are both connected.",
-            "Wake and unlock the target device.",
-            "Confirm LocalDevVPN is exposing the device at \(targetIP)."
+            String(localized: "Confirm Wi-Fi and LocalDevVPN are both connected."),
+            String(localized: "Wake and unlock the target device."),
+            String(localized: "Confirm LocalDevVPN is exposing the device at \(targetIP).")
         ]
     } else if lowercasedMessage.contains("network is unreachable") || lowercasedMessage.contains("no route") {
-        likelyCause = "The VPN route to the device is not available."
+        likelyCause = String(localized: "The VPN route to the device is not available.")
         recoverySteps = [
-            "Disconnect and reconnect LocalDevVPN.",
-            "Confirm iOS shows the VPN indicator.",
-            "Try switching Wi-Fi off and on."
+            String(localized: "Disconnect and reconnect LocalDevVPN."),
+            String(localized: "Confirm iOS shows the VPN indicator."),
+            String(localized: "Try switching Wi-Fi off and on.")
         ]
     } else {
-        likelyCause = "The tunnel could not be created."
+        likelyCause = String(localized: "The connection to this device could not be created.")
         recoverySteps = [
-            "Confirm Wi-Fi and LocalDevVPN are connected.",
-            "Wake and unlock the target device.",
-            "Reconnect LocalDevVPN, then try again."
+            String(localized: "Confirm Wi-Fi and LocalDevVPN are connected."),
+            String(localized: "Wake and unlock the target device."),
+            String(localized: "Reconnect LocalDevVPN, then try again.")
         ]
     }
 
+    // A numbered list, not a sentence: each step is already a whole translated
+    // string, and only the "1. " prefix is assembled here.
     let steps = recoverySteps.enumerated()
         .map { "\($0.offset + 1). \($0.element)" }
         .joined(separator: "\n")
 
-    return """
-    \(likelyCause)
+    // The raw FFI message is deliberately left untranslated — it is diagnostic
+    // detail for a bug report, not prose for the user.
+    return String(
+        localized: """
+        \(likelyCause)
 
-    Target: \(targetIP):49152
-    Expected LocalDevVPN IP: \(DeviceConnectionContext.defaultTargetIPAddress)
+        Target: \(targetIP):49152
+        Expected LocalDevVPN IP: \(defaultIP)
 
-    Try this:
-    \(steps)
+        Try this:
+        \(steps)
 
-    Technical details:
-    Code \(error.code): \(rawMessage)
-    """
+        Technical details:
+        Code \(error.code): \(rawMessage)
+        """
+    )
 }

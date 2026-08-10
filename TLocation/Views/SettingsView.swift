@@ -81,6 +81,13 @@ struct SettingsView: View {
     @AppStorage("keepAliveLocation") private var keepAliveLocation = true
     @AppStorage(UserDefaults.Keys.targetDeviceIP) private var targetDeviceIP = DeviceConnectionContext.defaultTargetIPAddress
 
+    /// Mirrors `LanguageSettings.selected`; the `onChange` below is what writes
+    /// the matching `AppleLanguages` override.
+    @State private var selectedLanguage = LanguageSettings.selected
+    /// True once the stored choice differs from the one this process launched
+    /// with — i.e. only when reopening the app would actually change something.
+    @State private var languageNeedsRestart = LanguageSettings.selected != LanguageSettings.activeAtLaunch
+
     @State private var isImportingFile = false
     /// Cheap existence check only — `prepareURL()` does directory creation and a
     /// full byte-compare, which has no business running while a view body renders.
@@ -127,6 +134,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                languageSection
+
                 Section("Pairing File") {
                     if pairingFileExists {
                         Label("Pairing file imported", systemImage: "checkmark.circle.fill")
@@ -315,7 +324,7 @@ struct SettingsView: View {
                     case .success(let url):
                         switch purpose {
                         case .oneShotExport:
-                            bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
+                            bookmarkMessage = (String(localized: "Exported \(bookmarks.count) saved locations."), false)
                             scheduleBookmarkStatusDismiss()
                         case .newSyncFile:
                             // The save sheet has already written the bookmarks
@@ -328,12 +337,13 @@ struct SettingsView: View {
                         // It is not one, and saying "Export failed" for a
                         // deliberate Cancel would be nonsense.
                         guard !isUserCancellation(error) else { return }
+                        let detail = error.localizedDescription
                         switch purpose {
                         case .oneShotExport:
-                            bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+                            bookmarkMessage = (String(localized: "Export failed: \(detail)"), true)
                             scheduleBookmarkStatusDismiss()
                         case .newSyncFile:
-                            syncMessage = ("Could not create a sync file: \(error.localizedDescription)", true)
+                            syncMessage = (String(localized: "Could not create a sync file: \(detail)"), true)
                             scheduleSyncStatusDismiss()
                         }
                     }
@@ -372,6 +382,46 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
+        }
+    }
+
+    // MARK: - Language Section
+
+    /// Forces the app's language regardless of the device setting. See
+    /// `LanguageSettings` for why this only takes effect on the next launch —
+    /// the footer says so, because a control that looks instant and is not
+    /// would be worse than no control at all.
+    @ViewBuilder
+    private var languageSection: some View {
+        Section("Language") {
+            Picker("Language", selection: $selectedLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    if let endonym = language.endonym {
+                        // Language names are shown in their own language, so
+                        // they are deliberately not translated.
+                        Text(verbatim: endonym).tag(language)
+                    } else {
+                        Text("System").tag(language)
+                    }
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: selectedLanguage) { _, language in
+                LanguageSettings.apply(language)
+                languageNeedsRestart = language != LanguageSettings.activeAtLaunch
+            }
+
+            if languageNeedsRestart {
+                Label(
+                    "Close and reopen TLocation to switch language.",
+                    systemImage: "arrow.clockwise.circle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            } else {
+                Text("The new language is applied the next time you open TLocation.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -474,7 +524,8 @@ struct SettingsView: View {
             isShowingBookmarkExporter = true
         } catch {
             bookmarkExportPurpose = .oneShotExport
-            syncMessage = ("Could not create a sync file: \(error.localizedDescription)", true)
+            let detail = error.localizedDescription
+            syncMessage = (String(localized: "Could not create a sync file: \(detail)"), true)
             scheduleSyncStatusDismiss()
         }
     }
@@ -486,7 +537,8 @@ struct SettingsView: View {
             linkSyncFile(at: url)
         case .failure(let error):
             guard !isUserCancellation(error) else { return }
-            syncMessage = ("Could not link that file: \(error.localizedDescription)", true)
+            let detail = error.localizedDescription
+            syncMessage = (String(localized: "Could not link that file: \(detail)"), true)
             scheduleSyncStatusDismiss()
         }
     }
@@ -518,9 +570,10 @@ struct SettingsView: View {
                 let outcome = try await BookmarkSyncFile.shared.link(to: url)
                 syncMessage = (linkSummary(outcome), false)
             } catch {
+                let detail = error.localizedDescription
                 syncMessage = wasJustCreated
-                    ? ("The file was saved, but TLocation could not link it. Tap Link Sync File and choose it.", true)
-                    : ("Could not link that file: \(error.localizedDescription)", true)
+                    ? (String(localized: "The file was saved, but TLocation could not link it. Tap Link Sync File and choose it."), true)
+                    : (String(localized: "Could not link that file: \(detail)"), true)
             }
             // Reloaded on both paths: a link that failed part-way may still have
             // merged the file's contents into the local list, and the count row
@@ -539,7 +592,8 @@ struct SettingsView: View {
                 let outcome = try await BookmarkSyncFile.shared.pull()
                 syncMessage = (syncSummary(outcome), false)
             } catch {
-                syncMessage = ("Sync failed: \(error.localizedDescription)", true)
+                let detail = error.localizedDescription
+                syncMessage = (String(localized: "Sync failed: \(detail)"), true)
             }
             bookmarks = BookmarkStore.load()
             isSyncing = false
@@ -549,7 +603,7 @@ struct SettingsView: View {
 
     private func unlinkSyncFilePressed() {
         BookmarkSyncFile.shared.unlink()
-        syncMessage = ("Sync file unlinked. The file itself was not deleted.", false)
+        syncMessage = (String(localized: "Sync file unlinked. The file itself was not deleted."), false)
         scheduleSyncStatusDismiss()
     }
 
@@ -557,27 +611,24 @@ struct SettingsView: View {
     // gets a complete string to work with.
 
     private func linkSummary(_ outcome: BookmarkSyncFile.SyncOutcome) -> String {
+        let name = outcome.fileName
         if outcome.added == 0 {
-            return "Linked “\(outcome.fileName)”."
+            return String(localized: "Linked “\(name)”.")
         }
         if outcome.skipped == 0 {
-            return outcome.added == 1
-                ? "Linked “\(outcome.fileName)”. Added 1 bookmark from the file."
-                : "Linked “\(outcome.fileName)”. Added \(outcome.added) bookmarks from the file."
+            return String(localized: "Linked “\(name)”. Added \(outcome.added) saved locations from the file.")
         }
-        return "Linked “\(outcome.fileName)”. Added \(outcome.added), skipped \(outcome.skipped) already saved."
+        return String(localized: "Linked “\(name)”. Added \(outcome.added), skipped \(outcome.skipped) already saved.")
     }
 
     private func syncSummary(_ outcome: BookmarkSyncFile.SyncOutcome) -> String {
         if outcome.added == 0 && outcome.skipped == 0 {
-            return "Synced. The file had nothing new."
+            return String(localized: "Synced. The file had nothing new.")
         }
         if outcome.skipped == 0 {
-            return outcome.added == 1
-                ? "Synced. Added 1 bookmark."
-                : "Synced. Added \(outcome.added) bookmarks."
+            return String(localized: "Synced. Added \(outcome.added) saved locations.")
         }
-        return "Synced. Added \(outcome.added), skipped \(outcome.skipped) already saved."
+        return String(localized: "Synced. Added \(outcome.added), skipped \(outcome.skipped) already saved.")
     }
 
     /// Same self-cancelling pattern as `scheduleBookmarkStatusDismiss`: only
@@ -604,29 +655,31 @@ struct SettingsView: View {
                 try PairingFileStore.importFromPicker(url)
                 isImportingFile = false
                 pairingFileExists = true
-                pairingImportMessage = ("Imported successfully", false)
+                pairingImportMessage = (String(localized: "Imported successfully"), false)
                 startTunnelInBackground()
                 schedulePairingStatusDismiss()
             } catch {
                 isImportingFile = false
-                pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
+                let detail = error.localizedDescription
+                pairingImportMessage = (String(localized: "Import failed: \(detail)"), true)
                 schedulePairingStatusDismiss()
             }
         case .failure(let error):
             isImportingFile = false
-            pairingImportMessage = ("Import failed: \(error.localizedDescription)", true)
+            let detail = error.localizedDescription
+            pairingImportMessage = (String(localized: "Import failed: \(detail)"), true)
             schedulePairingStatusDismiss()
         }
     }
 
     // MARK: - Bookmarks
 
+    /// "No saved locations" is its own string rather than the zero case of the
+    /// plural one: English wants words there, not a digit.
     private var bookmarkCountText: String {
-        switch bookmarks.count {
-        case 0: return "No saved locations"
-        case 1: return "1 saved location"
-        default: return "\(bookmarks.count) saved locations"
-        }
+        bookmarks.isEmpty
+            ? String(localized: "No saved locations")
+            : String(localized: "\(bookmarks.count) saved locations")
     }
 
     private func exportBookmarksPressed() {
@@ -641,7 +694,8 @@ struct SettingsView: View {
             bookmarkExportFilename = BookmarkStore.exportFileName()
             isShowingBookmarkExporter = true
         } catch {
-            bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+            let detail = error.localizedDescription
+            bookmarkMessage = (String(localized: "Export failed: \(detail)"), true)
             scheduleBookmarkStatusDismiss()
         }
     }
@@ -663,17 +717,18 @@ struct SettingsView: View {
                 bookmarks = merge.bookmarks
 
                 if merge.added == 0 && merge.skipped == 0 {
-                    bookmarkMessage = ("That file contains no bookmarks.", false)
+                    bookmarkMessage = (String(localized: "That file contains no saved locations."), false)
                 } else if merge.skipped == 0 {
-                    bookmarkMessage = ("Imported \(merge.added) \(merge.added == 1 ? "bookmark" : "bookmarks").", false)
+                    bookmarkMessage = (String(localized: "Imported \(merge.added) saved locations."), false)
                 } else {
-                    bookmarkMessage = ("Imported \(merge.added), skipped \(merge.skipped) already saved.", false)
+                    bookmarkMessage = (String(localized: "Imported \(merge.added), skipped \(merge.skipped) already saved."), false)
                 }
             } catch {
-                bookmarkMessage = ("Import failed: the file is not a valid TLocation bookmarks file.", true)
+                bookmarkMessage = (String(localized: "Import failed: the file is not a valid TLocation bookmarks file."), true)
             }
         case .failure(let error):
-            bookmarkMessage = ("Import failed: \(error.localizedDescription)", true)
+            let detail = error.localizedDescription
+            bookmarkMessage = (String(localized: "Import failed: \(detail)"), true)
         }
         scheduleBookmarkStatusDismiss()
     }
@@ -697,7 +752,7 @@ struct SettingsView: View {
             await MainActor.run {
                 isRedownloadingDDI = true
                 ddiDownloadProgress = 0
-                ddiStatusMessage = "Preparing download…"
+                ddiStatusMessage = String(localized: "Preparing download…")
                 ddiResultMessage = nil
             }
             do {
@@ -709,12 +764,13 @@ struct SettingsView: View {
                 }
                 await MainActor.run {
                     isRedownloadingDDI = false
-                    ddiResultMessage = ("DDI files refreshed successfully.", false)
+                    ddiResultMessage = (String(localized: "DDI files refreshed successfully."), false)
                 }
             } catch {
+                let detail = error.localizedDescription
                 await MainActor.run {
                     isRedownloadingDDI = false
-                    ddiResultMessage = ("Failed to redownload DDI files: \(error.localizedDescription)", true)
+                    ddiResultMessage = (String(localized: "Failed to redownload DDI files: \(detail)"), true)
                 }
             }
         }

@@ -60,7 +60,7 @@ final class MountingProgress: ObservableObject {
 
             DispatchQueue.main.async {
                 if let mountError {
-                    showAlert(title: "DDI Mount Failed", message: mountError, showOk: true, showTryAgain: true) { shouldTryAgain in
+                    showAlert(title: String(localized: "DDI Mount Failed"), message: mountError, showOk: true, showTryAgain: true) { shouldTryAgain in
                         if shouldTryAgain {
                             self.mount()
                         }

@@ -52,11 +52,11 @@ final class BookmarkSyncFile: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .notLinked:
-                return "No sync file is linked."
+                return String(localized: "No sync file is linked.")
             case .unreachable:
-                return "The sync file could not be opened. It may have been moved or deleted, or not downloaded from iCloud yet."
+                return String(localized: "The sync file could not be opened. It may have been moved or deleted, or not downloaded from iCloud yet.")
             case .invalidContents:
-                return "The sync file is not a valid TLocation bookmarks file."
+                return String(localized: "The sync file is not a valid TLocation bookmarks file.")
             }
         }
     }
@@ -65,7 +65,7 @@ final class BookmarkSyncFile: ObservableObject {
 
     /// Shown in place of a file name in the vanishingly unlikely case that a
     /// link exists without a remembered name — better than a blank row.
-    private static let unnamedFilePlaceholder = "Sync file"
+    private static var unnamedFilePlaceholder: String { String(localized: "Sync file") }
 
     @Published private(set) var status: Status
 
