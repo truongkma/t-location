@@ -49,7 +49,26 @@ enum BookmarkStore {
         return decoded
     }
 
+    /// The one write path every mutation goes through — adding on the map,
+    /// deleting, renaming, importing — which is why mirroring into the linked
+    /// sync file hangs off this call rather than off each call site.
+    ///
+    /// The mirror is fire-and-forget and cannot fail loudly here: `UserDefaults`
+    /// is the source of truth, and a sync file that is missing or offline must
+    /// never cost the user a bookmark. `BookmarkSyncFile.status` carries the
+    /// problem to Settings instead.
     static func save(_ bookmarks: [LocationBookmark], to defaults: UserDefaults = .standard) {
+        persistLocally(bookmarks, to: defaults)
+        if defaults === UserDefaults.standard {
+            BookmarkSyncFile.shared.mirror(bookmarks)
+        }
+    }
+
+    /// Writes to `UserDefaults` and nothing else. `BookmarkSyncFile` uses this
+    /// when it has just read the linked file and is about to write the merged
+    /// list back itself, so going through `save` would only queue a duplicate
+    /// write of bytes already in flight.
+    static func persistLocally(_ bookmarks: [LocationBookmark], to defaults: UserDefaults = .standard) {
         if let data = try? JSONEncoder().encode(bookmarks) {
             defaults.set(data, forKey: storageKey)
         }
@@ -80,6 +99,11 @@ enum BookmarkStore {
         formatter.dateFormat = "yyyy-MM-dd"
         return "TLocation-Bookmarks-\(formatter.string(from: date))"
     }
+
+    /// Name offered when creating a file to link as the sync file. Undated,
+    /// unlike `exportFileName()`: this one file is written over for as long as
+    /// the link lasts, so a date in its name would only ever be misleading.
+    static let syncFileName = "TLocation-Bookmarks-Sync"
 
     struct MergeResult {
         var bookmarks: [LocationBookmark]

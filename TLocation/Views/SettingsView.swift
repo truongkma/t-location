@@ -35,27 +35,46 @@ private struct BookmarksDocument: FileDocument {
 
 /// Which file picker is currently requested. SwiftUI only reliably presents one
 /// `.fileImporter` per view — stacking two at the same modifier-chain level means
-/// the second one silently never fires — so both "Import Pairing File" and
-/// "Import Bookmarks" route through this single piece of state and a single
-/// `.fileImporter` modifier below.
+/// the second one silently never fires — so "Import Pairing File", "Import
+/// Bookmarks" and "Link Sync File" all route through this single piece of state
+/// and a single `.fileImporter` modifier below.
 private enum PendingImport: Identifiable {
     case pairingFile
     case bookmarks
+    case bookmarkSyncFile
 
     var id: Int {
         switch self {
         case .pairingFile: return 0
         case .bookmarks: return 1
+        case .bookmarkSyncFile: return 2
         }
     }
 
     var allowedContentTypes: [UTType] {
         switch self {
         case .pairingFile: return PairingFileStore.supportedContentTypes
-        case .bookmarks: return [.json]
+        case .bookmarks, .bookmarkSyncFile: return [.json]
         }
     }
 }
+
+/// What the single `.fileExporter` is currently being used for. Both uses write
+/// the same JSON through the same save sheet; they differ only in what happens
+/// to the URL the sheet hands back — discarded for a one-shot export, kept as a
+/// security-scoped bookmark for a sync file.
+private enum BookmarkExportPurpose {
+    case oneShotExport
+    case newSyncFile
+}
+
+/// File-scope so it is built once rather than on every render of the sync rows.
+private let syncTimestampFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
 
 struct SettingsView: View {
     @AppStorage("keepAliveAudio") private var keepAliveAudio = true
@@ -86,6 +105,13 @@ struct SettingsView: View {
     /// rebuild a `DateFormatter` on every render.
     @State private var bookmarkExportFilename = ""
     @State private var bookmarkMessage: (text: String, isError: Bool)?
+
+    // Linked sync file. A singleton that outlives this sheet, so `@ObservedObject`
+    // rather than `@StateObject`: this view watches it, it does not own it.
+    @ObservedObject private var syncFile = BookmarkSyncFile.shared
+    @State private var isSyncing = false
+    @State private var syncMessage: (text: String, isError: Bool)?
+    @State private var bookmarkExportPurpose: BookmarkExportPurpose = .oneShotExport
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -201,6 +227,8 @@ struct SettingsView: View {
                     }
                 }
 
+                bookmarkSyncSection
+
                 Section("Advanced") {
                     // Omitted entirely when there is no embedded provisioning profile
                     // to read — an App Store or TrollStore install has no expiry.
@@ -259,7 +287,13 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear { bookmarks = BookmarkStore.load() }
+            .onAppear {
+                bookmarks = BookmarkStore.load()
+                // Confirms the linked file is still where it was, so a file
+                // deleted or moved since the last launch is reported here
+                // rather than only after the next failed write.
+                syncFile.refresh()
+            }
         }
         // The exporter lives on its own invisible subview (rather than chained
         // directly alongside the importer below) so its presentation trigger has
@@ -274,17 +308,41 @@ struct SettingsView: View {
                     contentType: .json,
                     defaultFilename: bookmarkExportFilename
                 ) { result in
+                    let purpose = bookmarkExportPurpose
+                    bookmarkExportPurpose = .oneShotExport
+
                     switch result {
-                    case .success:
-                        bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
+                    case .success(let url):
+                        switch purpose {
+                        case .oneShotExport:
+                            bookmarkMessage = ("Exported \(bookmarks.count) \(bookmarks.count == 1 ? "bookmark" : "bookmarks").", false)
+                            scheduleBookmarkStatusDismiss()
+                        case .newSyncFile:
+                            // The save sheet has already written the bookmarks
+                            // into the new file; linking it records the URL
+                            // bookmark and reconciles the two sides.
+                            linkSyncFile(at: url, wasJustCreated: true)
+                        }
                     case .failure(let error):
-                        bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+                        // Cancelling the save sheet reports itself as a failure.
+                        // It is not one, and saying "Export failed" for a
+                        // deliberate Cancel would be nonsense.
+                        guard !isUserCancellation(error) else { return }
+                        switch purpose {
+                        case .oneShotExport:
+                            bookmarkMessage = ("Export failed: \(error.localizedDescription)", true)
+                            scheduleBookmarkStatusDismiss()
+                        case .newSyncFile:
+                            syncMessage = ("Could not create a sync file: \(error.localizedDescription)", true)
+                            scheduleSyncStatusDismiss()
+                        }
                     }
-                    scheduleBookmarkStatusDismiss()
                 }
         )
-        // Single consolidated importer for both "Import Pairing File" /
-        // "Replace Pairing File" and "Import Bookmarks" — see `PendingImport`.
+        // Single consolidated importer for "Import Pairing File" / "Replace
+        // Pairing File", "Import Bookmarks" and "Link Sync File" — see
+        // `PendingImport`. Adding a fourth caller means a fourth enum case, not
+        // a second `.fileImporter`.
         // `isPresented` derives from `pendingImport`, and clears it on dismiss
         // (including cancel, which never invokes the completion closure) so a
         // stale non-nil `pendingImport` can never block the next tap.
@@ -301,6 +359,8 @@ struct SettingsView: View {
             switch requested {
             case .bookmarks:
                 importBookmarks(from: result)
+            case .bookmarkSyncFile:
+                linkSyncFile(from: result)
             case .pairingFile:
                 importPairingFile(from: result)
             case nil:
@@ -312,6 +372,223 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
+        }
+    }
+
+    // MARK: - Sync File Section
+
+    /// A linked JSON file that TLocation rewrites on every bookmark change.
+    /// Deliberately its own section: it is a standing arrangement, unlike the
+    /// one-shot Export and Import above it.
+    @ViewBuilder
+    private var bookmarkSyncSection: some View {
+        Section("Bookmark Sync File") {
+            if let fileName = syncFile.status.fileName {
+                HStack {
+                    Text("Linked File")
+                    Spacer()
+                    Text(fileName)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                if let failure = syncFile.status.failure {
+                    Label(failure, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                } else if let lastSyncedAt = syncFile.status.lastSyncedAt {
+                    HStack {
+                        Text("Last Synced")
+                        Spacer()
+                        Text(syncTimestampFormatter.string(from: lastSyncedAt))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Button {
+                    syncNowPressed()
+                } label: {
+                    Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .foregroundStyle(.primary)
+                .disabled(isSyncing)
+
+                Button(role: .destructive) {
+                    unlinkSyncFilePressed()
+                } label: {
+                    Label("Unlink Sync File", systemImage: "xmark.circle")
+                }
+                .disabled(isSyncing)
+            } else {
+                Button {
+                    syncMessage = nil
+                    pendingImport = .bookmarkSyncFile
+                } label: {
+                    Label("Link Sync File", systemImage: "link")
+                }
+                .foregroundStyle(.primary)
+                .disabled(isSyncing)
+
+                Button {
+                    createSyncFilePressed()
+                } label: {
+                    Label("Create Sync File", systemImage: "doc.badge.plus")
+                }
+                .foregroundStyle(.primary)
+                .disabled(isSyncing)
+            }
+
+            if isSyncing {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Syncing bookmarks…")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } else if let syncMessage {
+                Label(
+                    syncMessage.text,
+                    systemImage: syncMessage.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(syncMessage.isError ? .red : .green)
+            } else if syncFile.status.isLinked {
+                Text("Bookmarks are written to this file whenever they change. Link the same file on another device to share them.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Link a JSON file — one kept in iCloud Drive works well — and TLocation keeps it up to date, so your bookmarks survive reinstalling the app.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: - Sync File Actions
+
+    private func createSyncFilePressed() {
+        syncMessage = nil
+        bookmarks = BookmarkStore.load()
+        do {
+            bookmarkExportDocument = BookmarksDocument(data: try BookmarkStore.exportData(bookmarks))
+            bookmarkExportFilename = BookmarkStore.syncFileName
+            bookmarkExportPurpose = .newSyncFile
+            isShowingBookmarkExporter = true
+        } catch {
+            bookmarkExportPurpose = .oneShotExport
+            syncMessage = ("Could not create a sync file: \(error.localizedDescription)", true)
+            scheduleSyncStatusDismiss()
+        }
+    }
+
+    private func linkSyncFile(from result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            linkSyncFile(at: url)
+        case .failure(let error):
+            guard !isUserCancellation(error) else { return }
+            syncMessage = ("Could not link that file: \(error.localizedDescription)", true)
+            scheduleSyncStatusDismiss()
+        }
+    }
+
+    private func isUserCancellation(_ error: Error) -> Bool {
+        (error as? CocoaError)?.code == .userCancelled
+    }
+
+    /// Shared by "Link Sync File" (a file the picker returned) and "Create Sync
+    /// File" (a file the save sheet just wrote). Both hand back a URL that is
+    /// security scoped for as long as this call runs, which is when
+    /// `BookmarkSyncFile` has to mint its bookmark data.
+    ///
+    /// `wasJustCreated` only changes the failure wording: a file that was just
+    /// written but could not be linked is a state the user can recover from by
+    /// picking it, and the message has to say so rather than leave them
+    /// wondering whether the file exists.
+    private func linkSyncFile(at url: URL, wasJustCreated: Bool = false) {
+        syncMessage = nil
+        isSyncing = true
+        // Opened here, synchronously inside the picker's completion, and held
+        // for the whole async link so the sandbox extension cannot be reclaimed
+        // while the work is still in flight. `BookmarkSyncFile` opens its own
+        // nested scope; start/stop calls are reference counted.
+        let accessing = url.startAccessingSecurityScopedResource()
+        Task {
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let outcome = try await BookmarkSyncFile.shared.link(to: url)
+                syncMessage = (linkSummary(outcome), false)
+            } catch {
+                syncMessage = wasJustCreated
+                    ? ("The file was saved, but TLocation could not link it. Tap Link Sync File and choose it.", true)
+                    : ("Could not link that file: \(error.localizedDescription)", true)
+            }
+            // Reloaded on both paths: a link that failed part-way may still have
+            // merged the file's contents into the local list, and the count row
+            // above must not go stale.
+            bookmarks = BookmarkStore.load()
+            isSyncing = false
+            scheduleSyncStatusDismiss()
+        }
+    }
+
+    private func syncNowPressed() {
+        syncMessage = nil
+        isSyncing = true
+        Task {
+            do {
+                let outcome = try await BookmarkSyncFile.shared.pull()
+                syncMessage = (syncSummary(outcome), false)
+            } catch {
+                syncMessage = ("Sync failed: \(error.localizedDescription)", true)
+            }
+            bookmarks = BookmarkStore.load()
+            isSyncing = false
+            scheduleSyncStatusDismiss()
+        }
+    }
+
+    private func unlinkSyncFilePressed() {
+        BookmarkSyncFile.shared.unlink()
+        syncMessage = ("Sync file unlinked. The file itself was not deleted.", false)
+        scheduleSyncStatusDismiss()
+    }
+
+    // Whole sentences per case rather than assembled fragments, so a translator
+    // gets a complete string to work with.
+
+    private func linkSummary(_ outcome: BookmarkSyncFile.SyncOutcome) -> String {
+        if outcome.added == 0 {
+            return "Linked “\(outcome.fileName)”."
+        }
+        if outcome.skipped == 0 {
+            return outcome.added == 1
+                ? "Linked “\(outcome.fileName)”. Added 1 bookmark from the file."
+                : "Linked “\(outcome.fileName)”. Added \(outcome.added) bookmarks from the file."
+        }
+        return "Linked “\(outcome.fileName)”. Added \(outcome.added), skipped \(outcome.skipped) already saved."
+    }
+
+    private func syncSummary(_ outcome: BookmarkSyncFile.SyncOutcome) -> String {
+        if outcome.added == 0 && outcome.skipped == 0 {
+            return "Synced. The file had nothing new."
+        }
+        if outcome.skipped == 0 {
+            return outcome.added == 1
+                ? "Synced. Added 1 bookmark."
+                : "Synced. Added \(outcome.added) bookmarks."
+        }
+        return "Synced. Added \(outcome.added), skipped \(outcome.skipped) already saved."
+    }
+
+    /// Same self-cancelling pattern as `scheduleBookmarkStatusDismiss`: only
+    /// clears the line if it still shows the message this call scheduled.
+    private func scheduleSyncStatusDismiss() {
+        let pending = syncMessage?.text
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            await MainActor.run {
+                if syncMessage?.text == pending { syncMessage = nil }
+            }
         }
     }
 
