@@ -252,6 +252,22 @@
         }
       }
     },
+    "Adds a few metres of random movement so the simulated position looks like a real GPS fix.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds a few metres of random movement so the simulated position looks like a real GPS fix."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm chuyển động ngẫu nhiên vài mét để vị trí giả lập trông giống một tín hiệu GPS thật."
+          }
+        }
+      }
+    },
     "Advanced": {
       "localizations": {
         "en": {
@@ -1764,6 +1780,22 @@
         }
       }
     },
+    "Natural GPS Drift": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Natural GPS Drift"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trôi GPS tự nhiên"
+          }
+        }
+      }
+    },
     "No Bookmarks": {
       "localizations": {
         "en": {
@@ -2624,6 +2656,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Việc giả lập vị trí"
+          }
+        }
+      }
+    },
+    "Simulation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulation"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giả lập"
           }
         }
       }

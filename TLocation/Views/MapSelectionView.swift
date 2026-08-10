@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 import UIKit
+import Foundation
 
 private struct CoordinateSnapshot: Equatable {
     let latitude: Double
@@ -197,6 +198,12 @@ private struct FloatingCircleBackground: ViewModifier {
 }
 
 struct LocationSimulationView: View {
+    /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
+    /// simulation wobble a few metres around the chosen point instead of
+    /// resending the exact same fix every time. Off by default; see
+    /// `jitteredCoordinate(around:)` and `startResendLoop(with:)`.
+    @AppStorage("naturalGPSDrift") private var naturalGPSDrift = false
+
     @State private var coordinate: CLLocationCoordinate2D?
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     /// Last zoom span reported by the map camera, so recentring never rescales.
@@ -822,10 +829,48 @@ struct LocationSimulationView: View {
         resendTimer?.invalidate()
         resendTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
             guard let simulatedCoordinate else { return }
+            // `simulatedCoordinate` is the fixed anchor set above (or in
+            // `adoptExternalSimulation`) and is never overwritten by a
+            // jittered value, so every tick wobbles around the same point
+            // instead of drifting further away over time. Read live so
+            // flipping the setting mid-simulation takes effect on the very
+            // next resend.
+            let sendCoordinate = naturalGPSDrift
+                ? jitteredCoordinate(around: simulatedCoordinate)
+                : simulatedCoordinate
             LocationSimulationCommandQueue.shared.async {
-                _ = locationUpdateCode(for: simulatedCoordinate)
+                _ = locationUpdateCode(for: sendCoordinate)
             }
         }
+    }
+
+    /// Returns `anchor` offset by a small, realistic amount of consumer-GPS
+    /// noise (a uniformly random radius of 3–5 m in a uniformly random
+    /// direction, so the offset varies every call and never exceeds ~5 m).
+    /// Only ever used for the bytes sent to the device on a resend — never
+    /// for the pin, the anchor itself, or anything shown in the UI.
+    ///
+    /// Metres are converted to degrees using ~111,320 m per degree of
+    /// latitude; longitude is additionally scaled by `cos(latitude)` since a
+    /// degree of longitude shrinks toward the poles (e.g. ~7% shorter at
+    /// Hanoi's ~21°N, ~2x shorter at 60°N) — skipping that scaling would make
+    /// the east/west component of the wobble increasingly wrong away from
+    /// the equator.
+    private func jitteredCoordinate(around anchor: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
+        let metersPerDegreeLatitude = 111_320.0
+        let radiusMeters = Double.random(in: 3...5)
+        let angle = Double.random(in: 0..<(2 * .pi))
+        let eastMeters = radiusMeters * cos(angle)
+        let northMeters = radiusMeters * sin(angle)
+
+        let deltaLatitude = northMeters / metersPerDegreeLatitude
+        let metersPerDegreeLongitude = metersPerDegreeLatitude * cos(anchor.latitude * .pi / 180)
+        let deltaLongitude = metersPerDegreeLongitude != 0 ? eastMeters / metersPerDegreeLongitude : 0
+
+        return CLLocationCoordinate2D(
+            latitude: anchor.latitude + deltaLatitude,
+            longitude: anchor.longitude + deltaLongitude
+        )
     }
 
     private func stopResendLoop() {

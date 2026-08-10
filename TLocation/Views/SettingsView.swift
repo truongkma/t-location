@@ -71,6 +71,11 @@ struct SettingsView: View {
     @AppStorage("keepAliveAudio") private var keepAliveAudio = true
     @AppStorage("keepAliveLocation") private var keepAliveLocation = true
     @AppStorage(UserDefaults.Keys.targetDeviceIP) private var targetDeviceIP = DeviceConnectionContext.defaultTargetIPAddress
+    /// Off by default — the user must opt in. Read live by the resend loop in
+    /// `LocationSimulationView`, so this only ever affects the periodic resends
+    /// of an already-active simulation, never the initial "Simulate Location"
+    /// call, the pin, or anything else shown on screen.
+    @AppStorage("naturalGPSDrift") private var naturalGPSDrift = false
 
     /// Mirrors `LanguageSettings.selected`; the `onChange` below is what writes
     /// the matching `AppleLanguages` override.
@@ -190,6 +195,16 @@ struct SettingsView: View {
                     }
                     .onChange(of: keepAliveLocation) { _, enabled in
                         if !enabled { BackgroundLocationManager.shared.stop() }
+                    }
+                }
+
+                Section("Simulation") {
+                    Toggle(isOn: $naturalGPSDrift) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Natural GPS Drift")
+                            Text("Adds a few metres of random movement so the simulated position looks like a real GPS fix.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }
 
