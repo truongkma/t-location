@@ -375,14 +375,12 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         longitude
     )
     if let locationSetError {
+        // The coordinate is deliberately never written to the log. Which call
+        // failed and why is what diagnosis needs; *where* the user chose to
+        // appear is their business, and a log is a record that outlives the
+        // moment. Same reasoning on every other line below.
         LogManager.shared.addErrorLog(
-            String(
-                format: "simulate_location failed (code %d): the device rejected the coordinate %.6f, %.6f — %@",
-                LocationSimulationStatus.locationSet,
-                latitude,
-                longitude,
-                IdeviceBridge.detail(from: locationSetError)
-            )
+            "simulate_location failed (code \(LocationSimulationStatus.locationSet)): the device rejected the coordinate — \(IdeviceBridge.detail(from: locationSetError))"
         )
         idevice_error_free(locationSetError)
         LocationSimulationState.cleanup()
@@ -394,11 +392,7 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
     // silent, so this line marks a user-initiated simulation (or a rebuild
     // after the session died) and cannot flood the log.
     LogManager.shared.addInfoLog(
-        String(
-            format: "simulate_location: the device accepted %.6f, %.6f on a new session",
-            latitude,
-            longitude
-        )
+        "simulate_location: the device accepted the coordinate on a new session"
     )
 
     return LocationSimulationStatus.ok

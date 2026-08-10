@@ -40,13 +40,34 @@ final class JITEnableContext {
     var handshakeHandle: OpaquePointer? { handshake }
 
     private init() {
-        let logURL = FileManager.default
-            .urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("idevice_log.txt")
+        // The FFI logger is initialised with both sinks disabled.
+        //
+        // This used to write `idevice_log.txt` into Documents at Debug level,
+        // which — with `UIFileSharingEnabled` set — left a permanent, plain-text
+        // record of every device interaction sitting in the Files app, readable
+        // by anyone holding the phone and captured by every backup. For an app
+        // whose users are deliberately hiding where they are, that is the single
+        // worst place to keep a log.
+        //
+        // Nothing is lost by silencing it: every error the app shows in an alert
+        // or records through `LogManager` is read from the `IdeviceFfiError`
+        // struct the FFI call returns (see `IdeviceBridge.detail`), never from
+        // this logger. The two are entirely independent paths.
+        //
+        // The call is kept rather than dropped so the library's global logger is
+        // still initialised exactly once, and a valid non-NULL path is still
+        // passed — `idevice.h` documents only "pass a valid file path string",
+        // so NULL is not a contract this code should test. The path points at a
+        // Caches subdirectory that is never created, so even a build of the
+        // library that ignored `Disabled` and opened the file could not put
+        // anything in Documents.
+        let unusedLogURL = FileManager.default
+            .urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("idevice-ffi-logging-disabled.log")
 
-        var path = Array(logURL.path.utf8CString)
+        var path = Array(unusedLogURL.path.utf8CString)
         path.withUnsafeMutableBufferPointer { buffer in
-            _ = idevice_init_logger(Info, Debug, buffer.baseAddress)
+            _ = idevice_init_logger(Disabled, Disabled, buffer.baseAddress)
         }
     }
 

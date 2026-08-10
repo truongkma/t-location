@@ -525,9 +525,8 @@ struct RootView: View {
             message: String(localized: "Import a pairing file before simulating location from a URL.")
         ) else { return }
 
-        LogManager.shared.addInfoLog(
-            String(format: "Requested simulated location from URL: %.6f, %.6f", coordinate.latitude, coordinate.longitude)
-        )
+        // No coordinate in the log — see `simulate_location`.
+        LogManager.shared.addInfoLog("Requested simulated location from URL")
         LocationSimulationRequest.postSimulate(
             latitude: coordinate.latitude,
             longitude: coordinate.longitude

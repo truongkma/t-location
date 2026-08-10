@@ -301,9 +301,8 @@ enum LocationIntentRunner {
             throw LocationIntentError.simulationFailed(code: Int(code))
         }
 
-        LogManager.shared.addInfoLog(
-            String(format: "Shortcut simulated location: %.6f, %.6f", latitude, longitude)
-        )
+        // No coordinate in the log — see `simulate_location`.
+        LogManager.shared.addInfoLog("Shortcut simulated a location successfully")
         await publishSimulation(latitude: latitude, longitude: longitude)
     }
 
