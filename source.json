@@ -12,6 +12,13 @@
       "tintColor": "#2196F3",
       "versions": [
         {
+          "version": "1.2.2",
+          "date": "2026-08-10T07:25:44Z",
+          "downloadURL": "https://github.com/truongkma/t-location/releases/download/1.2.2/TLocation.ipa",
+          "size": 10342577,
+          "minOSVersion": "17.4"
+        },
+        {
           "version": "1.2.1",
           "date": "2026-08-10T05:30:30Z",
           "downloadURL": "https://github.com/truongkma/t-location/releases/download/1.2.1/TLocation.ipa",
