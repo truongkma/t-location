@@ -27,6 +27,20 @@ final class CurrentLocationProvider: NSObject, ObservableObject, CLLocationManag
         case unavailable
     }
 
+    /// Desired accuracy for the continuous tracking session only. There is no
+    /// standard `kCLLocationAccuracy*` constant at this level, so it is spelled
+    /// out and named here rather than left as a bare literal.
+    ///
+    /// Chosen over `kCLLocationAccuracyNearestTenMeters` because that tighter
+    /// target makes iOS hold back any fix until it can back it with GPS, which
+    /// indoors can take a long time — exactly the case right after a
+    /// simulation is cleared, when the map should recenter on the real
+    /// position quickly. 50 m is loose enough that a WiFi/cell-derived fix
+    /// usually satisfies it immediately, while still being tight enough to
+    /// place the dot on the correct street for a map view. The one-shot
+    /// `locate(_:)` manager is unaffected and keeps the tighter accuracy.
+    private static let trackingDesiredAccuracy: CLLocationDistance = 50
+
     @Published private(set) var isLocating = false
 
     /// Latest fix from the tracking session, or `nil` while it is not running
@@ -55,10 +69,21 @@ final class CurrentLocationProvider: NSObject, ObservableObject, CLLocationManag
         manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
 
         trackingManager.delegate = self
-        // Ten-metre accuracy is plenty for a visible map dot; `Best` would burn
-        // battery for precision nothing here consumes.
-        trackingManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        trackingManager.distanceFilter = 5
+        // See `trackingDesiredAccuracy` above for why this is 50 m rather than
+        // `kCLLocationAccuracyNearestTenMeters` (used by the one-shot manager
+        // below) or `Best`, which would burn battery for precision nothing
+        // here consumes.
+        trackingManager.desiredAccuracy = Self.trackingDesiredAccuracy
+        // No distance filter: at 10 m accuracy, a 5 m filter meaningfully
+        // distinguished real movement from fix-to-fix noise. At the coarser
+        // 50 m accuracy used here, each fix already carries an error radius
+        // well past 5 m, so CoreLocation can only confirm a 5 m displacement
+        // by waiting for a materially better fix — reintroducing the very
+        // delay this change exists to remove. `desiredAccuracy` is already
+        // the resolution floor for this session, so a separate distance gate
+        // on top of it is redundant; let every fix CoreLocation is willing to
+        // deliver through instead.
+        trackingManager.distanceFilter = kCLDistanceFilterNone
         // Auto-pause would silently kill the session while the user stands
         // still and would need an explicit restart to recover — exactly the
         // stale/grey dot this session exists to prevent.
