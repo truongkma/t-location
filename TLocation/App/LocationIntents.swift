@@ -266,15 +266,6 @@ enum LocationIntentRunner {
     private static let tunnelTimeout: TimeInterval = 25
     private static let commandTimeout: TimeInterval = 20
 
-    /// Clearing gets the connection allowance *on top of* the command allowance.
-    ///
-    /// `clear_simulated_location()` builds its own tunnel from the pairing file
-    /// whenever no session is live, which for a shortcut is the normal case — the
-    /// app usually is not even running. Budgeting only `commandTimeout` for that
-    /// meant the intent gave up while the tunnel was still coming up, reported
-    /// failure, and then the clear succeeded anyway. See `stop()`.
-    private static let clearTimeout: TimeInterval = tunnelTimeout + commandTimeout
-
     /// Mirrors `TunnelManager`, which also creates the tunnel off the main
     /// thread. `JITEnableContext.startTunnel()` serialises callers internally,
     /// so this racing the app's own start is safe.
@@ -318,66 +309,15 @@ enum LocationIntentRunner {
 
     // MARK: Stop
 
-    /// Clears the simulated position, then brings the rest of the app into line.
-    ///
-    /// Budgeted like `simulate(_:_:)`: the connection is established under
-    /// `tunnelTimeout` before the clear is issued under `clearTimeout`, so the
-    /// tunnel build sits *inside* the budget rather than racing it.
-    ///
-    /// What a genuine timeout leaves behind, deliberately:
-    ///
-    /// - The persisted record is **not** touched. Nobody knows whether the clear
-    ///   landed, and "still simulating" is the only assumption that keeps the
-    ///   controls that end a simulation enabled. If the abandoned call does land,
-    ///   `onLateResult` below drops the record and tells the map, so the app never
-    ///   settles on a belief the device contradicts.
-    /// - A later user-initiated clear still works: every FFI call goes through
-    ///   `LocationSimulationCommandQueue`, which is serial, so a retry simply
-    ///   queues behind the abandoned call instead of racing it for the handles in
-    ///   `LocationSimulationState`.
     static func stop() async throws {
-        // Clearing genuinely needs the pairing file now: with no live session
-        // `clear_simulated_location` builds one from it before clearing, which is
-        // what lets a shortcut stop a simulation that outlived the app. Checking
-        // here turns a missing file into a sentence rather than a bare code 2.
-        //
-        // Note this is a real device round trip even when the app never simulated
-        // anything in this launch — which is the entire point, since the device may
-        // well still be simulating from a previous one.
+        // Clearing still needs the pairing file: without one there was never a
+        // session to clear, and saying so is more useful than error 12.
         _ = try requirePairingFile()
-
-        // The same prerequisite check the simulate path performs, for the same
-        // reasons: it turns "VPN is down" into a sentence instead of a bare error
-        // code, and — the part that matters here — it means the tunnel is already
-        // up by the time the clear runs, so the clear is not racing its own
-        // connection against a 20-second stopwatch.
-        try await ensureDeviceReady()
 
         let code = try await run(
             on: LocationSimulationCommandQueue.shared,
-            timeout: clearTimeout,
-            step: String(localized: "Clearing the simulated location"),
-            // The idevice FFI is synchronous and cannot be aborted, so a clear that
-            // outruns `clearTimeout` keeps going and may succeed moments after this
-            // intent has already reported failure. When it does, the device is no
-            // longer simulating and the app has to say so — otherwise the persisted
-            // flag stays `true` for a device that was cleared, and worse, a map on
-            // screen never hears about it and its 4-second resend loop pushes the
-            // old position straight back. Reporting the outcome is all this does;
-            // it starts no device command of its own.
-            onLateResult: { (result: Result<Int32, any Error>) in
-                guard case .success(let code) = result else { return }
-                guard code == 0 else {
-                    LogManager.shared.addErrorLog(
-                        "Shortcut clear finished after the intent timed out and failed with code \(code); the simulation is still running"
-                    )
-                    return
-                }
-                LogManager.shared.addInfoLog(
-                    "Shortcut clear finished after the intent timed out and succeeded; syncing app state"
-                )
-                Task { await publishClear() }
-            }
+            timeout: commandTimeout,
+            step: String(localized: "Clearing the simulated location")
         ) {
             clear_simulated_location()
         }
@@ -444,14 +384,8 @@ enum LocationIntentRunner {
     /// from there, and so does this. The notification is posted from the same
     /// hop because `MapSelectionView` observes it with `onReceive`, which
     /// delivers on whatever thread posted.
-    /// The persisted record is written before the notification, so a map that is on
-    /// screen sees the new value the moment it is told to sync, and a map that is
-    /// not reads it on its next launch. Intents are the one path that can change
-    /// the device's simulation with no UI in the process at all, which is exactly
-    /// why the record has to be updated here rather than in a view.
     private static func publishSimulation(latitude: Double, longitude: Double) async {
         await MainActor.run {
-            ActiveSimulationStore.markStarted(latitude: latitude, longitude: longitude)
             BackgroundLocationManager.shared.requestStart()
             LocationSimulationRequest.postSimulateApplied(latitude: latitude, longitude: longitude)
         }
@@ -459,7 +393,6 @@ enum LocationIntentRunner {
 
     private static func publishClear() async {
         await MainActor.run {
-            ActiveSimulationStore.markCleared()
             BackgroundLocationManager.shared.requestStop()
             LocationSimulationRequest.postClearApplied()
         }
@@ -473,33 +406,20 @@ enum LocationIntentRunner {
     /// a timed-out call is left to finish on its own; the guard below makes sure
     /// whichever of the two finishes first is the only one to resume the
     /// continuation, so a late completion can never resume it twice and trap.
-    ///
-    /// `onLateResult` is the escape valve for exactly that abandoned call: it is
-    /// invoked, off the main thread and after the caller has already thrown
-    /// `timedOut`, with whatever the work eventually produced. Callers use it to
-    /// reconcile app state with what really happened on the device; it must never
-    /// issue a device command of its own.
     private static func run<T: Sendable>(
         on queue: DispatchQueue,
         timeout: TimeInterval,
         step: String,
-        onLateResult: (@Sendable (Result<T, any Error>) -> Void)? = nil,
         work: @escaping @Sendable () throws -> T
     ) async throws -> T {
         let resume = ResumeOnce()
         return try await withCheckedThrowingContinuation { continuation in
             queue.async {
-                let result: Result<T, any Error>
                 do {
-                    result = .success(try work())
+                    let value = try work()
+                    if resume.claim() { continuation.resume(returning: value) }
                 } catch {
-                    result = .failure(error)
-                }
-
-                if resume.claim() {
-                    continuation.resume(with: result)
-                } else {
-                    onLateResult?(result)
+                    if resume.claim() { continuation.resume(throwing: error) }
                 }
             }
 

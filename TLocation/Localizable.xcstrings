@@ -252,22 +252,6 @@
         }
       }
     },
-    "A simulated location from a previous session was never ended. TLocation checks whether this device is still reporting it as soon as it has a position fix; if it is, use Return to Real Location on the map to end it.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A simulated location from a previous session was never ended. TLocation checks whether this device is still reporting it as soon as it has a position fix; if it is, use Return to Real Location on the map to end it."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vị trí giả lập từ phiên trước chưa được kết thúc. TLocation sẽ kiểm tra xem thiết bị này còn báo vị trí đó hay không ngay khi có tín hiệu định vị; nếu còn, hãy dùng Về vị trí thật trên bản đồ để kết thúc."
-          }
-        }
-      }
-    },
     "Adds a few metres of random movement so the simulated position looks like a real GPS fix.": {
       "localizations": {
         "en": {
@@ -956,22 +940,6 @@
         }
       }
     },
-    "Device Not Responding": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Device Not Responding"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thiết bị không phản hồi"
-          }
-        }
-      }
-    },
     "Disconnect and reconnect LocalDevVPN.": {
       "localizations": {
         "en": {
@@ -984,22 +952,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ngắt rồi kết nối lại LocalDevVPN."
-          }
-        }
-      }
-    },
-    "Dismiss": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bỏ qua"
           }
         }
       }
@@ -2404,22 +2356,6 @@
         }
       }
     },
-    "Return to Real Location?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Return to Real Location?"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Về vị trí thật?"
-          }
-        }
-      }
-    },
     "Save": {
       "localizations": {
         "en": {
@@ -2720,22 +2656,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giả lập vị trí đã lưu"
-          }
-        }
-      }
-    },
-    "Simulated location may still be active": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Simulated location may still be active"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vị trí giả lập có thể vẫn đang hoạt động"
           }
         }
       }
@@ -3110,22 +3030,6 @@
         }
       }
     },
-    "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TLocation không kết nối được tới thiết bị này kịp thời. Hãy bật LocalDevVPN và đảm bảo Wi-Fi đã vào mạng, rồi thử lại. Nếu lệnh vẫn tới được thiết bị thì nó có thể vẫn có hiệu lực; Về vị trí thật sẽ kết thúc mọi phiên giả lập vị trí."
-          }
-        }
-      }
-    },
     "TLocation could not reach this device. Connect LocalDevVPN and make sure Wi-Fi is joined to a network. (%@)": {
       "localizations": {
         "en": {
@@ -3478,22 +3382,6 @@
         }
       }
     },
-    "The simulation from the previous session has already ended.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The simulation from the previous session has already ended."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Phiên giả lập vị trí trước đó đã kết thúc."
-          }
-        }
-      }
-    },
     "The sync file could not be opened. It may have been moved or deleted, or not downloaded from iCloud yet.": {
       "localizations": {
         "en": {
@@ -3522,38 +3410,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tệp đồng bộ không phải tệp vị trí đã lưu hợp lệ của TLocation."
-          }
-        }
-      }
-    },
-    "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thiết bị này có thể vẫn đang báo vị trí giả lập từ phiên trước. Hãy dùng Về vị trí thật để kết thúc; TLocation sẽ tự gỡ thông báo này khi thấy thiết bị đã về vị trí thật."
-          }
-        }
-      }
-    },
-    "This stops the simulated location and returns this device to its real position.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This stops the simulated location and returns this device to its real position."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thao tác này sẽ dừng giả lập vị trí và đưa thiết bị về vị trí thật."
           }
         }
       }

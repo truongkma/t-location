@@ -98,13 +98,6 @@ struct RootView: View {
     /// The expiry warning is decided once per launch. Without this, dismissing with
     /// "Later" would only last until the app next came back to the foreground.
     @State private var hasEvaluatedExpiryWarning = false
-    /// Mirrors `ActiveSimulationStore.isActive` so the readiness card can say that
-    /// a simulation from a previous session is still running on the device.
-    ///
-    /// Read-only in every sense. The record is a statement of what the device was
-    /// last asked to do, and this only reads it back to put words on screen —
-    /// nothing on this path sends anything to the device, least of all a clear.
-    @State private var simulationCarriedOver = ActiveSimulationStore.isActive
 
     private let statusTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -154,7 +147,6 @@ struct RootView: View {
             startTunnelInBackground()
             MountingProgress.shared.checkforMounted()
             evaluateExpiryWarning()
-            simulationCarriedOver = ActiveSimulationStore.isActive
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active { evaluateExpiryWarning() }
@@ -163,10 +155,6 @@ struct RootView: View {
             // Cheap existence check only. `prepareURL()` does directory creation and a
             // full byte-compare, which must not run on the main thread once per second.
             pairingExists = FileManager.default.fileExists(atPath: PairingFileStore.url.path)
-            // A single `UserDefaults` bool; cheap enough for this tick, and keeping
-            // it live means the note disappears the moment the user ends the
-            // simulation rather than lingering behind them.
-            simulationCarriedOver = ActiveSimulationStore.isActive
             if mounting.mountingThread == nil, !mounting.coolisMounted {
                 MountingProgress.shared.checkforMounted()
             }
@@ -353,10 +341,6 @@ struct RootView: View {
                 )
             }
 
-            if simulationCarriedOver {
-                carriedOverSimulationNote
-            }
-
             VStack(spacing: 10) {
                 Button {
                     isShowingPairingFilePicker = true
@@ -406,45 +390,6 @@ struct RootView: View {
         .frame(maxWidth: 420)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.2), radius: 18, y: 8)
-    }
-
-    /// Folded into the existing readiness card rather than raised as a card of its
-    /// own: the expiry warning and this overlay already compete for that space, and
-    /// a third blocking layer would be worse than the problem. This is the screen
-    /// covering the map at launch, which is precisely when a simulation carried
-    /// over from a previous session is discovered — and precisely when the map's
-    /// own notice cannot be seen.
-    ///
-    /// Informational only: no button, no command. Ending the simulation needs the
-    /// device, which by definition is not reachable while this card is up, so it
-    /// points at the control that will work once the prerequisites above are green.
-    ///
-    /// Hedged for the same reason as the map's own notice: connecting to the device
-    /// rebuilds the RSD session the simulation was bound to and often ends it as a
-    /// side effect, so this line can be overtaken while it is on screen. It goes
-    /// away on its own when that happens — `simulationCarriedOver` is re-read from
-    /// `ActiveSimulationStore` every second, and
-    /// `LocationSimulationView.verifyRestoredSimulation(against:)` drops the record
-    /// as soon as the device's live position shows the simulation is over.
-    private var carriedOverSimulationNote: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.body)
-                .foregroundStyle(.orange)
-                .frame(width: 22, height: 22)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Simulated location may still be active")
-                    .font(.subheadline.weight(.medium))
-                Text("A simulated location from a previous session was never ended. TLocation checks whether this device is still reporting it as soon as it has a position fix; if it is, use Return to Real Location on the map to end it.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private func readinessRow(

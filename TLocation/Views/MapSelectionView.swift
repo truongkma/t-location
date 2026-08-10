@@ -217,27 +217,6 @@ private struct CalloutBackground: ViewModifier {
     }
 }
 
-/// One-shot ticket shared by a device command and the deadline watching it:
-/// exactly one caller of `claim()` ever gets `true`.
-///
-/// The idevice FFI is synchronous and cannot be aborted, so a command that
-/// overruns its budget is left to finish on `LocationSimulationCommandQueue`.
-/// This is what stops that abandoned call from walking back into the UI
-/// afterwards and firing success handlers behind a failure the user has already
-/// been shown.
-private final class LocationCommandOutcome: @unchecked Sendable {
-    private let lock = NSLock()
-    private var claimed = false
-
-    func claim() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        if claimed { return false }
-        claimed = true
-        return true
-    }
-}
-
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -288,46 +267,6 @@ struct LocationSimulationView: View {
     /// `clear()` FFI call finishes, so the button can show a spinner across
     /// that single async hop.
     @State private var isReturningToRealLocation = false
-    /// Drives the confirmation shown before "Return to Real Location" undoes a
-    /// live simulation. Only ever set by a tap on that button; see
-    /// `returnToRealLocation()`.
-    @State private var isConfirmingReturnToRealLocation = false
-
-    /// Mirrors `ActiveSimulationStore.isActive` — "the device is simulating a
-    /// position, as far as this app knows" — as view state, so SwiftUI redraws the
-    /// Stop button when it changes instead of the value being read out of
-    /// `UserDefaults` inside `body`. Unlike `simulatedCoordinate` this survives the
-    /// process, which is the point: see `restorePersistedSimulationIfNeeded()`.
-    /// Every write goes through `setSimulationActive(_:)` so the mirror and the
-    /// stored record cannot drift apart.
-    @State private var hasPersistedSimulation = false
-    /// Guards the one-shot restore below, same reasoning as `hasCenteredOnLaunch`.
-    @State private var hasRestoredPersistedSimulation = false
-
-    /// The coordinate a simulation *restored from a previous launch* was last set
-    /// to, held only for as long as that restored simulation is still being
-    /// watched. Non-nil means "the record claims the device is holding this
-    /// position and nothing in this session has confirmed or replaced it yet";
-    /// `verifyRestoredSimulation(against:)` is what eventually settles it.
-    ///
-    /// Distinct from `simulatedCoordinate`, which is the anchor of a resend loop
-    /// this session started and is never set for a restored simulation.
-    @State private var restoredSimulationCoordinate: CLLocationCoordinate2D?
-
-    /// How far the device's own live position has to sit from a restored
-    /// simulated coordinate before the app accepts that the simulation is no
-    /// longer in effect.
-    ///
-    /// 200 m is chosen to be unreachable by noise and unmissable by a real
-    /// revert. It clears the opt-in natural-GPS-drift wobble (≤5 m, see
-    /// `jitteredCoordinate(around:)`) by forty times, the pin callout's 12 m
-    /// saved-state tolerance (`BookmarkStore.displayMatchRadiusMeters`) by more
-    /// than sixteen, and still sits well beyond the worst consumer-GPS multipath
-    /// error a phone reports in a dense urban canyon (tens of metres). At the
-    /// other end it stays far below the distance that actually separates a
-    /// simulated position from the real one, which in practice is a different
-    /// district, city or country — kilometres, not hundreds of metres.
-    private static let simulationRevertDistance: CLLocationDistance = 200
 
     /// Brief, non-modal confirmation shown in the bottom control area (e.g.
     /// after "Return to Real Location"). Auto-clears itself a few seconds
@@ -335,24 +274,6 @@ struct LocationSimulationView: View {
     @State private var statusMessage: String?
     @State private var statusMessageWorkItem: DispatchWorkItem?
     private static let statusMessageDuration: TimeInterval = 3.0
-
-    /// A statement about what the *device* is doing that the user has not acted on
-    /// yet — currently only a simulation carried over from a previous launch.
-    ///
-    /// Deliberately not a `statusMessage`: that one clears itself after three
-    /// seconds, and at launch the readiness overlay is normally still covering the
-    /// map long after those three seconds are up, so the one notice the user most
-    /// needs was the one they never saw. This stays until they dismiss it or the
-    /// simulation it describes ends. It is text only — nothing here, and nothing
-    /// that sets it, touches the device.
-    @State private var carriedOverSimulationNotice: String?
-
-    /// How long the UI waits for a device command before handing the controls
-    /// back. Comparable to what a Shortcuts intent budgets for the same work (see
-    /// `LocationIntentRunner`: a connection allowance plus a command allowance),
-    /// because it *is* the same work — with no live session the FFI builds a
-    /// tunnel from the pairing file before it can do anything else.
-    private static let commandTimeout: TimeInterval = 45
 
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
@@ -366,19 +287,8 @@ struct LocationSimulationView: View {
         DeviceConnectionContext.targetIPAddress
     }
 
-    /// Whether the device is holding a simulated position.
-    ///
-    /// Two independent sources, because the position outlives this view and even
-    /// this process: `simulatedCoordinate` is the anchor of a resend loop *this*
-    /// view is running, while `hasPersistedSimulation` covers a simulation started
-    /// before a force-quit — the DDI service is still reporting it even though
-    /// nothing is left in memory to describe it.
-    ///
-    /// Read by Stop's enabled state and by "Return to Real Location", which uses it
-    /// to decide whether tapping needs a confirmation (something to undo) or can
-    /// act straight away.
     private var hasActiveSimulation: Bool {
-        simulatedCoordinate != nil || hasPersistedSimulation
+        simulatedCoordinate != nil
     }
 
     private var searchResultsListBase: some View {
@@ -521,18 +431,7 @@ struct LocationSimulationView: View {
             mapControlButton(
                 systemImage: "location.slash.fill",
                 accessibilityLabel: "Return to Real Location",
-                // Deliberately not gated on `hasActiveSimulation`. Clearing is
-                // idempotent — the device ends up on its real position whether or
-                // not anything was simulated — so there is nothing to protect the
-                // user from, and an always-live control is the dependable way out
-                // if the persisted flag is ever wrong about what the device is
-                // doing. That last part is the case this button exists for, and it
-                // is why `clear_simulated_location()` takes a session it had to
-                // rebuild through a momentary set: without it, a clear here would
-                // report success while the device stayed put. The remaining
-                // guards are the ones that still mean something: no pairing file,
-                // no FFI at all; and no overlapping commands.
-                isDisabled: isBusy || currentLocationProvider.isLocating || isReturningToRealLocation || !pairingExists,
+                isDisabled: !hasActiveSimulation || isBusy || currentLocationProvider.isLocating || isReturningToRealLocation || !pairingExists,
                 showsProgress: isReturningToRealLocation,
                 action: returnToRealLocation
             )
@@ -586,47 +485,14 @@ struct LocationSimulationView: View {
     /// message). Given a material backing so it stays legible on a map.
     private var bottomControlCluster: some View {
         VStack(spacing: 12) {
-            carriedOverSimulationBanner
             pinControls
         }
         .animation(.default, value: statusMessage)
-        .animation(.default, value: carriedOverSimulationNotice)
         .padding(.vertical, 14)
         .padding(.horizontal, 20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
-    }
-
-    /// The persistent counterpart of `statusMessage`, drawn in the same bottom
-    /// cluster and above it. Carries a dismiss control rather than a timer, and
-    /// no action button: the only thing to do about it is "Return to Real
-    /// Location", which is already on screen and always enabled.
-    @ViewBuilder
-    private var carriedOverSimulationBanner: some View {
-        if let carriedOverSimulationNotice {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
-
-                Text(carriedOverSimulationNotice)
-                    .font(.footnote)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button {
-                    self.carriedOverSimulationNotice = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Dismiss")
-            }
-            .transition(.opacity)
-        }
     }
 
     // MARK: - Pin callout
@@ -912,24 +778,6 @@ struct LocationSimulationView: View {
         } message: {
             Text("TLocation needs location access to find your current position. Note: while a simulated location is active, iOS reports the simulated position.")
         }
-        // Same `.confirmationDialog` + destructive-role shape `RootView` uses for
-        // the external location requests, so the one destructive confirmation on
-        // the map looks like the rest of the app. Cancelling does nothing at all:
-        // the FFI is only reached from the confirm button's action, so no pin, no
-        // camera and no flag is touched, and `isReturningToRealLocation` is never
-        // set — the next tap behaves exactly like the first.
-        .confirmationDialog(
-            "Return to Real Location?",
-            isPresented: $isConfirmingReturnToRealLocation,
-            titleVisibility: .visible
-        ) {
-            Button("Stop Simulating", role: .destructive) {
-                performReturnToRealLocation()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This stops the simulated location and returns this device to its real position.")
-        }
         .sheet(isPresented: $showBookmarks) {
             BookmarksView(bookmarks: $bookmarks) { bookmark in
                 applySelection(bookmark.coordinate)
@@ -969,19 +817,8 @@ struct LocationSimulationView: View {
                 clear()
             }
         }
-        // Every fix from the foreground tracking session is also a chance to check
-        // that a simulation restored from a previous launch is still real. Reading
-        // the session that is already running costs nothing extra — no new
-        // `CLLocationManager`, no polling — and it is the only evidence the app has
-        // about what the device is actually reporting.
-        .onReceive(currentLocationProvider.$currentCoordinate) { fix in
-            verifyRestoredSimulation(against: fix)
-        }
         .onAppear {
             loadBookmarks()
-            // Before the launch centring below, which stands down whenever a
-            // simulation is active and needs to know about a restored one.
-            restorePersistedSimulationIfNeeded()
             // A live foreground location session for as long as the map is
             // visible. Without it the only Core Location session in the app is
             // BackgroundLocationManager's, which `clear()` shuts down — leaving
@@ -1048,11 +885,6 @@ struct LocationSimulationView: View {
                 .transition(.opacity)
         }
 
-        // Stop stays tied to a pin on purpose: it means "pause the simulation for
-        // this pin", ready to resume on the same spot. Recovering a simulation that
-        // outlived the process — where there is no pin — is "Return to Real
-        // Location"'s job, and that button is always enabled, so nothing is
-        // unreachable without widening this condition.
         if coordinate != nil {
             HStack(spacing: 12) {
                 Button("Stop") { clear() }
@@ -1111,42 +943,26 @@ struct LocationSimulationView: View {
         // simulation is running. The intent took one of its own before posting;
         // if this view was already holding one, release it so the two do not
         // stack and leave background location running after the next stop.
-        //
-        // The test is `simulatedCoordinate`, not `hasActiveSimulation`: an
-        // activation belongs to a resend loop this view started, and a simulation
-        // restored from the persisted record has none (see
-        // `restorePersistedSimulationIfNeeded()`). Releasing on that would cancel
-        // the intent's own activation and stop background location outright.
-        if simulatedCoordinate != nil {
+        if hasActiveSimulation {
             BackgroundLocationManager.shared.requestStop()
         }
-        refreshPersistedSimulation()
         coordinate = requested
         recenterCamera(on: requested)
         beginBackgroundTask()
         startResendLoop(with: requested)
     }
 
-    /// Counterpart of `adoptExternalSimulation`: the intent has already cleared the
-    /// device and released its keep-alive activation, so the FFI is deliberately
-    /// not called again — the position is already gone and a second clear would be
-    /// redundant work over a tunnel that has to be rebuilt to perform it.
-    ///
-    /// (`clear_simulated_location()` would now *succeed* on a torn-down session
-    /// rather than returning error 12 as it once did, so this is no longer about
-    /// avoiding a spurious alert. It is simply that there is nothing left to do —
-    /// and calling it anyway would rebuild a tunnel only to momentarily re-apply a
-    /// position, since a rebuilt session has to claim the simulation before it can
-    /// clear it.)
+    /// Counterpart of `adoptExternalSimulation`: the intent has already cleared
+    /// the device and released its keep-alive activation, so calling `clear()`
+    /// here would only re-run `clear_simulated_location()` on an already-torn-down
+    /// session — error 12 and a spurious alert.
     ///
     /// This is `clear()`'s success path minus the FFI call and the keep-alive
     /// release, so the map ends up exactly where the Stop button would leave it:
     /// resend loop stopped, background task ended, and the pin still on screen
-    /// ready to be re-simulated. The intent already dropped the persisted record;
-    /// this just picks that up.
+    /// ready to be re-simulated.
     private func adoptExternalClear() {
         stopResendLoop()
-        refreshPersistedSimulation()
         endBackgroundTask()
     }
 
@@ -1160,67 +976,12 @@ struct LocationSimulationView: View {
             },
             operation: { locationUpdateCode(for: coord) }
         ) {
-            setSimulationActive(coord)
             beginBackgroundTask()
             startResendLoop(with: coord)
             BackgroundLocationManager.shared.requestStart()
         }
     }
 
-    /// Single writer for "the device is simulating", keeping the persisted record
-    /// and the `hasPersistedSimulation` mirror it feeds in lockstep. Pass the
-    /// coordinate the device accepted, or `nil` once it has accepted a clear.
-    ///
-    /// Only ever called after the FFI has reported success, so the record can
-    /// never claim more than actually reached the device.
-    private func setSimulationActive(_ coordinate: CLLocationCoordinate2D?) {
-        if let coordinate {
-            ActiveSimulationStore.markStarted(
-                latitude: coordinate.latitude,
-                longitude: coordinate.longitude
-            )
-        } else {
-            ActiveSimulationStore.markCleared()
-        }
-        hasPersistedSimulation = coordinate != nil
-        // Whichever way this went, the notice has been overtaken: the previous
-        // session's simulation has either been ended or replaced by this one.
-        carriedOverSimulationNotice = nil
-        // …and so has the restored simulation the verification was watching. What
-        // the device is doing now is this session's doing, tracked by
-        // `simulatedCoordinate` and its resend loop.
-        restoredSimulationCoordinate = nil
-    }
-
-    /// Re-reads the persisted record after something *else* in the process changed
-    /// it — currently only a Shortcuts intent, which drives the device itself and
-    /// writes the record from `LocationIntentRunner` before telling the map.
-    private func refreshPersistedSimulation() {
-        hasPersistedSimulation = ActiveSimulationStore.isActive
-        // Same reasoning as `setSimulationActive`: an intent has just changed what
-        // the device is doing, so a notice about an older session is stale — and so
-        // is the restored coordinate the verification was measuring against.
-        carriedOverSimulationNotice = nil
-        restoredSimulationCoordinate = nil
-    }
-
-    /// Runs one device command on `LocationSimulationCommandQueue` and gives the
-    /// controls back either when it answers or when `commandTimeout` expires,
-    /// whichever comes first.
-    ///
-    /// The deadline exists because "Return to Real Location" is enabled with no
-    /// live session at all: the FFI then has to build a tunnel from the pairing
-    /// file, and with the VPN up but the device not answering that sits on a TCP
-    /// connect for tens of seconds. Without a bound, `isBusy` stayed true for the
-    /// whole of it and every control on the map — Simulate, Stop, Locate Me,
-    /// Return to Real — was dead with no way to cancel.
-    ///
-    /// Nothing here reaches into `LocationSimulationState`: the FFI call itself is
-    /// still the only thing that touches it and it still runs on
-    /// `LocationSimulationCommandQueue`, alone. Expiring the deadline does not
-    /// abort the call — it cannot be aborted — it only stops the UI waiting on it.
-    /// A command started afterwards queues behind the abandoned one on that same
-    /// serial queue, so the handles are never contended.
     private func runLocationCommand(
         errorTitle: String,
         errorMessage: @escaping (Int32) -> String,
@@ -1229,66 +990,22 @@ struct LocationSimulationView: View {
         onSuccess: @escaping () -> Void
     ) {
         isBusy = true
-        let outcome = LocationCommandOutcome()
-
         LocationSimulationCommandQueue.shared.async {
             let code = operation()
             DispatchQueue.main.async {
-                guard outcome.claim() else {
-                    // The deadline already fired and the user has been told this
-                    // did not work. Whatever the device eventually answered is
-                    // logged and goes no further: running the handlers now would
-                    // re-arm the resend loop, or flip the persisted flag, behind a
-                    // message that says the command failed.
-                    LogManager.shared.addInfoLog(
-                        "Location command finished after the UI stopped waiting (code \(code))"
-                    )
-                    return
-                }
                 isBusy = false
                 if code == 0 {
                     onSuccess()
                 } else {
                     onFailure?()
-                    presentAlert(title: errorTitle, message: errorMessage(code))
+                    alertTitle = errorTitle
+                    alertMessage = errorMessage(code)
+                    showAlert = true
                 }
             }
         }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.commandTimeout) {
-            guard outcome.claim() else { return }
-            isBusy = false
-            onFailure?()
-            LogManager.shared.addErrorLog(
-                "Location command timed out after \(Int(Self.commandTimeout))s waiting for the device"
-            )
-            presentAlert(
-                title: String(localized: "Device Not Responding"),
-                message: String(localized: "TLocation could not reach this device in time. Connect LocalDevVPN and make sure Wi-Fi is joined to a network, then try again. If the command does reach the device it may still take effect; Return to Real Location ends any simulation.")
-            )
-        }
     }
 
-    private func presentAlert(title: String, message: String) {
-        alertTitle = title
-        alertMessage = message
-        showAlert = true
-    }
-
-    /// Ends the simulation on the device. Reached only from the Stop button, from
-    /// "Return to Real Location", and from a `tlocation://clear-location` URL the
-    /// user has confirmed in a dialog — never automatically. Someone relying on a
-    /// simulated position must not be dropped back to their real one without
-    /// asking.
-    ///
-    /// Leaves the pin and the camera alone by itself: "stop, then re-simulate this
-    /// same spot in a minute" is a real workflow, which is what the bare Stop
-    /// button gives. Moving the map is `returnToRealLocation()`'s business, and it
-    /// does that in the `onCleared` hook rather than here.
-    ///
-    /// The persisted record is dropped only on success — a failed clear leaves the
-    /// device still simulating, so the flag (and with it an enabled Stop button)
-    /// has to stay, or a retry would be impossible.
     private func clear(onFailure: (() -> Void)? = nil, onCleared: (() -> Void)? = nil) {
         guard pairingExists, !isBusy else { return }
         stopResendLoop()
@@ -1300,7 +1017,6 @@ struct LocationSimulationView: View {
             operation: clear_simulated_location,
             onFailure: onFailure
         ) {
-            setSimulationActive(nil)
             endBackgroundTask()
             BackgroundLocationManager.shared.requestStop()
             onCleared?()
@@ -1384,25 +1100,18 @@ struct LocationSimulationView: View {
         }
     }
 
-    /// Recentres on `target` while preserving the current zoom span.
-    ///
-    /// - Parameter fallbackSpanMeters: framing to use when the camera has not
-    ///   reported a region yet. Defaults to the historical 1000 m × 1000 m for
-    ///   every mid-session caller; the launch-time restore passes
-    ///   `defaultSpanMeters` instead, since it is the one caller that always runs
-    ///   before the map has reported anything and should match the launch centring.
-    private func recenterCamera(
-        on target: CLLocationCoordinate2D,
-        fallbackSpanMeters: CLLocationDistance = 1000
-    ) {
+    /// Recentres on `target` while preserving the current zoom span. Falls back to
+    /// the historical 1000 m × 1000 m framing only if the camera has not reported a
+    /// region yet.
+    private func recenterCamera(on target: CLLocationCoordinate2D) {
         if let cameraSpan {
             position = .region(MKCoordinateRegion(center: target, span: cameraSpan))
         } else {
             position = .region(
                 MKCoordinateRegion(
                     center: target,
-                    latitudinalMeters: fallbackSpanMeters,
-                    longitudinalMeters: fallbackSpanMeters
+                    latitudinalMeters: 1000,
+                    longitudinalMeters: 1000
                 )
             )
         }
@@ -1423,32 +1132,10 @@ struct LocationSimulationView: View {
     /// a different `CLLocationManager` entirely — so a live session is
     /// guaranteed to be running at the moment the camera is handed back to
     /// `.userLocation` below.
-    ///
-    /// Like Stop, this only ever runs from a direct tap on its own button.
-    ///
-    /// Confirmation is asked for only when there is a simulation to undo — which
-    /// includes one restored from the persisted record, the case where the user is
-    /// least likely to remember it is running. With nothing simulated the button is
-    /// just "put the camera back on me" plus a harmless idempotent clear, and a
-    /// dialog in front of that would be friction with nothing behind it.
     private func returnToRealLocation() {
-        // Mirrors `clear()`'s own guard, so a tap it would drop on the floor cannot
-        // raise a dialog whose confirm button then does nothing.
-        guard pairingExists, !isBusy else { return }
-        guard hasActiveSimulation else {
-            performReturnToRealLocation()
-            return
-        }
-        isConfirmingReturnToRealLocation = true
-    }
-
-    /// The action itself, reached either straight from `returnToRealLocation()` or
-    /// from the confirm button of the dialog it raises.
-    private func performReturnToRealLocation() {
-        // Re-checked rather than assumed: an arbitrary amount of time can pass
-        // while the dialog is on screen, so the spinner flag below can never be
-        // left set by a call that `clear()` drops on the floor.
-        guard pairingExists, !isBusy else { return }
+        // Mirrors `clear()`'s own guard, so the spinner flag below can never be
+        // left set by a call that clear() drops on the floor.
+        guard hasActiveSimulation, pairingExists, !isBusy else { return }
         // Clear the pin immediately so no stale marker can mislead the user
         // while the simulation is torn down.
         coordinate = nil
@@ -1498,157 +1185,6 @@ struct LocationSimulationView: View {
             )
             position = .region(region)
             cameraSpan = region.span
-        }
-    }
-
-    /// Reflects a simulation that outlived the process.
-    ///
-    /// A simulation runs in the device's DDI location-simulation service, so
-    /// force-quitting TLocation does not end it: iOS carries on reporting the
-    /// simulated position while every in-memory trace of it is gone.
-    /// `ActiveSimulationStore` is the only record that survives, so the first time
-    /// the map appears it is read back into `hasPersistedSimulation` — which is what
-    /// makes "Return to Real Location" confirm before acting, and re-enables Stop
-    /// once the restored pin is back on screen.
-    ///
-    /// Display only, and deliberately so. Nothing is sent to the device here in
-    /// either direction: no re-simulate, and above all no clear. Ending someone's
-    /// simulation is their decision, never a side effect of launching the app.
-    ///
-    /// No resend loop and no keep-alive activation are started either. Neither
-    /// survived the process, and the loop only refreshes a position the device is
-    /// already holding, so leaving it off changes nothing until the user acts.
-    private func restorePersistedSimulationIfNeeded() {
-        guard !hasRestoredPersistedSimulation else { return }
-        hasRestoredPersistedSimulation = true
-        guard ActiveSimulationStore.isActive else { return }
-
-        hasPersistedSimulation = true
-
-        // Claimed for the whole restore, not just the branch that moves the camera.
-        // `centerOnLaunchLocationIfNeeded()` stands down while a simulation is
-        // active, so leaving the one-shot unclaimed here used to arm a delayed
-        // surprise: the moment the user cleared, the next `.onAppear` — the
-        // Settings sheet closing is enough — would find no active simulation and
-        // yank the camera to the real location. Either way this launch has decided
-        // where the map starts.
-        hasCenteredOnLaunch = true
-
-        if let restored = ActiveSimulationStore.coordinate {
-            coordinate = restored
-            // Handed to `verifyRestoredSimulation(against:)` as the reference point
-            // the device's own live position is measured against from here on.
-            restoredSimulationCoordinate = restored
-            // Framed at the same street-level zoom the launch centring uses.
-            // `cameraSpan` is always nil this early — the map has not reported a
-            // region yet — so without naming the default explicitly this fell
-            // through to `recenterCamera`'s wider 1000 m fallback.
-            recenterCamera(on: restored, fallbackSpanMeters: Self.defaultSpanMeters)
-        }
-        // Without a stored coordinate there is nothing to frame, so the map is
-        // simply left where it is; the notice below is then the only signal, which
-        // is exactly why it has to be one the user will actually see.
-
-        // Hedged, and deliberately so. A simulation held by the DDI service does not
-        // expire on a timer, but it is bound to the RSD session that set it: the
-        // tunnel this launch builds replaces the one orphaned by the force-quit, and
-        // the device commonly drops back to its real position moments later —
-        // through no request of ours (see `verifyRestoredSimulation(against:)`).
-        // "May still be" is the only claim the app can honestly make at this point,
-        // and the second sentence promises the retraction that verification
-        // delivers, so the notice reads correctly whichever way it turns out. It
-        // names the control that actually works here — with no pin there is no Stop
-        // button, but "Return to Real Location" is always enabled.
-        //
-        // Shown straight away rather than held back until the first verification.
-        // While a simulation is genuinely in effect iOS reports the simulated
-        // position to this app too, so the *first* fix normally confirms the notice
-        // rather than refuting it; a revert only shows up later, once the tunnel is
-        // up, on no schedule this view could wait out. Delaying would therefore
-        // withhold a warning that is true at the moment it is withheld, to avoid a
-        // disappearance that is itself a real change of state — and one the status
-        // message in `verifyRestoredSimulation(against:)` explains when it happens.
-        //
-        // Persistent rather than transient: this runs at launch, when the readiness
-        // overlay is usually still covering the map, and a three-second message
-        // would be long gone by the time the overlay lifts. `RootView`'s readiness
-        // card carries the same statement for the window where the map is not
-        // visible at all.
-        carriedOverSimulationNotice = String(localized: "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position.")
-    }
-
-    /// Settles whether a simulation restored from a previous launch is still in
-    /// effect, using the device's own live position as the evidence.
-    ///
-    /// The record survives a force-quit precisely because the simulation does — but
-    /// it does not survive *everything*. The DDI location-simulation session is
-    /// bound to the RSD connection that opened it; force-quitting orphans that
-    /// connection, and the fresh tunnel this launch builds
-    /// (`startTunnelInBackground()` → `JITEnableContext.startTunnel()`, which frees
-    /// the previous handshake) takes the stale session down with it. iOS then
-    /// returns to the real position on its own, seconds after the app is reopened,
-    /// with nothing in the app having asked for it and nothing in the app hearing
-    /// about it. Left alone, the record and both notices would go on asserting a
-    /// simulation that had stopped — the app contradicting what the user can see.
-    ///
-    /// The check is possible only because a live simulation is visible from inside
-    /// the app: iOS reports the simulated position to every client, this one
-    /// included. So a fix sitting far from the restored coordinate is positive
-    /// evidence that the device has gone back to reporting reality.
-    ///
-    /// **State correction only.** Nothing here touches the device in either
-    /// direction — no re-simulate and, above all, no clear. `clear()` remains the
-    /// single path that ends a simulation and is still only ever reached from a
-    /// deliberate user action.
-    private func verifyRestoredSimulation(against fix: CLLocationCoordinate2D?) {
-        guard let restored = restoredSimulationCoordinate else { return }
-
-        // No fix yet: permission never granted, no GPS indoors, or the tracking
-        // session has not produced one. "Unknown" is treated as "still simulating"
-        // and the state is left completely untouched — erring the other way would
-        // silently disarm the very controls that end a simulation the device may
-        // well still be running, which is the failure this whole record exists to
-        // prevent.
-        guard let fix else { return }
-
-        let distance = CLLocation(latitude: fix.latitude, longitude: fix.longitude)
-            .distance(
-                from: CLLocation(latitude: restored.latitude, longitude: restored.longitude)
-            )
-
-        // Close: iOS is still handing out the simulated position, so the record is
-        // telling the truth and nothing changes. Watching continues, because a
-        // revert can still happen later — the tunnel may not even be up yet.
-        //
-        // A user who simulated their own neighbourhood is never distinguished from
-        // one who is still simulating, and that is the right way round to be wrong:
-        // the notice stays, and "Return to Real Location" — idempotent, always
-        // enabled — still ends anything that is running.
-        guard distance > Self.simulationRevertDistance else { return }
-
-        LogManager.shared.addInfoLog(
-            String(
-                format: "Restored simulation is no longer in effect: live position is %.0f m from the recorded coordinate. Dropping the stale record (no device command sent).",
-                distance
-            )
-        )
-
-        restoredSimulationCoordinate = nil
-        ActiveSimulationStore.markCleared()
-        hasPersistedSimulation = false
-        // The pin is left where it is: it is now an ordinary dropped pin marking a
-        // place the user chose, ready to be simulated again, and yanking it away
-        // would be a second unexplained change on top of the notice going.
-
-        // Only worth saying if the user could see the claim being made. Dismissed or
-        // never displayed, the correction is silent; on screen, it gets the same
-        // three-second, non-modal line every other completed action gets, so the
-        // notice is replaced by an explanation instead of just vanishing.
-        if carriedOverSimulationNotice != nil {
-            carriedOverSimulationNotice = nil
-            showStatusMessage(
-                String(localized: "The simulation from the previous session has already ended.")
-            )
         }
     }
 
