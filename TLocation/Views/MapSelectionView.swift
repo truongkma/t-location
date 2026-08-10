@@ -521,11 +521,15 @@ struct LocationSimulationView: View {
             mapControlButton(
                 systemImage: "location.slash.fill",
                 accessibilityLabel: "Return to Real Location",
-                // Deliberately not gated on `hasActiveSimulation`. Clearing with
-                // nothing simulated is now an idempotent no-op that reports
-                // success, so there is nothing to protect the user from — and an
-                // always-live control is the dependable way out if the persisted
-                // flag is ever wrong about what the device is doing. The remaining
+                // Deliberately not gated on `hasActiveSimulation`. Clearing is
+                // idempotent — the device ends up on its real position whether or
+                // not anything was simulated — so there is nothing to protect the
+                // user from, and an always-live control is the dependable way out
+                // if the persisted flag is ever wrong about what the device is
+                // doing. That last part is the case this button exists for, and it
+                // is why `clear_simulated_location()` takes a session it had to
+                // rebuild through a momentary set: without it, a clear here would
+                // report success while the device stayed put. The remaining
                 // guards are the ones that still mean something: no pairing file,
                 // no FFI at all; and no overlapping commands.
                 isDisabled: isBusy || currentLocationProvider.isLocating || isReturningToRealLocation || !pairingExists,
@@ -1130,7 +1134,10 @@ struct LocationSimulationView: View {
     ///
     /// (`clear_simulated_location()` would now *succeed* on a torn-down session
     /// rather than returning error 12 as it once did, so this is no longer about
-    /// avoiding a spurious alert. It is simply that there is nothing left to do.)
+    /// avoiding a spurious alert. It is simply that there is nothing left to do —
+    /// and calling it anyway would rebuild a tunnel only to momentarily re-apply a
+    /// position, since a rebuilt session has to claim the simulation before it can
+    /// clear it.)
     ///
     /// This is `clear()`'s success path minus the FFI call and the keep-alive
     /// release, so the map ends up exactly where the Stop button would leave it:
