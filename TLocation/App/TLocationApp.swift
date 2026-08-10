@@ -47,6 +47,7 @@ struct TLocationApp: App {
             try await DeveloperDiskImageService.shared.downloadMissingFiles()
             MountingProgress.shared.pubMount()
         } catch {
+            LogManager.shared.addErrorLog("DDI download failed: \(error.localizedDescription)")
             await MainActor.run {
                 let detail = error.localizedDescription
                 showAlert(

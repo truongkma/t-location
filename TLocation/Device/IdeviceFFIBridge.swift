@@ -26,6 +26,15 @@ private enum IdeviceBridge {
         return String(validatingUTF8: cString)
     }
 
+    /// Reads an FFI error for logging *without* freeing it, so the existing
+    /// `idevice_error_free` call on each path stays exactly where it is and
+    /// ownership is unchanged. Purely for diagnostics.
+    static func detail(from ffiError: UnsafeMutablePointer<IdeviceFfiError>?) -> String {
+        guard let ffiError else { return "libidevice reported no detail" }
+        let message = string(from: ffiError.pointee.message) ?? "no message"
+        return "libidevice code \(ffiError.pointee.code): \(message)"
+    }
+
     static func consumeFFIError(
         _ ffiError: UnsafeMutablePointer<IdeviceFfiError>?,
         fallback: String,
@@ -262,6 +271,13 @@ enum LocationSimulationCommandQueue {
 func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Double, _ pairingFile: String) -> Int32 {
     if let locationSimulation = LocationSimulationState.locationSimulation {
         if let ffiError = location_simulation_set(locationSimulation, latitude, longitude) {
+            // Not an error yet: the code below rebuilds the session from
+            // scratch and either succeeds or logs why it did not. Worth a line
+            // regardless, because a session that keeps dying mid-simulation is
+            // invisible otherwise — every rebuild looks like a fresh start.
+            LogManager.shared.addWarningLog(
+                "simulate_location: the open session rejected the update (\(IdeviceBridge.detail(from: ffiError))); rebuilding it"
+            )
             idevice_error_free(ffiError)
             LocationSimulationState.cleanup()
         } else {
@@ -275,17 +291,26 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
 
     let inetResult = deviceIP.withCString { inet_pton(AF_INET, $0, &address.sin_addr) }
     guard inetResult == 1 else {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.invalidIP)): “\(deviceIP)” is not a valid IPv4 address. Check the target device IP in Settings."
+        )
         return LocationSimulationStatus.invalidIP
     }
 
     var pairingHandle: OpaquePointer?
     let pairingError = pairingFile.withCString { rp_pairing_file_read($0, &pairingHandle) }
     if let pairingError {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.pairingRead)): could not read the pairing file at \(pairingFile) — \(IdeviceBridge.detail(from: pairingError))"
+        )
         idevice_error_free(pairingError)
         return LocationSimulationStatus.pairingRead
     }
 
     guard let pairingHandle else {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.pairingRead)): reading the pairing file at \(pairingFile) reported success but returned no handle"
+        )
         return LocationSimulationStatus.pairingRead
     }
 
@@ -307,6 +332,9 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
     }
 
     if let providerError {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.providerCreate)): could not open the tunnel to \(deviceIP):49152 — \(IdeviceBridge.detail(from: providerError)). Check that LocalDevVPN is connected."
+        )
         idevice_error_free(providerError)
         LocationSimulationState.cleanup()
         return LocationSimulationStatus.providerCreate
@@ -318,6 +346,9 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         &LocationSimulationState.remoteServer
     )
     if let remoteServerError {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.remoteServer)): could not connect to the remote service on \(deviceIP):49152 — \(IdeviceBridge.detail(from: remoteServerError))"
+        )
         idevice_error_free(remoteServerError)
         LocationSimulationState.cleanup()
         return LocationSimulationStatus.remoteServer
@@ -328,6 +359,9 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         &LocationSimulationState.locationSimulation
     )
     if let locationSimulationError {
+        LogManager.shared.addErrorLog(
+            "simulate_location failed (code \(LocationSimulationStatus.locationSimulation)): the device would not start a location-simulation session — \(IdeviceBridge.detail(from: locationSimulationError)). This usually means the Developer Disk Image is not mounted."
+        )
         idevice_error_free(locationSimulationError)
         LocationSimulationState.cleanup()
         return LocationSimulationStatus.locationSimulation
@@ -341,6 +375,15 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         longitude
     )
     if let locationSetError {
+        LogManager.shared.addErrorLog(
+            String(
+                format: "simulate_location failed (code %d): the device rejected the coordinate %.6f, %.6f — %@",
+                LocationSimulationStatus.locationSet,
+                latitude,
+                longitude,
+                IdeviceBridge.detail(from: locationSetError)
+            )
+        )
         idevice_error_free(locationSetError)
         LocationSimulationState.cleanup()
         return LocationSimulationStatus.locationSet
@@ -351,6 +394,9 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
 
 func clear_simulated_location() -> Int32 {
     guard let locationSimulation = LocationSimulationState.locationSimulation else {
+        LogManager.shared.addErrorLog(
+            "clear_simulated_location failed (code \(LocationSimulationStatus.locationClear)): there is no open location-simulation session to clear"
+        )
         return LocationSimulationStatus.locationClear
     }
 
@@ -358,6 +404,9 @@ func clear_simulated_location() -> Int32 {
     LocationSimulationState.cleanup()
 
     if let ffiError {
+        LogManager.shared.addErrorLog(
+            "clear_simulated_location failed (code \(LocationSimulationStatus.locationClear)): the device rejected the clear — \(IdeviceBridge.detail(from: ffiError))"
+        )
         idevice_error_free(ffiError)
         return LocationSimulationStatus.locationClear
     }

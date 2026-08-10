@@ -112,6 +112,9 @@ struct SettingsView: View {
     // Linked sync file. A singleton that outlives this sheet, so `@ObservedObject`
     // rather than `@StateObject`: this view watches it, it does not own it.
     @ObservedObject private var syncFile = BookmarkSyncFile.shared
+    /// Only for the error badge on the Logs row — the log itself is read by
+    /// `LogsView`. Another singleton this view watches rather than owns.
+    @ObservedObject private var logManager = LogManager.shared
     @State private var isSyncing = false
     @State private var syncMessage: (text: String, isError: Bool)?
 
@@ -273,6 +276,23 @@ struct SettingsView: View {
                     } else if let result = ddiResultMessage {
                         Text(result.text).font(.caption).foregroundStyle(result.isError ? .red : .green)
                     }
+                }
+
+                Section("Diagnostics") {
+                    // A push, not a sheet: Settings is already inside a
+                    // `NavigationStack`, and the log screen adds no file
+                    // importer or exporter of its own — sharing goes through
+                    // `ShareLink` — so it cannot collide with the single
+                    // importer/exporter pair this view owns.
+                    NavigationLink {
+                        LogsView()
+                    } label: {
+                        Label("Logs", systemImage: "doc.text.magnifyingglass")
+                    }
+                    .badge(logManager.errorCount)
+
+                    Text("A record of what happened while connecting, mounting the DDI and simulating a location. Copy or share it when reporting a problem.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Section("Help") {
@@ -635,18 +655,21 @@ struct SettingsView: View {
                 try PairingFileStore.importFromPicker(url)
                 isImportingFile = false
                 pairingFileExists = true
+                LogManager.shared.addInfoLog("Pairing file imported from \(url.lastPathComponent)")
                 pairingImportMessage = (String(localized: "Imported successfully"), false)
                 startTunnelInBackground()
                 schedulePairingStatusDismiss()
             } catch {
                 isImportingFile = false
                 let detail = error.localizedDescription
+                LogManager.shared.addErrorLog("Pairing file import failed for \(url.lastPathComponent): \(detail)")
                 pairingImportMessage = (String(localized: "Import failed: \(detail)"), true)
                 schedulePairingStatusDismiss()
             }
         case .failure(let error):
             isImportingFile = false
             let detail = error.localizedDescription
+            LogManager.shared.addErrorLog("Pairing file picker failed: \(detail)")
             pairingImportMessage = (String(localized: "Import failed: \(detail)"), true)
             schedulePairingStatusDismiss()
         }
@@ -730,6 +753,7 @@ struct SettingsView: View {
                 }
             } catch {
                 let detail = error.localizedDescription
+                LogManager.shared.addErrorLog("DDI redownload failed: \(detail)")
                 await MainActor.run {
                     isRedownloadingDDI = false
                     ddiResultMessage = (String(localized: "Failed to redownload DDI files: \(detail)"), true)

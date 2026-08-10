@@ -252,6 +252,22 @@
         }
       }
     },
+    "A record of what happened while connecting, mounting the DDI and simulating a location. Copy or share it when reporting a problem.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A record of what happened while connecting, mounting the DDI and simulating a location. Copy or share it when reporting a problem."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bản ghi những gì đã diễn ra khi kết nối, gắn DDI và giả lập vị trí. Hãy sao chép hoặc chia sẻ khi báo lỗi."
+          }
+        }
+      }
+    },
     "Adds a few metres of random movement so the simulated position looks like a real GPS fix.": {
       "localizations": {
         "en": {
@@ -280,6 +296,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nâng cao"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tất cả"
           }
         }
       }
@@ -508,6 +540,38 @@
         }
       }
     },
+    "Clear Logs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Logs"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xoá nhật ký"
+          }
+        }
+      }
+    },
+    "Clear Logs?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Logs?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xoá nhật ký?"
+          }
+        }
+      }
+    },
     "Clear Search": {
       "localizations": {
         "en": {
@@ -712,6 +776,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã sao chép toạ độ"
+          }
+        }
+      }
+    },
+    "Copy All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy All"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép tất cả"
+          }
+        }
+      }
+    },
+    "Copy All and Share always include every entry, even any hidden by the filter above.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy All and Share always include every entry, even any hidden by the filter above."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép tất cả và Chia sẻ luôn gồm mọi mục, kể cả những mục đang bị bộ lọc ở trên ẩn đi."
           }
         }
       }
@@ -940,6 +1036,22 @@
         }
       }
     },
+    "Diagnostics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chẩn đoán"
+          }
+        }
+      }
+    },
     "Disconnect and reconnect LocalDevVPN.": {
       "localizations": {
         "en": {
@@ -1036,6 +1148,38 @@
         }
       }
     },
+    "Errors & Warnings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errors & Warnings"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lỗi và cảnh báo"
+          }
+        }
+      }
+    },
+    "Every entry will be removed. This cannot be undone.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every entry will be removed. This cannot be undone."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toàn bộ các mục sẽ bị xoá. Không thể hoàn tác."
+          }
+        }
+      }
+    },
     "Existing DDI files will be removed before downloading fresh copies.": {
       "localizations": {
         "en": {
@@ -1112,6 +1256,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không tải lại được các tệp DDI: %@"
+          }
+        }
+      }
+    },
+    "Filter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ lọc"
           }
         }
       }
@@ -1732,6 +1892,54 @@
         }
       }
     },
+    "Log Actions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log Actions"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tác vụ nhật ký"
+          }
+        }
+      }
+    },
+    "Log copied to the clipboard": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log copied to the clipboard"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép nhật ký vào bộ nhớ tạm"
+          }
+        }
+      }
+    },
+    "Logs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logs"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhật ký"
+          }
+        }
+      }
+    },
     "Longitude": {
       "localizations": {
         "en": {
@@ -1828,6 +2036,22 @@
         }
       }
     },
+    "No Errors or Warnings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Errors or Warnings"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có lỗi hay cảnh báo"
+          }
+        }
+      }
+    },
     "No GPS fix was available. Try again, ideally with a clear view of the sky.": {
       "localizations": {
         "en": {
@@ -1840,6 +2064,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không bắt được tín hiệu GPS. Hãy thử lại, tốt nhất là ở nơi thoáng trời."
+          }
+        }
+      }
+    },
+    "No Logs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Logs"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có nhật ký"
           }
         }
       }
@@ -1904,6 +2144,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa liên kết tệp đồng bộ nào."
+          }
+        }
+      }
+    },
+    "Nothing has been recorded yet. Connect to the device or simulate a location and the steps will appear here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing has been recorded yet. Connect to the device or simulate a location and the steps will appear here."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có gì được ghi lại. Hãy kết nối tới thiết bị hoặc giả lập vị trí, các bước sẽ hiện ra ở đây."
+          }
+        }
+      }
+    },
+    "Nothing has failed since the log was last cleared.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing has failed since the log was last cleared."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có gì thất bại kể từ lần xoá nhật ký gần nhất."
           }
         }
       }
@@ -2532,6 +2804,38 @@
         }
       }
     },
+    "Share…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chia sẻ…"
+          }
+        }
+      }
+    },
+    "Show All": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show All"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện tất cả"
+          }
+        }
+      }
+    },
     "Signing expires": {
       "localizations": {
         "en": {
@@ -3010,6 +3314,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "TLocation %@ • iOS %@"
+          }
+        }
+      }
+    },
+    "TLocation Logs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation Logs"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhật ký TLocation"
           }
         }
       }

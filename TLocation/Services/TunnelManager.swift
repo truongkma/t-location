@@ -31,6 +31,9 @@ final class TunnelManager: ObservableObject {
         let pairingFileURL = PairingFileStore.prepareURL()
         guard FileManager.default.fileExists(atPath: pairingFileURL.path) else {
             isConnected = false
+            LogManager.shared.addWarningLog(
+                "Tunnel start skipped: no pairing file at \(pairingFileURL.path)"
+            )
             return
         }
 
@@ -61,7 +64,9 @@ final class TunnelManager: ObservableObject {
         switch result {
         case .success:
             isConnected = true
-            LogManager.shared.addInfoLog("Tunnel connected successfully")
+            LogManager.shared.addInfoLog(
+                "Tunnel connected successfully to \(DeviceConnectionContext.targetIPAddress):49152"
+            )
             mountDeveloperDiskImageIfNeeded()
         case .failure(let error):
             isConnected = false

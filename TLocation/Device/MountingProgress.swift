@@ -42,6 +42,14 @@ final class MountingProgress: ObservableObject {
         }
 
         guard isPairing(), !currentlyMounted else {
+            // Both skips are legitimate, but only one of them means the DDI is
+            // ready — and without a line here a mount that never started looks
+            // exactly like a mount that silently failed.
+            if currentlyMounted {
+                LogManager.shared.addInfoLog("DDI mount skipped: the image is already mounted")
+            } else {
+                LogManager.shared.addWarningLog("DDI mount skipped: the pairing file could not be read")
+            }
             return
         }
 
@@ -52,6 +60,7 @@ final class MountingProgress: ObservableObject {
 
         let thread = Thread { [weak self] in
             guard let self else { return }
+            LogManager.shared.addInfoLog("DDI mount started")
             let mountError = mountPersonalDDI(
                 imagePath: URL.documentsDirectory.appendingPathComponent("DDI/Image.dmg").path,
                 trustcachePath: URL.documentsDirectory.appendingPathComponent("DDI/Image.dmg.trustcache").path,
@@ -66,6 +75,8 @@ final class MountingProgress: ObservableObject {
                         }
                     }
                 } else {
+                    // The failure path is already logged by `mountPersonalDDI`.
+                    LogManager.shared.addInfoLog("DDI mounted successfully")
                     self.coolisMounted = true
                     self.checkforMounted()
                 }

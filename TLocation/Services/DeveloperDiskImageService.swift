@@ -27,16 +27,23 @@ final class DeveloperDiskImageService {
     }
 
     func downloadFile(from urlString: String, to destinationURL: URL) async throws {
+        let fileName = destinationURL.lastPathComponent
+
         guard let url = URL(string: urlString),
               url.scheme?.lowercased() == "https" else {
+            LogManager.shared.addErrorLog("DDI download of \(fileName) rejected an unusable URL: \(urlString)")
             throw DDIDownloadError.invalidURL(urlString)
         }
 
+        LogManager.shared.addInfoLog("DDI download started: \(fileName) from \(urlString)")
+
         let (temporaryURL, response) = try await session.download(from: url)
         guard let httpResponse = response as? HTTPURLResponse else {
+            LogManager.shared.addErrorLog("DDI download of \(fileName) got a non-HTTP response")
             throw DDIDownloadError.invalidResponse
         }
         guard (200..<300).contains(httpResponse.statusCode) else {
+            LogManager.shared.addErrorLog("DDI download of \(fileName) got HTTP \(httpResponse.statusCode)")
             throw DDIDownloadError.badStatus(httpResponse.statusCode)
         }
 
@@ -49,12 +56,17 @@ final class DeveloperDiskImageService {
             try fileManager.removeItem(at: destinationURL)
         }
         try fileManager.moveItem(at: temporaryURL, to: destinationURL)
+
+        let attributes = try? fileManager.attributesOfItem(atPath: destinationURL.path)
+        let size = (attributes?[.size] as? Int).map(String.init) ?? "unknown"
+        LogManager.shared.addInfoLog("DDI download finished: \(fileName) (\(size) bytes)")
     }
 
     func redownload(progressHandler: ((Double, String) -> Void)? = nil) async throws {
         let totalStages = Double(Self.downloadItems.count + 1)
         var completedStages = 0.0
 
+        LogManager.shared.addInfoLog("DDI redownload requested; removing the existing files")
         progressHandler?(0.0, String(localized: "Removing existing DDI files…"))
         for item in Self.downloadItems {
             let fileURL = URL.documentsDirectory.appendingPathComponent(item.relativePath)
@@ -77,6 +89,7 @@ final class DeveloperDiskImageService {
             progressHandler?(completedStages / totalStages, String(localized: "\(name) ready"))
         }
 
+        LogManager.shared.addInfoLog("DDI redownload complete")
         progressHandler?(1.0, String(localized: "DDI download complete."))
     }
 
