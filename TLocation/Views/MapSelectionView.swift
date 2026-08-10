@@ -1019,6 +1019,13 @@ struct LocationSimulationView: View {
         ) {
             endBackgroundTask()
             BackgroundLocationManager.shared.requestStop()
+            // The simulated fix is gone; bounce the tracking session so the
+            // real dot arrives as soon as CoreLocation can manage rather than
+            // waiting out `distanceFilter`'s cache. Covers both the Stop
+            // button and Return to Real Location, which both funnel through
+            // this closure. No-op if tracking is not running (map off screen
+            // or no authorization yet) — see `refreshTracking()`.
+            currentLocationProvider.refreshTracking()
             onCleared?()
         }
     }
@@ -1145,7 +1152,7 @@ struct LocationSimulationView: View {
         } onCleared: {
             isReturningToRealLocation = false
             position = .userLocation(fallback: .automatic)
-            showStatusMessage(String(localized: "Simulation stopped — following your real location"))
+            showStatusMessage(String(localized: "Simulation stopped — map is waiting for your real location (slower indoors)"))
         }
     }
 

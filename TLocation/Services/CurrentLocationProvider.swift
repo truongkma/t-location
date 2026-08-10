@@ -106,6 +106,31 @@ final class CurrentLocationProvider: NSObject, ObservableObject, CLLocationManag
         }
     }
 
+    /// Bounces the continuous tracking session so CoreLocation delivers a
+    /// current fix instead of replaying whatever it last cached under
+    /// `distanceFilter = 5`. Intended for the moment right after a simulated
+    /// fix has been withdrawn: nothing here makes GPS itself faster, it only
+    /// stops the app's own session from adding delay on top of that.
+    ///
+    /// No-op unless the session is actually running — i.e. tracking is
+    /// wanted (map on screen) and authorization is already granted. Never
+    /// requests authorization itself: `startTrackingIfAuthorized()` is the
+    /// only path that starts the session, and it already refuses to run
+    /// without it. Only touches `trackingManager`, so an in-flight
+    /// `locate(_:)` on the separate one-shot manager is never disturbed, and
+    /// `isTrackingActive` / `wantsTracking` are left exactly as they were —
+    /// this restarts the same session, it does not stop or start wanting one.
+    ///
+    /// Deliberately does not also call `requestLocation()` on
+    /// `trackingManager`: that call self-terminates the session after one fix
+    /// (or a timeout), which would silently end the continuous updates this
+    /// method is supposed to be refreshing, not replacing.
+    func refreshTracking() {
+        guard isTrackingActive else { return }
+        trackingManager.stopUpdatingLocation()
+        trackingManager.startUpdatingLocation()
+    }
+
     // MARK: - One-shot lookup (Locate Me)
 
     func locate(_ completion: @escaping (Result<CLLocationCoordinate2D, LocateError>) -> Void) {

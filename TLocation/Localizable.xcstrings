@@ -3028,18 +3028,18 @@
         }
       }
     },
-    "Simulation stopped — following your real location": {
+    "Simulation stopped — map is waiting for your real location (slower indoors)": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Simulation stopped — following your real location"
+            "value": "Simulation stopped — map is waiting for your real location (slower indoors)"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã dừng giả lập — đang theo vị trí thật của bạn"
+            "value": "Đã dừng giả lập — bản đồ đang chờ vị trí thật (chậm hơn trong nhà)"
           }
         }
       }
