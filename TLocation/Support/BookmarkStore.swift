@@ -41,6 +41,49 @@ enum BookmarkStore {
     /// `==` would let re-importing the same file duplicate every entry.
     static let coordinateEpsilon: CLLocationDegrees = 0.00001
 
+    // MARK: Matching a coordinate to a saved bookmark
+
+    /// How close an already-saved bookmark has to be for the map callout to
+    /// call the dropped pin "saved".
+    ///
+    /// Deliberately much looser than `coordinateEpsilon` (~1.1 m), and
+    /// deliberately measured in metres rather than degrees so it means the same
+    /// thing at any latitude. Two things push the pin off a saved point by more
+    /// than a metre through no fault of the user:
+    ///
+    /// - the opt-in natural GPS drift adds a random 3–5 m offset to every
+    ///   resend, so while a simulation is running iOS reports a position that
+    ///   wanders inside a ~5 m disc, and "Locate Me" hands that wandering
+    ///   position straight back to the pin;
+    /// - a real GPS fix is only good to a few metres anyway.
+    ///
+    /// At 1.1 m the callout would call such a pin unsaved and offer to save a
+    /// near-duplicate a few metres from the original. 12 m clears the 5 m drift
+    /// with room to spare while still being far smaller than the distance
+    /// between two places a user would want saved separately.
+    ///
+    /// This is a *display* tolerance only. `merge` keeps `coordinateEpsilon`
+    /// untouched: import/sync de-duplication must stay conservative, since
+    /// merging two genuinely different bookmarks 10 m apart would lose data.
+    static let displayMatchRadiusMeters: CLLocationDistance = 12
+
+    /// The saved bookmark closest to `coordinate`, or `nil` if none is within
+    /// `radiusMeters`. Nearest-wins, so an area with several saved points names
+    /// the one the pin is actually on.
+    static func bookmark(
+        nearest coordinate: CLLocationCoordinate2D,
+        in bookmarks: [LocationBookmark],
+        within radiusMeters: CLLocationDistance = displayMatchRadiusMeters
+    ) -> LocationBookmark? {
+        guard CLLocationCoordinate2DIsValid(coordinate) else { return nil }
+        let target = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        return bookmarks
+            .map { ($0, CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: target)) }
+            .filter { $0.1 <= radiusMeters }
+            .min { $0.1 < $1.1 }?
+            .0
+    }
+
     // MARK: Persistence
 
     static func load(from defaults: UserDefaults = .standard) -> [LocationBookmark] {

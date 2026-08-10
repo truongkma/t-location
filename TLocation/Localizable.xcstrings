@@ -700,6 +700,38 @@
         }
       }
     },
+    "Coordinates copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coordinates copied"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép toạ độ"
+          }
+        }
+      }
+    },
+    "Copy Coordinates": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Coordinates"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép toạ độ"
+          }
+        }
+      }
+    },
     "Could Not Determine Location": {
       "localizations": {
         "en": {
@@ -984,22 +1016,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chạm vào bản đồ để thả ghim, rồi chạm biểu tượng dấu trang để lưu vị trí."
-          }
-        }
-      }
-    },
-    "Enter a name for this location.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter a name for this location."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhập tên cho vị trí này."
           }
         }
       }
@@ -2384,6 +2400,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vị trí đã lưu"
+          }
+        }
+      }
+    },
+    "Saved to Bookmarks": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Bookmarks"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã lưu vị trí"
           }
         }
       }

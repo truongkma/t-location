@@ -197,6 +197,26 @@ private struct FloatingCircleBackground: ViewModifier {
     }
 }
 
+/// Rounded glass/material backing for the pin callout. Same iOS 26 Liquid Glass
+/// / `.ultraThinMaterial` split as `FloatingCircleBackground`, so the callout
+/// stays legible over both light map tiles and dark satellite imagery.
+private struct CalloutBackground: ViewModifier {
+    private static let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(in: .rect(cornerRadius: 14))
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Self.shape)
+                .overlay(Self.shape.strokeBorder(Color.primary.opacity(0.10)))
+                .shadow(color: .black.opacity(0.20), radius: 6, y: 3)
+        }
+    }
+}
+
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -225,9 +245,12 @@ struct LocationSimulationView: View {
     // Bookmarks
     @State private var bookmarks: [LocationBookmark] = []
     @State private var showBookmarks = false
-    @State private var showSaveBookmark = false
-    @State private var newBookmarkName = ""
     @State private var showSettings = false
+
+    /// Measured size of the pin callout, used to work out the screen rectangle
+    /// the annotation occupies so a tap that lands on it is not also treated as
+    /// a map tap. Zero until the callout has been laid out once.
+    @State private var calloutSize: CGSize = .zero
 
     // Current location
     @StateObject private var currentLocationProvider = CurrentLocationProvider()
@@ -458,17 +481,212 @@ struct LocationSimulationView: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// Bottom cluster (coordinates readout + Stop / Simulate / Bookmark). Given
-    /// a material backing so it stays legible on a map.
+    /// Bottom cluster (Stop / Simulate Location, plus any transient status
+    /// message). Given a material backing so it stays legible on a map.
     private var bottomControlCluster: some View {
         VStack(spacing: 12) {
             pinControls
         }
+        .animation(.default, value: statusMessage)
         .padding(.vertical, 14)
         .padding(.horizontal, 20)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
+    }
+
+    // MARK: - Pin callout
+
+    /// Gap between the callout and the pin glyph below it.
+    private static let calloutSpacing: CGFloat = 4
+    /// Height of `pinGlyph` (head + stem). Fixed, so the annotation's screen
+    /// rectangle can be reconstructed in `isInsidePinAnnotation`.
+    private static let pinGlyphHeight: CGFloat = 30
+    private static let pinGlyphWidth: CGFloat = 20
+    /// Keeps a long bookmark name from stretching the callout across the map.
+    private static let calloutMaxWidth: CGFloat = 240
+
+    /// Saved state: a solid, saturated blue chip with a white glyph.
+    private static let bookmarkSavedTint = Color(red: 0.04, green: 0.28, blue: 0.78)
+    /// Unsaved state: a pale, muted blue outline. The difference between the two
+    /// is a filled dark chip vs. an empty light one, which reads at a glance
+    /// without relying on hue alone.
+    private static let bookmarkUnsavedTint = Color(red: 0.42, green: 0.64, blue: 0.92)
+
+    private static func formattedCoordinate(_ coordinate: CLLocationCoordinate2D) -> String {
+        String(format: "%.6f, %.6f", coordinate.latitude, coordinate.longitude)
+    }
+
+    /// The bookmark already saved at the dropped pin, if any.
+    ///
+    /// `coordinate` always holds the exact point the user chose — a map tap, a
+    /// search result, a bookmark, or a `Locate Me` fix. The natural-GPS-drift
+    /// offset from `jitteredCoordinate(around:)` is applied only to the value
+    /// handed to the FFI inside `startResendLoop(with:)` and is never written
+    /// back into `coordinate` or `simulatedCoordinate`, so nothing read here is
+    /// ever a jittered value.
+    private var savedBookmarkAtPin: LocationBookmark? {
+        guard let coordinate else { return nil }
+        return BookmarkStore.bookmark(nearest: coordinate, in: bookmarks)
+    }
+
+    /// Compact information callout drawn above the pin: the bookmark name when
+    /// this place is already saved, the coordinates, a copy button, and the
+    /// bookmark state/action chip.
+    private func pinCallout(for coordinate: CLLocationCoordinate2D) -> some View {
+        let saved = savedBookmarkAtPin
+
+        return VStack(alignment: .leading, spacing: 3) {
+            if let saved {
+                Text(saved.name)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            HStack(spacing: 8) {
+                Text(Self.formattedCoordinate(coordinate))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Button {
+                    copyCoordinates(coordinate)
+                } label: {
+                    calloutChip(
+                        systemImage: "doc.on.doc",
+                        glyphColor: .secondary,
+                        fill: Color.primary.opacity(0.10),
+                        stroke: Color.primary.opacity(0.12)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Copy Coordinates")
+
+                bookmarkChip(saved: saved != nil)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: Self.calloutMaxWidth, alignment: .leading)
+        .modifier(CalloutBackground())
+        // Measured rather than assumed: the height depends on whether the name
+        // line is present and on the user's Dynamic Type size.
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    // `.task(id:)` rather than a direct assignment, so the state
+                    // write happens after layout instead of during it.
+                    .task(id: geometry.size) { calloutSize = geometry.size }
+            }
+        }
+    }
+
+    /// Saved → an inert badge (no button, so it cannot possibly add a second
+    /// bookmark for a place the callout is already naming). Unsaved → a button
+    /// that saves immediately.
+    @ViewBuilder
+    private func bookmarkChip(saved: Bool) -> some View {
+        if saved {
+            calloutChip(
+                systemImage: "bookmark.fill",
+                glyphColor: .white,
+                fill: Self.bookmarkSavedTint,
+                stroke: Color.white.opacity(0.65)
+            )
+            .accessibilityLabel("Saved to Bookmarks")
+        } else {
+            Button {
+                saveCurrentPinAsBookmark()
+            } label: {
+                calloutChip(
+                    systemImage: "bookmark",
+                    glyphColor: Self.bookmarkUnsavedTint,
+                    fill: Self.bookmarkUnsavedTint.opacity(0.20),
+                    stroke: Self.bookmarkUnsavedTint.opacity(0.70)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Save Bookmark")
+        }
+    }
+
+    private func calloutChip(
+        systemImage: String,
+        glyphColor: Color,
+        fill: Color,
+        stroke: Color
+    ) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(glyphColor)
+            .frame(width: 26, height: 26)
+            .background(Circle().fill(fill))
+            .overlay(Circle().strokeBorder(stroke, lineWidth: 1))
+            .contentShape(Circle())
+    }
+
+    /// Classic pin: a red head with a white ring over a short stem whose tip is
+    /// the annotation's anchor point. Kept simple and high-contrast so it stays
+    /// readable on satellite imagery.
+    private var pinGlyph: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Circle().fill(Color.red)
+                Circle().strokeBorder(.white, lineWidth: 2)
+            }
+            .frame(width: Self.pinGlyphWidth, height: Self.pinGlyphWidth)
+
+            Rectangle()
+                .fill(Color.red)
+                .frame(width: 3, height: Self.pinGlyphHeight - Self.pinGlyphWidth)
+        }
+        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+        .accessibilityHidden(true)
+    }
+
+    /// Whether `point` (map-local coordinates) falls inside the annotation —
+    /// callout plus pin — currently drawn for `coordinate`.
+    private func isInsidePinAnnotation(_ point: CGPoint, proxy: MapProxy) -> Bool {
+        guard let coordinate,
+              calloutSize != .zero,
+              let anchor = proxy.convert(coordinate, to: .local) else { return false }
+        let width = max(calloutSize.width, Self.pinGlyphWidth)
+        let height = calloutSize.height + Self.calloutSpacing + Self.pinGlyphHeight
+        // `.bottom` anchoring puts the content's bottom edge on the coordinate.
+        let frame = CGRect(x: anchor.x - width / 2, y: anchor.y - height, width: width, height: height)
+        return frame.insetBy(dx: -4, dy: -4).contains(point)
+    }
+
+    private func copyCoordinates(_ coordinate: CLLocationCoordinate2D) {
+        UIPasteboard.general.string = Self.formattedCoordinate(coordinate)
+        Haptics.light()
+        showStatusMessage(String(localized: "Coordinates copied"))
+    }
+
+    /// Saves the pin with a coordinate-derived name and no prompt — the callout
+    /// icon is a one-tap action, and the bookmarks sheet already has Rename for
+    /// giving it a better name afterwards.
+    ///
+    /// Always stores `coordinate`, the exact anchor the user chose; natural GPS
+    /// drift never touches it (see `savedBookmarkAtPin`). The duplicate guard
+    /// repeats the callout's own check, so even if the badge were somehow tapped
+    /// while showing "saved" no second bookmark could be created.
+    private func saveCurrentPinAsBookmark() {
+        guard let coord = coordinate,
+              BookmarkStore.bookmark(nearest: coord, in: bookmarks) == nil else { return }
+        bookmarks.append(
+            LocationBookmark(
+                name: String(format: "%.4f, %.4f", coord.latitude, coord.longitude),
+                latitude: coord.latitude,
+                longitude: coord.longitude
+            )
+        )
+        saveBookmarks()
+        Haptics.light()
+        showStatusMessage(String(localized: "Saved to Bookmarks"))
     }
 
     var body: some View {
@@ -481,8 +699,18 @@ struct LocationSimulationView: View {
                     UserAnnotation()
 
                     if let coordinate {
-                        Marker("Pin", coordinate: coordinate)
-                            .tint(.red)
+                        // `Annotation` rather than `Marker` so the information
+                        // callout is anchored to the coordinate and pans and
+                        // zooms with the map. `.bottom` puts the bottom of the
+                        // content — the tip of the pin stem — on the exact
+                        // point, leaving the callout above it.
+                        Annotation("Pin", coordinate: coordinate, anchor: .bottom) {
+                            VStack(spacing: Self.calloutSpacing) {
+                                pinCallout(for: coordinate)
+                                pinGlyph
+                            }
+                        }
+                        .annotationTitles(.hidden)
                     }
                 }
                 .mapStyle(.standard(elevation: .realistic))
@@ -492,6 +720,14 @@ struct LocationSimulationView: View {
                     // second tap then behaves normally.
                     if isSearchFocused {
                         isSearchFocused = false
+                        return
+                    }
+                    // A tap on the callout or the pin itself is the annotation's
+                    // business. The map's tap recogniser still sees those touches
+                    // (the annotation is hosted inside the map), so without this
+                    // guard tapping Copy or Save would also re-drop the pin a few
+                    // metres north of where it is.
+                    if isInsidePinAnnotation(point, proxy: proxy) {
                         return
                     }
                     if let loc = proxy.convert(point, from: .local) {
@@ -531,13 +767,6 @@ struct LocationSimulationView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
-        }
-        .alert("Save Bookmark", isPresented: $showSaveBookmark) {
-            TextField("Name", text: $newBookmarkName)
-            Button("Save") { addBookmark() }
-            Button("Cancel", role: .cancel) { newBookmarkName = "" }
-        } message: {
-            Text("Enter a name for this location.")
         }
         .alert("Location Permission Needed", isPresented: $showLocationDeniedAlert) {
             Button("Open Settings") {
@@ -620,19 +849,6 @@ struct LocationSimulationView: View {
         BookmarkStore.save(bookmarks)
     }
 
-    private func addBookmark() {
-        guard let coord = coordinate else { return }
-        let name = newBookmarkName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let bookmark = LocationBookmark(
-            name: name.isEmpty ? String(format: "%.4f, %.4f", coord.latitude, coord.longitude) : name,
-            latitude: coord.latitude,
-            longitude: coord.longitude
-        )
-        bookmarks.append(bookmark)
-        saveBookmarks()
-        newBookmarkName = ""
-    }
-
     // MARK: - Location
 
     private func selectSearchResult(_ result: MKLocalSearchCompletion) {
@@ -656,13 +872,20 @@ struct LocationSimulationView: View {
         applySelection(firstCoordinate)
     }
 
+    /// The coordinate readout and the bookmark button moved into the pin
+    /// callout, which is attached to the pin itself; what stays here is the two
+    /// actions that are about the *simulation* rather than about the pin.
     @ViewBuilder
     private var pinControls: some View {
-        if let coord = coordinate {
-            Text(String(format: "%.6f, %.6f", coord.latitude, coord.longitude))
-                .font(.footnote.monospaced())
+        if let statusMessage {
+            Text(statusMessage)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .transition(.opacity)
+        }
 
+        if coordinate != nil {
             HStack(spacing: 12) {
                 Button("Stop") { clear() }
                     .buttonStyle(.bordered)
@@ -672,31 +895,18 @@ struct LocationSimulationView: View {
                 Button("Simulate Location", action: simulate)
                     .buttonStyle(.borderedProminent)
                     .disabled(!pairingExists || isBusy)
-
-                Button {
-                    showSaveBookmark = true
-                } label: {
-                    Image(systemName: "bookmark")
-                }
-                .buttonStyle(.bordered)
-                .tint(.blue)
             }
-        } else if let statusMessage {
-            Text(statusMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .transition(.opacity)
-                .animation(.default, value: statusMessage)
-        } else {
+        } else if statusMessage == nil {
             Text("Tap map to drop pin")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }
 
-    /// Shows a transient, non-modal message in the bottom control area (where
-    /// the pin readout / "Tap map to drop pin" hint normally lives) and clears
-    /// it automatically after `statusMessageDuration`. Re-entrant: a new call
+    /// Shows a transient, non-modal message in the bottom control area (above
+    /// the Stop / Simulate buttons, or in place of the "Tap map to drop pin"
+    /// hint when there is no pin) and clears it automatically after
+    /// `statusMessageDuration`. Re-entrant: a new call
     /// cancels any pending auto-clear from a previous message so they can't
     /// race and wipe each other's text early.
     private func showStatusMessage(_ message: String) {
