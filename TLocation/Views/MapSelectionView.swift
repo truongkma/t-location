@@ -304,6 +304,31 @@ struct LocationSimulationView: View {
     /// Guards the one-shot restore below, same reasoning as `hasCenteredOnLaunch`.
     @State private var hasRestoredPersistedSimulation = false
 
+    /// The coordinate a simulation *restored from a previous launch* was last set
+    /// to, held only for as long as that restored simulation is still being
+    /// watched. Non-nil means "the record claims the device is holding this
+    /// position and nothing in this session has confirmed or replaced it yet";
+    /// `verifyRestoredSimulation(against:)` is what eventually settles it.
+    ///
+    /// Distinct from `simulatedCoordinate`, which is the anchor of a resend loop
+    /// this session started and is never set for a restored simulation.
+    @State private var restoredSimulationCoordinate: CLLocationCoordinate2D?
+
+    /// How far the device's own live position has to sit from a restored
+    /// simulated coordinate before the app accepts that the simulation is no
+    /// longer in effect.
+    ///
+    /// 200 m is chosen to be unreachable by noise and unmissable by a real
+    /// revert. It clears the opt-in natural-GPS-drift wobble (≤5 m, see
+    /// `jitteredCoordinate(around:)`) by forty times, the pin callout's 12 m
+    /// saved-state tolerance (`BookmarkStore.displayMatchRadiusMeters`) by more
+    /// than sixteen, and still sits well beyond the worst consumer-GPS multipath
+    /// error a phone reports in a dense urban canyon (tens of metres). At the
+    /// other end it stays far below the distance that actually separates a
+    /// simulated position from the real one, which in practice is a different
+    /// district, city or country — kilometres, not hundreds of metres.
+    private static let simulationRevertDistance: CLLocationDistance = 200
+
     /// Brief, non-modal confirmation shown in the bottom control area (e.g.
     /// after "Return to Real Location"). Auto-clears itself a few seconds
     /// after being set; see `showStatusMessage`.
@@ -940,6 +965,14 @@ struct LocationSimulationView: View {
                 clear()
             }
         }
+        // Every fix from the foreground tracking session is also a chance to check
+        // that a simulation restored from a previous launch is still real. Reading
+        // the session that is already running costs nothing extra — no new
+        // `CLLocationManager`, no polling — and it is the only evidence the app has
+        // about what the device is actually reporting.
+        .onReceive(currentLocationProvider.$currentCoordinate) { fix in
+            verifyRestoredSimulation(against: fix)
+        }
         .onAppear {
             loadBookmarks()
             // Before the launch centring below, which stands down whenever a
@@ -1146,6 +1179,10 @@ struct LocationSimulationView: View {
         // Whichever way this went, the notice has been overtaken: the previous
         // session's simulation has either been ended or replaced by this one.
         carriedOverSimulationNotice = nil
+        // …and so has the restored simulation the verification was watching. What
+        // the device is doing now is this session's doing, tracked by
+        // `simulatedCoordinate` and its resend loop.
+        restoredSimulationCoordinate = nil
     }
 
     /// Re-reads the persisted record after something *else* in the process changed
@@ -1154,8 +1191,10 @@ struct LocationSimulationView: View {
     private func refreshPersistedSimulation() {
         hasPersistedSimulation = ActiveSimulationStore.isActive
         // Same reasoning as `setSimulationActive`: an intent has just changed what
-        // the device is doing, so a notice about an older session is stale.
+        // the device is doing, so a notice about an older session is stale — and so
+        // is the restored coordinate the verification was measuring against.
         carriedOverSimulationNotice = nil
+        restoredSimulationCoordinate = nil
     }
 
     /// Runs one device command on `LocationSimulationCommandQueue` and gives the
@@ -1490,6 +1529,9 @@ struct LocationSimulationView: View {
 
         if let restored = ActiveSimulationStore.coordinate {
             coordinate = restored
+            // Handed to `verifyRestoredSimulation(against:)` as the reference point
+            // the device's own live position is measured against from here on.
+            restoredSimulationCoordinate = restored
             // Framed at the same street-level zoom the launch centring uses.
             // `cameraSpan` is always nil this early — the map has not reported a
             // region yet — so without naming the default explicitly this fell
@@ -1500,18 +1542,107 @@ struct LocationSimulationView: View {
         // simply left where it is; the notice below is then the only signal, which
         // is exactly why it has to be one the user will actually see.
 
-        // Stated as fact, not as a hedge: a simulation held by the DDI service does
-        // not expire and the device never reverts on its own (confirmed on
-        // hardware), so it is still running until the user stops it. It names the
-        // control that actually works here — with no pin there is no Stop button,
-        // but "Return to Real Location" is always enabled.
+        // Hedged, and deliberately so. A simulation held by the DDI service does not
+        // expire on a timer, but it is bound to the RSD session that set it: the
+        // tunnel this launch builds replaces the one orphaned by the force-quit, and
+        // the device commonly drops back to its real position moments later —
+        // through no request of ours (see `verifyRestoredSimulation(against:)`).
+        // "May still be" is the only claim the app can honestly make at this point,
+        // and the second sentence promises the retraction that verification
+        // delivers, so the notice reads correctly whichever way it turns out. It
+        // names the control that actually works here — with no pin there is no Stop
+        // button, but "Return to Real Location" is always enabled.
+        //
+        // Shown straight away rather than held back until the first verification.
+        // While a simulation is genuinely in effect iOS reports the simulated
+        // position to this app too, so the *first* fix normally confirms the notice
+        // rather than refuting it; a revert only shows up later, once the tunnel is
+        // up, on no schedule this view could wait out. Delaying would therefore
+        // withhold a warning that is true at the moment it is withheld, to avoid a
+        // disappearance that is itself a real change of state — and one the status
+        // message in `verifyRestoredSimulation(against:)` explains when it happens.
         //
         // Persistent rather than transient: this runs at launch, when the readiness
         // overlay is usually still covering the map, and a three-second message
         // would be long gone by the time the overlay lifts. `RootView`'s readiness
-        // card carries the same fact for the window where the map is not visible at
-        // all.
-        carriedOverSimulationNotice = String(localized: "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it.")
+        // card carries the same statement for the window where the map is not
+        // visible at all.
+        carriedOverSimulationNotice = String(localized: "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position.")
+    }
+
+    /// Settles whether a simulation restored from a previous launch is still in
+    /// effect, using the device's own live position as the evidence.
+    ///
+    /// The record survives a force-quit precisely because the simulation does — but
+    /// it does not survive *everything*. The DDI location-simulation session is
+    /// bound to the RSD connection that opened it; force-quitting orphans that
+    /// connection, and the fresh tunnel this launch builds
+    /// (`startTunnelInBackground()` → `JITEnableContext.startTunnel()`, which frees
+    /// the previous handshake) takes the stale session down with it. iOS then
+    /// returns to the real position on its own, seconds after the app is reopened,
+    /// with nothing in the app having asked for it and nothing in the app hearing
+    /// about it. Left alone, the record and both notices would go on asserting a
+    /// simulation that had stopped — the app contradicting what the user can see.
+    ///
+    /// The check is possible only because a live simulation is visible from inside
+    /// the app: iOS reports the simulated position to every client, this one
+    /// included. So a fix sitting far from the restored coordinate is positive
+    /// evidence that the device has gone back to reporting reality.
+    ///
+    /// **State correction only.** Nothing here touches the device in either
+    /// direction — no re-simulate and, above all, no clear. `clear()` remains the
+    /// single path that ends a simulation and is still only ever reached from a
+    /// deliberate user action.
+    private func verifyRestoredSimulation(against fix: CLLocationCoordinate2D?) {
+        guard let restored = restoredSimulationCoordinate else { return }
+
+        // No fix yet: permission never granted, no GPS indoors, or the tracking
+        // session has not produced one. "Unknown" is treated as "still simulating"
+        // and the state is left completely untouched — erring the other way would
+        // silently disarm the very controls that end a simulation the device may
+        // well still be running, which is the failure this whole record exists to
+        // prevent.
+        guard let fix else { return }
+
+        let distance = CLLocation(latitude: fix.latitude, longitude: fix.longitude)
+            .distance(
+                from: CLLocation(latitude: restored.latitude, longitude: restored.longitude)
+            )
+
+        // Close: iOS is still handing out the simulated position, so the record is
+        // telling the truth and nothing changes. Watching continues, because a
+        // revert can still happen later — the tunnel may not even be up yet.
+        //
+        // A user who simulated their own neighbourhood is never distinguished from
+        // one who is still simulating, and that is the right way round to be wrong:
+        // the notice stays, and "Return to Real Location" — idempotent, always
+        // enabled — still ends anything that is running.
+        guard distance > Self.simulationRevertDistance else { return }
+
+        LogManager.shared.addInfoLog(
+            String(
+                format: "Restored simulation is no longer in effect: live position is %.0f m from the recorded coordinate. Dropping the stale record (no device command sent).",
+                distance
+            )
+        )
+
+        restoredSimulationCoordinate = nil
+        ActiveSimulationStore.markCleared()
+        hasPersistedSimulation = false
+        // The pin is left where it is: it is now an ordinary dropped pin marking a
+        // place the user chose, ready to be simulated again, and yanking it away
+        // would be a second unexplained change on top of the notice going.
+
+        // Only worth saying if the user could see the claim being made. Dismissed or
+        // never displayed, the correction is silent; on screen, it gets the same
+        // three-second, non-modal line every other completed action gets, so the
+        // notice is replaced by an explanation instead of just vanishing.
+        if carriedOverSimulationNotice != nil {
+            carriedOverSimulationNotice = nil
+            showStatusMessage(
+                String(localized: "The simulation from the previous session has already ended.")
+            )
+        }
     }
 
     private func locationUpdateCode(for coordinate: CLLocationCoordinate2D) -> Int32 {

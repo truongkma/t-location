@@ -252,34 +252,18 @@
         }
       }
     },
-    "A simulated location from a previous session is still active on this device. Once this device is connected, use Return to Real Location on the map to end it.": {
+    "A simulated location from a previous session was never ended. TLocation checks whether this device is still reporting it as soon as it has a position fix; if it is, use Return to Real Location on the map to end it.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A simulated location from a previous session is still active on this device. Once this device is connected, use Return to Real Location on the map to end it."
+            "value": "A simulated location from a previous session was never ended. TLocation checks whether this device is still reporting it as soon as it has a position fix; if it is, use Return to Real Location on the map to end it."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vị trí giả lập từ phiên trước vẫn đang hoạt động trên thiết bị này. Sau khi thiết bị đã kết nối, hãy dùng Về vị trí thật trên bản đồ để kết thúc."
-          }
-        }
-      }
-    },
-    "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A simulated location from a previous session is still active on this device. Use Return to Real Location to end it."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vị trí giả lập từ phiên trước vẫn đang hoạt động trên thiết bị này. Hãy dùng Về vị trí thật để kết thúc."
+            "value": "Vị trí giả lập từ phiên trước chưa được kết thúc. TLocation sẽ kiểm tra xem thiết bị này còn báo vị trí đó hay không ngay khi có tín hiệu định vị; nếu còn, hãy dùng Về vị trí thật trên bản đồ để kết thúc."
           }
         }
       }
@@ -2740,18 +2724,18 @@
         }
       }
     },
-    "Simulated location still active": {
+    "Simulated location may still be active": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Simulated location still active"
+            "value": "Simulated location may still be active"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vị trí giả lập vẫn đang hoạt động"
+            "value": "Vị trí giả lập có thể vẫn đang hoạt động"
           }
         }
       }
@@ -3494,6 +3478,22 @@
         }
       }
     },
+    "The simulation from the previous session has already ended.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The simulation from the previous session has already ended."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phiên giả lập vị trí trước đó đã kết thúc."
+          }
+        }
+      }
+    },
     "The sync file could not be opened. It may have been moved or deleted, or not downloaded from iCloud yet.": {
       "localizations": {
         "en": {
@@ -3522,6 +3522,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tệp đồng bộ không phải tệp vị trí đã lưu hợp lệ của TLocation."
+          }
+        }
+      }
+    },
+    "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device may still be reporting a simulated location from a previous session. Use Return to Real Location to end it; TLocation removes this notice by itself once it can see the device is back on its real position."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thiết bị này có thể vẫn đang báo vị trí giả lập từ phiên trước. Hãy dùng Về vị trí thật để kết thúc; TLocation sẽ tự gỡ thông báo này khi thấy thiết bị đã về vị trí thật."
           }
         }
       }
