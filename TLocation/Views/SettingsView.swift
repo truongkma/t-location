@@ -77,6 +77,10 @@ private let syncTimestampFormatter: DateFormatter = {
 
 struct SettingsView: View {
     @AppStorage("keepAliveLocation") private var keepAliveLocation = true
+    /// Off by default (registered in `AppBootstrapper`). Read live by
+    /// `BackgroundAudioManager`, which only ever creates an audio session while
+    /// a simulation is running — with this off, none is created at all.
+    @AppStorage("keepAliveAudio") private var keepAliveAudio = false
     @AppStorage(UserDefaults.Keys.targetDeviceIP) private var targetDeviceIP = DeviceConnectionContext.defaultTargetIPAddress
     /// Off by default — the user must opt in. Read live by the resend loop in
     /// `LocationSimulationView`, so this only ever affects the periodic resends
@@ -201,6 +205,22 @@ struct SettingsView: View {
                     }
                     .onChange(of: keepAliveLocation) { _, enabled in
                         if !enabled { BackgroundLocationManager.shared.stop() }
+                    }
+
+                    Toggle(isOn: $keepAliveAudio) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Silent Audio")
+                            Text("Plays inaudible audio so iOS keeps a simulation running longer in the background. While a simulation is active this app takes over the car stereo and the now-playing controls.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    // Takes effect on a simulation that is already running:
+                    // `preferenceDidChange()` re-reads the toggle and starts or
+                    // stops the session to match. A no-op when nothing is being
+                    // simulated, which is what keeps this from ever holding the
+                    // audio session outside a simulation.
+                    .onChange(of: keepAliveAudio) { _, _ in
+                        BackgroundAudioManager.shared.preferenceDidChange()
                     }
                 }
 

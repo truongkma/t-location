@@ -1214,6 +1214,7 @@ struct LocationSimulationView: View {
             stopResendLoop()
             if backgroundTaskID != .invalid {
                 BackgroundLocationManager.shared.requestStop()
+                BackgroundAudioManager.shared.requestStop()
             }
             endBackgroundTask()
         }
@@ -1325,6 +1326,7 @@ struct LocationSimulationView: View {
         // stack and leave background location running after the next stop.
         if hasActiveSimulation {
             BackgroundLocationManager.shared.requestStop()
+            BackgroundAudioManager.shared.requestStop()
         }
         coordinate = requested
         recenterCamera(on: requested)
@@ -1359,6 +1361,7 @@ struct LocationSimulationView: View {
             beginBackgroundTask()
             startResendLoop(with: coord)
             BackgroundLocationManager.shared.requestStart()
+            BackgroundAudioManager.shared.requestStart()
         }
     }
 
@@ -1397,6 +1400,7 @@ struct LocationSimulationView: View {
         ) {
             endBackgroundTask()
             BackgroundLocationManager.shared.requestStop()
+            BackgroundAudioManager.shared.requestStop()
             // The simulated fix is gone; bounce the tracking session so the
             // real dot arrives as soon as CoreLocation can manage rather than
             // waiting out `distanceFilter`'s cache. Covers both the Stop
@@ -1560,6 +1564,7 @@ struct LocationSimulationView: View {
         stopResendLoop()
         endBackgroundTask()
         BackgroundLocationManager.shared.requestStop()
+        BackgroundAudioManager.shared.requestStop()
         // Same reasoning as `clear()`'s success path: whatever the device is
         // reporting now, this app should stop sitting on a cached simulated fix.
         currentLocationProvider.refreshTracking()

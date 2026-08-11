@@ -10,7 +10,13 @@ import UIKit
 enum AppBootstrapper {
     static func configure() {
         UserDefaults.standard.register(defaults: [
-            "keepAliveLocation": true
+            "keepAliveLocation": true,
+            // Opt-in. A silent audio session is the strongest keep-alive iOS
+            // offers, but it claims the now-playing slot (CarPlay, lock screen
+            // controls) for as long as a simulation runs, so nobody gets it
+            // without asking. Deliberately no `BackgroundAudioManager` call
+            // here: nothing starts audio at launch — see that class.
+            "keepAliveAudio": false
         ])
 
         LanguageSettings.restoreAtLaunch()

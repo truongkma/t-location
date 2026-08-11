@@ -386,6 +386,7 @@ enum LocationIntentRunner {
     private static func publishSimulation(latitude: Double, longitude: Double) async {
         await MainActor.run {
             BackgroundLocationManager.shared.requestStart()
+            BackgroundAudioManager.shared.requestStart()
             LocationSimulationRequest.postSimulateApplied(latitude: latitude, longitude: longitude)
         }
     }
@@ -393,6 +394,7 @@ enum LocationIntentRunner {
     private static func publishClear() async {
         await MainActor.run {
             BackgroundLocationManager.shared.requestStop()
+            BackgroundAudioManager.shared.requestStop()
             LocationSimulationRequest.postClearApplied()
         }
     }
