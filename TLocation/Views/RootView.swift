@@ -443,9 +443,18 @@ struct RootView: View {
         openFirstResolving(RootViewLinks.sideStore)
     }
 
+    /// The readiness overlay can be on screen with a simulation still running —
+    /// `concludeSimulationHasStopped()` puts it there, and so does any tunnel
+    /// failure — so this tap has to assume a resend may be mid-handshake. The
+    /// tunnel start therefore queues behind whatever the location-simulation
+    /// queue is doing rather than racing it for `<targetIP>:49152`; it is
+    /// deferred, never dropped. See `startTunnelAfterPendingLocationCommands`.
+    ///
+    /// The other two are immediate on purpose: they are what makes the tap feel
+    /// answered, and neither touches the device's location-simulation service.
     private func retryConnection() {
         markTunnelDisconnected()
-        startTunnelInBackground()
+        startTunnelAfterPendingLocationCommands()
         MountingProgress.shared.checkforMounted()
     }
 
@@ -456,7 +465,10 @@ struct RootView: View {
                 try PairingFileStore.importFromPicker(url)
                 pairingExists = true
                 markTunnelDisconnected()
-                startTunnelInBackground()
+                // Same endpoint contention as Retry above: a pairing file can be
+                // imported from the readiness overlay with a simulation still
+                // running.
+                startTunnelAfterPendingLocationCommands()
                 AlertPresenter.dismissPresentedAlert()
             } catch {
                 LogManager.shared.addErrorLog("Failed to import pairing file: \(error.localizedDescription)")

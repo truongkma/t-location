@@ -319,8 +319,26 @@ private enum PendingSheet: Identifiable {
 /// `LocationSimulationSession` left claiming an open session with nothing
 /// watching it. So each tick captures the generation it was scheduled under and
 /// re-checks it *on the queue, immediately before the FFI call* — the last
-/// moment before anything reaches the device. `stopResendLoop()` bumps the
-/// counter, which retires every tick already in flight in one move.
+/// moment before anything reaches the device.
+///
+/// **The verdict that ends a run is reached on the command queue, not on the
+/// main thread.** Counting the failure streak on the main thread left a hole one
+/// tick wide: tick A's queue block got its code, handed it to
+/// `DispatchQueue.main.async`, and returned; the serial queue immediately
+/// started tick B, whose generation check ran *before* the main thread had
+/// processed the third failure and retired the run — so a tick B that then
+/// succeeded resurrected the simulation the app was in the middle of declaring
+/// dead. `record(code:for:limit:)` therefore tallies the streak and bumps the
+/// generation itself, under the same lock, from inside the tick's own block. The
+/// serial queue cannot start the next block until that has returned, so once the
+/// app has decided a run is over there is no position left in the queue from
+/// which a tick can still reach `simulate_location`. The main thread only
+/// applies the verdict (log, state, alert); it no longer decides it.
+///
+/// `stopResendLoop()` still bumps the counter, which retires every tick already
+/// in flight in one move — that is what covers Stop, Return to Real Location, a
+/// Shortcut's clear, the map going off screen and a re-simulate onto a new
+/// anchor, none of which pass through a tick at all.
 ///
 /// Process-wide rather than view state, deliberately: the thing it guards (the
 /// session inside `LocationSimulationState`) is process-wide too, and it is read
@@ -329,6 +347,28 @@ private enum PendingSheet: Identifiable {
 private enum ResendGeneration {
     private static let lock = NSLock()
     private static var value: UInt64 = 0
+    /// Consecutive non-zero resend codes within the *current* generation. Reset
+    /// by every retirement, so it can only ever describe one unbroken run.
+    private static var failureStreak = 0
+
+    /// What one tick's return code means for the run it belongs to. Decided on
+    /// `LocationSimulationCommandQueue`; the main thread only applies it.
+    enum Outcome {
+        /// The tick belonged to a run that had already been retired. Nothing to
+        /// apply.
+        case stale
+        /// The device accepted the coordinate; the streak is back to zero.
+        case succeeded
+        /// A failure, but not the one that ends the run.
+        case failed(streak: Int)
+        /// The failure that ends the run. The run was retired *before this case
+        /// was returned* — on the command queue, inside the tick's own block —
+        /// so no later tick can reach the FFI. `successor` is the generation
+        /// that retirement produced: the main thread checks it is still current
+        /// before acting on the verdict, so a Stop or a fresh simulation that
+        /// lands in between wins and this verdict is dropped.
+        case concluded(streak: Int, successor: UInt64)
+    }
 
     /// Retires every tick scheduled under the current generation and returns the
     /// new one for the run that is starting (callers that are only stopping can
@@ -337,16 +377,46 @@ private enum ResendGeneration {
     static func invalidate() -> UInt64 {
         lock.lock()
         defer { lock.unlock() }
-        // Wrapping is fine and unreachable in practice: at one bump per
-        // start/stop, exhausting 2^64 would take longer than the device exists.
-        value &+= 1
-        return value
+        return retireLocked()
     }
 
     static func isCurrent(_ generation: UInt64) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         return value == generation
+    }
+
+    /// Records one tick's outcome. **Call from `LocationSimulationCommandQueue`,
+    /// in the same block as the FFI call whose code this is**, so that a run
+    /// ending here is retired before the queue can start the next tick.
+    static func record(code: Int32, for generation: UInt64, limit: Int) -> Outcome {
+        lock.lock()
+        defer { lock.unlock() }
+        guard value == generation else { return .stale }
+
+        guard code != 0 else {
+            failureStreak = 0
+            return .succeeded
+        }
+
+        failureStreak += 1
+        guard failureStreak >= limit else { return .failed(streak: failureStreak) }
+
+        let streak = failureStreak
+        return .concluded(streak: streak, successor: retireLocked())
+    }
+
+    /// The single bump. Callers hold `lock`; `invalidate()` must not be called
+    /// from `record(code:for:limit:)`, which already holds it (`NSLock` is not
+    /// recursive). Nothing here dispatches, synchronously or otherwise, so a
+    /// caller already running on `LocationSimulationCommandQueue` cannot
+    /// deadlock against it.
+    private static func retireLocked() -> UInt64 {
+        // Wrapping is fine and unreachable in practice: at one bump per
+        // start/stop, exhausting 2^64 would take longer than the device exists.
+        value &+= 1
+        failureStreak = 0
+        return value
     }
 }
 
@@ -1021,6 +1091,8 @@ struct LocationSimulationView: View {
         // this alert was on screen — gets its turn. Handing it over on the next
         // runloop turn rather than in the setter itself lets SwiftUI finish the
         // dismissal it is in the middle of before the next presentation starts.
+        // See `promoteDeferredAlert()` for the one case where its turn never
+        // comes.
         .alert(
             pendingAlert?.title ?? "",
             isPresented: Binding(
@@ -1028,9 +1100,7 @@ struct LocationSimulationView: View {
                 set: { isPresented in
                     guard !isPresented else { return }
                     pendingAlert = nil
-                    guard let queued = deferredAlert else { return }
-                    deferredAlert = nil
-                    DispatchQueue.main.async { pendingAlert = queued }
+                    promoteDeferredAlert()
                 }
             ),
             presenting: pendingAlert
@@ -1381,16 +1451,33 @@ struct LocationSimulationView: View {
                 // user has already been told is over.
                 guard ResendGeneration.isCurrent(generation) else { return }
                 let code = locationUpdateCode(for: sendCoordinate)
+                // The verdict is reached here, on the queue that runs the ticks,
+                // not on the main thread: if this is the failure that ends the
+                // run, `record` retires the run before returning, which is
+                // before this block returns, which is before the serial queue
+                // can start the next tick. See `ResendGeneration`.
+                let outcome = ResendGeneration.record(
+                    code: code,
+                    for: generation,
+                    limit: Self.resendFailureLimit
+                )
                 // The result used to be discarded here. A session that had died
                 // then failed on every tick in complete silence — no log line
                 // from this loop, no alert, and a map that went on showing an
                 // active simulation the device had already stopped honouring.
-                DispatchQueue.main.async { handleResendResult(code, generation: generation) }
+                DispatchQueue.main.async {
+                    handleResendResult(code, generation: generation, outcome: outcome)
+                }
             }
         }
     }
 
-    /// Reacts to one resend's return code, on the main thread.
+    /// Applies one resend's already-decided outcome, on the main thread.
+    ///
+    /// This only *reports* the verdict — the streak was counted and the run
+    /// retired on `LocationSimulationCommandQueue`, in the tick's own block, so
+    /// that no queued tick could slip through between the decision and its
+    /// enforcement. See `ResendGeneration`.
     ///
     /// Success is deliberately silent: at one tick every four seconds, logging
     /// those would bury everything else in the log within minutes. Failures are
@@ -1398,7 +1485,7 @@ struct LocationSimulationView: View {
     /// written the line explaining what that code means and which call produced
     /// it, so this one only has to say that a *resend* was what hit it and how
     /// close the run is to the limit.
-    private func handleResendResult(_ code: Int32, generation: UInt64) {
+    private func handleResendResult(_ code: Int32, generation: UInt64, outcome: ResendGeneration.Outcome) {
         // Results are matched to the run that asked for them by identity, not by
         // "is *a* simulation running". A failure from a run that has since been
         // stopped (Stop, Return to Real Location, a Shortcut's clear, the map
@@ -1406,20 +1493,41 @@ struct LocationSimulationView: View {
         // started a *new* simulation in the meantime, a straight `!= nil` check
         // would let the dead run's failure count toward the fresh run's streak
         // and drag it toward a false "Simulation Stopped".
-        guard ResendGeneration.isCurrent(generation), simulatedCoordinate != nil else { return }
-
-        guard code != 0 else {
-            consecutiveResendFailures = 0
+        //
+        // A concluded run is checked against the generation its own retirement
+        // produced, not the one the tick was scheduled under — that one is stale
+        // by construction now. Anything that bumped again in the meantime (Stop,
+        // a Shortcut's clear, a fresh simulation) has already done its own
+        // teardown and outranks this verdict.
+        switch outcome {
+        case .stale:
             return
+
+        case .succeeded:
+            guard isCurrentRun(generation) else { return }
+            consecutiveResendFailures = 0
+
+        case .failed(let streak):
+            guard isCurrentRun(generation) else { return }
+            consecutiveResendFailures = streak
+            logResendFailure(code: code, streak: streak)
+
+        case .concluded(let streak, let successor):
+            guard isCurrentRun(successor) else { return }
+            consecutiveResendFailures = streak
+            logResendFailure(code: code, streak: streak)
+            concludeSimulationHasStopped()
         }
+    }
 
-        consecutiveResendFailures += 1
+    private func isCurrentRun(_ generation: UInt64) -> Bool {
+        ResendGeneration.isCurrent(generation) && simulatedCoordinate != nil
+    }
+
+    private func logResendFailure(code: Int32, streak: Int) {
         LogManager.shared.addWarningLog(
-            "Location resend failed (code \(code)) — consecutive failure \(consecutiveResendFailures) of \(Self.resendFailureLimit); see the simulate_location line above for what this code means"
+            "Location resend failed (code \(code)) — consecutive failure \(streak) of \(Self.resendFailureLimit); see the simulate_location line above for what this code means"
         )
-
-        guard consecutiveResendFailures >= Self.resendFailureLimit else { return }
-        concludeSimulationHasStopped()
     }
 
     /// Stops claiming a simulation the app can no longer sustain, and tells the
@@ -1442,11 +1550,13 @@ struct LocationSimulationView: View {
         LogManager.shared.addErrorLog(
             "Location resends failed \(Self.resendFailureLimit) times in a row; TLocation is no longer treating the simulation as running. No command was sent to the device."
         )
-        // Bumps the resend generation, so ticks already queued behind the slow
-        // failures that got us here cannot land after this and quietly put the
-        // device back to simulating — see `ResendGeneration`. It also retracts
-        // `LocationSimulationSession.isMaintained`, which is what releases the
-        // deferred tunnel rebuild below.
+        // The ticks queued behind the slow failures that got us here were
+        // already retired on the command queue, in the block of the tick that
+        // produced this verdict — none of them can still reach the FFI by the
+        // time this runs (see `ResendGeneration`). What is left for here is the
+        // main-thread half: killing the timer, dropping the anchor, and
+        // retracting `LocationSimulationSession.isMaintained`, which is what
+        // releases the deferred tunnel rebuild below.
         stopResendLoop()
         endBackgroundTask()
         BackgroundLocationManager.shared.requestStop()
@@ -1493,6 +1603,26 @@ struct LocationSimulationView: View {
         }
     }
 
+    /// Gives the waiting-room alert its turn once the one that was on screen has
+    /// gone — unless it has stopped being true in the meantime.
+    ///
+    /// The only thing that ever waits here is `concludeSimulationHasStopped()`'s
+    /// "Simulation Stopped" (see `presentAlert(_:)`), and the wait is
+    /// open-ended: it lasts as long as the user leaves the other alert up. A
+    /// Shortcut or a `tlocation://` link can start a fresh simulation in that
+    /// window — `startExternalSimulation` gates on `isBusy`, not on what is on
+    /// screen — and then the queued notice would announce the end of a
+    /// simulation that is running again, with Stop enabled right behind it.
+    /// Better said nothing than said wrongly, so it is dropped rather than
+    /// shown; the log line the conclusion wrote is still there, and the run it
+    /// described really did end.
+    private func promoteDeferredAlert() {
+        guard let queued = deferredAlert else { return }
+        deferredAlert = nil
+        guard !hasActiveSimulation else { return }
+        DispatchQueue.main.async { pendingAlert = queued }
+    }
+
     /// Returns `anchor` offset by a small, realistic amount of consumer-GPS
     /// noise (a uniformly random radius of 3–5 m in a uniformly random
     /// direction, so the offset varies every call and never exceeds ~5 m).
@@ -1531,6 +1661,14 @@ struct LocationSimulationView: View {
         // ticks already dispatched onto the command queue (`ResendGeneration`)
         // and let the deferred tunnel rebuild in `TLocationApp` know that
         // nothing is maintaining a simulation any more.
+        //
+        // Retiring from the main thread is the right move for every caller of
+        // this function — Stop, Return to Real Location, a Shortcut's clear, the
+        // map going off screen, a re-simulate — because each of those is itself
+        // a main-thread decision that no tick is racing to make. The one
+        // decision that *is* made mid-queue, the three-failure verdict, retires
+        // the run on the queue before it ever gets here; this bump is then just
+        // the next one along.
         ResendGeneration.invalidate()
         LocationSimulationSession.setMaintained(false)
     }

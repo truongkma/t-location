@@ -134,6 +134,39 @@ func startTunnelInBackground(showErrorUI: Bool = true) {
     TunnelManager.shared.start(showErrorUI: showErrorUI)
 }
 
+/// `startTunnelInBackground()`, but never *while* a location-simulation command
+/// is inside the FFI.
+///
+/// `simulate_location` calls `tunnel_create_rppairing` against
+/// `<targetIP>:49152`, which this app's own recovery text documents as
+/// single-occupancy (errno 48, "address already in use" — see
+/// `tunnelConnectionAlertMessage(for:)` below). `JITEnableContext`'s tunnel is a
+/// separate one to the same endpoint, so starting it on top of an in-flight
+/// resend is the double handshake that `TLocationApp`'s deferred rebuild exists
+/// to avoid. The readiness overlay — the only home of Retry — appears the moment
+/// the tunnel is marked disconnected, which can happen with a resend loop still
+/// alive, so Retry is one tap away from exactly that.
+///
+/// Deferred, never refused: the user must always be able to recover a dead
+/// tunnel, so unlike `attemptDeferredTunnelReconnect` this has no condition
+/// attached and nothing can drop it. Appending to the serial
+/// `LocationSimulationCommandQueue` is only a matter of waiting its turn — the
+/// hop cannot begin until any FFI call already running there has returned, and
+/// once it does begin the start is unconditional. Ticks queued ahead of it that
+/// belong to a run that has ended return without calling anything (see
+/// `ResendGeneration`), so a concluded run leaves nothing real in the way.
+///
+/// The start itself is bounced back to the main thread, which is where
+/// `TunnelManager.start(showErrorUI:)` requires to be called from; no FFI runs
+/// on the command queue as part of this.
+func startTunnelAfterPendingLocationCommands(showErrorUI: Bool = true) {
+    LocationSimulationCommandQueue.shared.async {
+        DispatchQueue.main.async {
+            startTunnelInBackground(showErrorUI: showErrorUI)
+        }
+    }
+}
+
 func markTunnelDisconnected() {
     TunnelManager.shared.markDisconnected()
 }

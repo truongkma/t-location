@@ -3110,22 +3110,6 @@
         }
       }
     },
-    "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Tap Simulate Location to start again.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Tap Simulate Location to start again."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TLocation đã mất phiên giả lập vị trí trên thiết bị này và không thể tạo lại, nên vị trí không còn được cập nhật — nhiều khả năng thiết bị đã trở lại vị trí thật. Không có lệnh nào được gửi tới thiết bị. Hãy chạm Giả lập vị trí để bắt đầu lại."
-          }
-        }
-      }
-    },
     "TLocation needs a connection to this device before it can simulate a location.": {
       "localizations": {
         "en": {
