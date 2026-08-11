@@ -2148,22 +2148,6 @@
         }
       }
     },
-    "Plays inaudible audio so iOS keeps a simulation running longer in the background. While a simulation is active this app takes over the car stereo and the now-playing controls.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Plays inaudible audio so iOS keeps a simulation running longer in the background. While a simulation is active this app takes over the car stereo and the now-playing controls."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Phát âm thanh không nghe được để iOS giữ phiên giả lập vị trí chạy nền lâu hơn. Khi đang giả lập vị trí, ứng dụng sẽ chiếm dàn âm thanh trên xe và phần điều khiển đang phát."
-          }
-        }
-      }
-    },
     "Preparing download…": {
       "localizations": {
         "en": {
@@ -2576,22 +2560,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chữ ký hết hạn"
-          }
-        }
-      }
-    },
-    "Silent Audio": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Silent Audio"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Âm thanh im lặng"
           }
         }
       }
