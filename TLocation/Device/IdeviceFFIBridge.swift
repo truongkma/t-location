@@ -261,6 +261,41 @@ private enum LocationSimulationState {
             adapter_free(adapter)
             self.adapter = nil
         }
+        // Every teardown goes through here — the rebuild in `simulate_location`,
+        // each failure path, and `clear_simulated_location` — so this is the one
+        // place that has to retract the flag.
+        LocationSimulationSession.set(open: false)
+    }
+}
+
+/// Whether a location-simulation session is currently open on the device.
+///
+/// A lock-guarded mirror of `LocationSimulationState.locationSimulation != nil`,
+/// maintained by the two places that change it (a successful
+/// `location_simulation_new`, and `LocationSimulationState.cleanup()`), both of
+/// which only ever run on `LocationSimulationCommandQueue`. The handles
+/// themselves stay confined to that queue; this exposes a plain `Bool` so code
+/// on any thread — notably the scene-phase handler in `TLocationApp`, which runs
+/// on the main thread and cannot block — can ask the question without touching a
+/// pointer.
+///
+/// It answers "is a session open", not "is the user simulating": those diverge
+/// for exactly as long as it takes the resend loop to notice a session has died,
+/// which is what `LocationSimulationView.handleResendResult(_:)` exists to close.
+enum LocationSimulationSession {
+    private static let lock = NSLock()
+    private static var open = false
+
+    static var isOpen: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return open
+    }
+
+    fileprivate static func set(open newValue: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        open = newValue
     }
 }
 
@@ -368,6 +403,12 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
     }
 
     LocationSimulationState.remoteServer = nil
+
+    // The session handle now exists. Published here rather than after the
+    // `location_simulation_set` below because from this point on there is
+    // something to tear down: if the set fails, `cleanup()` retracts the flag on
+    // its way out, so the two can never disagree.
+    LocationSimulationSession.set(open: true)
 
     let locationSetError = location_simulation_set(
         LocationSimulationState.locationSimulation,

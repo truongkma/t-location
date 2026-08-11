@@ -377,6 +377,27 @@ struct LocationSimulationView: View {
     @State private var statusMessageWorkItem: DispatchWorkItem?
     private static let statusMessageDuration: TimeInterval = 3.0
 
+    /// How many resends in a row have come back non-zero. Reset to zero by any
+    /// successful resend and by `startResendLoop`/`stopResendLoop`, so it only
+    /// ever counts an unbroken run. Main-thread only, like every other piece of
+    /// this view's state — see `handleResendResult(_:)`.
+    @State private var consecutiveResendFailures = 0
+
+    /// Consecutive failed resends before the app concludes the simulation is no
+    /// longer running and says so.
+    ///
+    /// Three, spanning roughly twelve seconds of the four-second loop. One is far
+    /// too eager to act on: every failing tick already contains a complete
+    /// recovery attempt of its own — `simulate_location` tears the dead session
+    /// down and builds a fresh tunnel, remote server and session at the user's
+    /// anchor before it reports failure — so a single non-zero code can be a
+    /// transport blip mid-repair (VPN re-establishing after a foreground return,
+    /// Wi-Fi roaming) rather than a verdict. Three consecutive failures means
+    /// three full rebuild attempts have been made and refused, which is well past
+    /// any of those, while still telling the user the truth inside a quarter of a
+    /// minute rather than leaving the map lying indefinitely.
+    private static let resendFailureLimit = 3
+
     private var pairingFilePath: String {
         PairingFileStore.prepareURL().path
     }
@@ -1257,6 +1278,7 @@ struct LocationSimulationView: View {
 
     private func startResendLoop(with coordinate: CLLocationCoordinate2D) {
         simulatedCoordinate = coordinate
+        consecutiveResendFailures = 0
         resendTimer?.invalidate()
         resendTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
             guard let simulatedCoordinate else { return }
@@ -1270,9 +1292,75 @@ struct LocationSimulationView: View {
                 ? jitteredCoordinate(around: simulatedCoordinate)
                 : simulatedCoordinate
             LocationSimulationCommandQueue.shared.async {
-                _ = locationUpdateCode(for: sendCoordinate)
+                let code = locationUpdateCode(for: sendCoordinate)
+                // The result used to be discarded here. A session that had died
+                // then failed on every tick in complete silence — no log line
+                // from this loop, no alert, and a map that went on showing an
+                // active simulation the device had already stopped honouring.
+                DispatchQueue.main.async { handleResendResult(code) }
             }
         }
+    }
+
+    /// Reacts to one resend's return code, on the main thread.
+    ///
+    /// Success is deliberately silent: at one tick every four seconds, logging
+    /// those would bury everything else in the log within minutes. Failures are
+    /// logged individually with their code — `simulate_location` has already
+    /// written the line explaining what that code means and which call produced
+    /// it, so this one only has to say that a *resend* was what hit it and how
+    /// close the run is to the limit.
+    private func handleResendResult(_ code: Int32) {
+        // The loop has been stopped (Stop, Return to Real Location, a Shortcut's
+        // clear, or the map going off screen) since this resend was dispatched.
+        // Its result is about a simulation that is already over, so it must not
+        // count toward the failure run or raise anything.
+        guard simulatedCoordinate != nil else { return }
+
+        guard code != 0 else {
+            consecutiveResendFailures = 0
+            return
+        }
+
+        consecutiveResendFailures += 1
+        LogManager.shared.addWarningLog(
+            "Location resend failed (code \(code)) — consecutive failure \(consecutiveResendFailures) of \(Self.resendFailureLimit); see the simulate_location line above for what this code means"
+        )
+
+        guard consecutiveResendFailures >= Self.resendFailureLimit else { return }
+        concludeSimulationHasStopped()
+    }
+
+    /// Stops claiming a simulation the app can no longer sustain, and tells the
+    /// user why.
+    ///
+    /// **State correction only — nothing is sent to the device in either
+    /// direction.** No re-simulate: `simulate_location` has already retried the
+    /// user's exact anchor on every one of the failing ticks that got us here
+    /// (it rebuilds tunnel, remote server and session before reporting failure,
+    /// and logs both the rebuild and its outcome), so an extra attempt from here
+    /// would repeat work that has just been refused three times, and any attempt
+    /// this function *could* make would have to invent its own coordinate at some
+    /// point in the future — the shape of change this project has already had to
+    /// revert once. And no clear: `clear_simulated_location()` stays reachable
+    /// only from a deliberate user action.
+    ///
+    /// The pin is left on the map, so "Simulate Location" is right there to try
+    /// again with the same point if the user wants to.
+    private func concludeSimulationHasStopped() {
+        LogManager.shared.addErrorLog(
+            "Location resends failed \(Self.resendFailureLimit) times in a row; TLocation is no longer treating the simulation as running. No command was sent to the device."
+        )
+        stopResendLoop()
+        endBackgroundTask()
+        BackgroundLocationManager.shared.requestStop()
+        // Same reasoning as `clear()`'s success path: whatever the device is
+        // reporting now, this app should stop sitting on a cached simulated fix.
+        currentLocationProvider.refreshTracking()
+        pendingAlert = .message(
+            title: String(localized: "Simulation Stopped"),
+            body: String(localized: "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Tap Simulate Location to start again.")
+        )
     }
 
     /// Returns `anchor` offset by a small, realistic amount of consumer-GPS
@@ -1308,6 +1396,7 @@ struct LocationSimulationView: View {
         resendTimer?.invalidate()
         resendTimer = nil
         simulatedCoordinate = nil
+        consecutiveResendFailures = 0
     }
 
     /// - Parameter recenter: `true` for programmatic selections (search result,
