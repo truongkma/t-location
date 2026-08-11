@@ -251,6 +251,58 @@ private struct CalloutTapTarget: ViewModifier {
     }
 }
 
+/// Which alert `LocationSimulationView` currently wants on screen.
+///
+/// SwiftUI only reliably honours one `.alert` per view at the same
+/// modifier-chain level. Three stacked `.alert`s made presentation
+/// non-deterministic and let a `Bool` binding desync into a stuck `true`: the
+/// Save-bookmark chip set `showSaveBookmarkAlert = true` while it was *already*
+/// `true` with nothing on screen, which is a no-op, so tapping did nothing at
+/// all until the app was relaunched. Routing all three through one piece of
+/// optional state and one `.alert` modifier removes the class of bug — exactly
+/// the consolidation `PendingImport` in `SettingsView` applies to
+/// `.fileImporter`. Adding a fourth alert means a fourth case here, not a
+/// second `.alert`.
+///
+/// The generic message case carries its own title and body, so there is no
+/// separate `alertTitle` / `alertMessage` state left over to drift out of step
+/// with what is actually being presented.
+private enum PendingAlert {
+    /// Generic error/information alert with a runtime-supplied, already
+    /// localized title and body.
+    case message(title: String, body: String)
+    case saveBookmark
+    case locationPermissionDenied
+
+    /// Verbatim, because the `.message` payload arrives already localized from
+    /// `String(localized:)` at the call site; the two fixed cases look their own
+    /// titles up here so the rest of the view never has to.
+    var title: String {
+        switch self {
+        case .message(let title, _): return title
+        case .saveBookmark: return String(localized: "Save Bookmark")
+        case .locationPermissionDenied: return String(localized: "Location Permission Needed")
+        }
+    }
+}
+
+/// Which sheet `LocationSimulationView` currently wants on screen. Same reason
+/// as `PendingAlert`: two stacked `.sheet` modifiers carry the same
+/// presentation-conflict risk, so Bookmarks and Settings share one piece of
+/// state and one `.sheet(item:)` — which nils the item itself on every
+/// dismissal, leaving nothing to get stuck.
+private enum PendingSheet: Identifiable {
+    case bookmarks
+    case settings
+
+    var id: Int {
+        switch self {
+        case .bookmarks: return 0
+        case .settings: return 1
+        }
+    }
+}
+
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -267,9 +319,9 @@ struct LocationSimulationView: View {
     @State private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     @State private var resendTimer: Timer?
     @State private var isBusy = false
-    @State private var showAlert = false
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
+    /// Drives the single consolidated `.alert` below — see `PendingAlert`.
+    /// Nothing else in this view decides whether an alert is on screen.
+    @State private var pendingAlert: PendingAlert?
 
     @State private var searchText = ""
     @StateObject private var searchCompleter = LocationSearchCompleter()
@@ -278,18 +330,24 @@ struct LocationSimulationView: View {
 
     // Bookmarks
     @State private var bookmarks: [LocationBookmark] = []
-    @State private var showBookmarks = false
-    @State private var showSettings = false
-    /// Drives the "Save Bookmark" name-entry alert opened from the callout's
-    /// unsaved bookmark chip. `newBookmarkName` starts empty each time
-    /// `beginSaveBookmark` opens the alert, so the user types into a blank
-    /// field rather than one pre-filled with the coordinate default; that
-    /// default is only ever used as a fallback if Save is tapped while the
-    /// field is still empty (see `saveCurrentPinAsBookmark`). It is always
-    /// cleared again afterwards — by `saveCurrentPinAsBookmark` on Save, by
-    /// `cancelSaveBookmark` on Cancel — so the next tap always opens a fresh,
-    /// empty prompt rather than showing leftover text from a previous pin.
-    @State private var showSaveBookmarkAlert = false
+    /// Drives the single consolidated `.sheet` below — see `PendingSheet`.
+    @State private var pendingSheet: PendingSheet?
+    /// Draft name typed into the "Save Bookmark" alert (`PendingAlert
+    /// .saveBookmark`, opened from the callout's unsaved bookmark chip).
+    /// `beginSaveBookmark` blanks it every time it opens the alert, so the user
+    /// always types into an empty field rather than one pre-filled with the
+    /// coordinate default; that default is only ever used as a fallback if Save
+    /// is tapped while the field is still empty (see
+    /// `saveCurrentPinAsBookmark`). It is cleared again on the way out too — by
+    /// `saveCurrentPinAsBookmark` on Save, by `cancelSaveBookmark` on Cancel —
+    /// but the clear on the way *in* is what actually guarantees no leftover
+    /// text from a previous pin can ever be shown.
+    ///
+    /// Deliberately not cleared from the alert's `isPresented` setter: SwiftUI
+    /// flips that binding as part of dismissing the alert, which can happen
+    /// before the tapped button's action runs, and wiping the name there would
+    /// make Save silently store the coordinate fallback instead of what was
+    /// typed.
     @State private var newBookmarkName = ""
 
     /// Measured size of the pin callout, used to work out the screen rectangle
@@ -299,7 +357,6 @@ struct LocationSimulationView: View {
 
     // Current location
     @StateObject private var currentLocationProvider = CurrentLocationProvider()
-    @State private var showLocationDeniedAlert = false
     /// Guards the one-shot launch centring below so it runs once per app
     /// launch, not every time this view's `.onAppear` fires (e.g. after the
     /// Settings sheet, presented from this same view, is dismissed).
@@ -485,7 +542,7 @@ struct LocationSimulationView: View {
                 systemImage: "bookmark.fill",
                 accessibilityLabel: "Bookmarks",
                 isDisabled: false,
-                action: { showBookmarks = true }
+                action: { pendingSheet = .bookmarks }
             )
 
             // Settings stays a first-class button: it is the fallback route to
@@ -494,7 +551,7 @@ struct LocationSimulationView: View {
                 systemImage: "gearshape.fill",
                 accessibilityLabel: "Settings",
                 isDisabled: false,
-                action: { showSettings = true }
+                action: { pendingSheet = .settings }
             )
         }
     }
@@ -751,14 +808,17 @@ struct LocationSimulationView: View {
         guard let coord = coordinate,
               BookmarkStore.bookmark(nearest: coord, in: bookmarks) == nil else { return }
         newBookmarkName = ""
-        showSaveBookmarkAlert = true
+        // Assignment, not a flag flip: `pendingAlert` is nil whenever no alert
+        // is on screen (the `.alert` binding's setter guarantees it), so this
+        // can never be the "set true while already true" no-op that used to
+        // leave the chip dead until the app was relaunched.
+        pendingAlert = .saveBookmark
     }
 
     /// Cancels the "Save Bookmark" prompt without saving anything, clearing the
-    /// draft name so the next tap on the chip opens a fresh, empty alert
-    /// rather than showing whatever was left over from before.
+    /// draft name so nothing is left behind. Dismissing the alert itself is the
+    /// `.alert` binding's job, not this function's.
     private func cancelSaveBookmark() {
-        showSaveBookmarkAlert = false
         newBookmarkName = ""
     }
 
@@ -864,64 +924,99 @@ struct LocationSimulationView: View {
         // iOS 26 collapses an overcrowded `.topBarLeading` group into a single "…"
         // control, which hid every button on device. The bar carries nothing now.
         .toolbar(.hidden, for: .navigationBar)
-        .alert(alertTitle, isPresented: $showAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(alertMessage)
-        }
-        // Restores the name prompt the callout's one-tap save temporarily
-        // replaced. Wording and structure match the pre-callout "Save
-        // Bookmark" alert (see git history on this file) so it still looks
-        // consistent with the rest of the app, notably `BookmarksView`'s own
-        // "Rename Bookmark" alert below. The field opens empty — see
-        // `beginSaveBookmark` — with only the "Name" placeholder as a hint.
-        .alert("Save Bookmark", isPresented: $showSaveBookmarkAlert) {
-            TextField("Name", text: $newBookmarkName)
-            // No role, plus `.defaultAction`: renders as the bold, primary
-            // button (not `.destructive`, which would render red and wrongly
-            // read as dangerous for a save) and lets Return submit while
-            // typing. Alert button roles/style come from `role` and
-            // `.keyboardShortcut`, not `.foregroundColor`, which `.alert`
-            // ignores.
-            Button("Save") { saveCurrentPinAsBookmark() }
-                .keyboardShortcut(.defaultAction)
-            Button("Cancel", role: .cancel) { cancelSaveBookmark() }
-        } message: {
-            Text("Enter a name for this location.")
-        }
-        .alert("Location Permission Needed", isPresented: $showLocationDeniedAlert) {
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+        // The one and only alert on this view — the generic error/message
+        // alert, the "Save Bookmark" name prompt and the location-permission
+        // alert all come out of `pendingAlert`. See `PendingAlert` for why
+        // three stacked `.alert`s had to go.
+        //
+        // `isPresented` is derived from `pendingAlert` and its setter nils it
+        // on *every* dismissal — Save, Cancel, and SwiftUI dismissing the alert
+        // on its own — so no call site has to remember to tidy up and a stale
+        // "already presenting" state cannot survive to block the next request.
+        .alert(
+            pendingAlert?.title ?? "",
+            isPresented: Binding(
+                get: { pendingAlert != nil },
+                set: { isPresented in if !isPresented { pendingAlert = nil } }
+            ),
+            presenting: pendingAlert
+        ) { alert in
+            switch alert {
+            case .message:
+                Button("OK", role: .cancel) { }
+
+            // Restores the name prompt the callout's one-tap save temporarily
+            // replaced. Wording and structure match the pre-callout "Save
+            // Bookmark" alert (see git history on this file) so it still looks
+            // consistent with the rest of the app, notably `BookmarksView`'s
+            // own "Rename Bookmark" alert below. The field opens empty — see
+            // `beginSaveBookmark` — with only the "Name" placeholder as a hint.
+            case .saveBookmark:
+                TextField("Name", text: $newBookmarkName)
+                // No role, plus `.defaultAction`: renders as the bold, primary
+                // button (not `.destructive`, which would render red and
+                // wrongly read as dangerous for a save) and lets Return submit
+                // while typing. Alert button roles/style come from `role` and
+                // `.keyboardShortcut`, not `.foregroundColor`, which `.alert`
+                // ignores.
+                Button("Save") { saveCurrentPinAsBookmark() }
+                    .keyboardShortcut(.defaultAction)
+                Button("Cancel", role: .cancel) { cancelSaveBookmark() }
+
+            case .locationPermissionDenied:
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
                 }
+                Button("Cancel", role: .cancel) { }
             }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("TLocation needs location access to find your current position. Note: while a simulated location is active, iOS reports the simulated position.")
-        }
-        .sheet(isPresented: $showBookmarks) {
-            BookmarksView(bookmarks: $bookmarks) { bookmark in
-                applySelection(bookmark.coordinate)
-                showBookmarks = false
-            } onDelete: { offsets in
-                bookmarks.remove(atOffsets: offsets)
-                saveBookmarks()
-            } onRename: { id, newName in
-                // Looked up by `id` here too, so the in-memory list mutated
-                // in place and persisted stays correct regardless of the
-                // sheet's current search filter.
-                guard let index = bookmarks.firstIndex(where: { $0.id == id }) else { return }
-                bookmarks[index].name = newName
-                saveBookmarks()
+        } message: { alert in
+            switch alert {
+            // Verbatim: the body arrives already localized in the payload,
+            // matching the old `Text(alertMessage)`, which was also verbatim.
+            case .message(_, let body):
+                Text(verbatim: body)
+            case .saveBookmark:
+                Text("Enter a name for this location.")
+            case .locationPermissionDenied:
+                Text("TLocation needs location access to find your current position. Note: while a simulated location is active, iOS reports the simulated position.")
             }
         }
-        // Settings can import bookmarks into the store behind this view's
-        // `@State` copy, so the copy is refreshed the moment the sheet closes.
+        // The one and only sheet on this view, for the same reason — see
+        // `PendingSheet`. `.sheet(item:)` nils `pendingSheet` itself on every
+        // dismissal (swipe-down included), so neither sheet can leave state
+        // behind that blocks reopening it.
+        //
+        // `onDismiss` reloads for *both* cases. Settings can import bookmarks
+        // into the store behind this view's `@State` copy, so the copy has to
+        // be refreshed the moment it closes; Bookmarks edits that same copy
+        // through a `@Binding` and persists each change immediately, so a
+        // reload there is a no-op on content but keeps the two definitively in
+        // step (and picks up anything a linked sync file changed underneath).
         // `onDismiss` is used rather than relying on `.onAppear` firing again,
         // which is a SwiftUI implementation detail this view should not depend
         // on for correctness.
-        .sheet(isPresented: $showSettings, onDismiss: loadBookmarks) {
-            SettingsView()
+        .sheet(item: $pendingSheet, onDismiss: loadBookmarks) { sheet in
+            switch sheet {
+            case .bookmarks:
+                BookmarksView(bookmarks: $bookmarks) { bookmark in
+                    applySelection(bookmark.coordinate)
+                    pendingSheet = nil
+                } onDelete: { offsets in
+                    bookmarks.remove(atOffsets: offsets)
+                    saveBookmarks()
+                } onRename: { id, newName in
+                    // Looked up by `id` here too, so the in-memory list mutated
+                    // in place and persisted stays correct regardless of the
+                    // sheet's current search filter.
+                    guard let index = bookmarks.firstIndex(where: { $0.id == id }) else { return }
+                    bookmarks[index].name = newName
+                    saveBookmarks()
+                }
+            case .settings:
+                SettingsView()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .simulateLocationRequested)) { notification in
             guard let requested = LocationSimulationRequest.coordinate(from: notification) else { return }
@@ -1119,9 +1214,7 @@ struct LocationSimulationView: View {
                     onSuccess()
                 } else {
                     onFailure?()
-                    alertTitle = errorTitle
-                    alertMessage = errorMessage(code)
-                    showAlert = true
+                    pendingAlert = .message(title: errorTitle, body: errorMessage(code))
                 }
             }
         }
@@ -1284,11 +1377,12 @@ struct LocationSimulationView: View {
                 applySelection(coordinate)
                 Haptics.medium()
             case .failure(.denied):
-                showLocationDeniedAlert = true
+                pendingAlert = .locationPermissionDenied
             case .failure(.unavailable):
-                alertTitle = String(localized: "Could Not Determine Location")
-                alertMessage = String(localized: "No GPS fix was available. Try again, ideally with a clear view of the sky.")
-                showAlert = true
+                pendingAlert = .message(
+                    title: String(localized: "Could Not Determine Location"),
+                    body: String(localized: "No GPS fix was available. Try again, ideally with a clear view of the sky.")
+                )
             }
         }
     }
