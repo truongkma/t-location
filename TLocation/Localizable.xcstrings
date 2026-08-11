@@ -3094,6 +3094,22 @@
         }
       }
     },
+    "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Reconnect LocalDevVPN, then tap Retry to reconnect before simulating again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Reconnect LocalDevVPN, then tap Retry to reconnect before simulating again."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation đã mất phiên giả lập vị trí trên thiết bị này và không thể tạo lại, nên vị trí không còn được cập nhật — nhiều khả năng thiết bị đã trở lại vị trí thật. Không có lệnh nào được gửi tới thiết bị. Hãy kết nối lại LocalDevVPN, rồi chạm Thử lại để kết nối trước khi giả lập lại."
+          }
+        }
+      }
+    },
     "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Tap Simulate Location to start again.": {
       "localizations": {
         "en": {

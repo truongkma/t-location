@@ -20,6 +20,16 @@ extension Notification.Name {
 
     /// Ask the map to stop simulating and clear the position on the device.
     static let clearSimulatedLocationRequested = Notification.Name("vn.truongkma.tlocation.clearSimulatedLocationRequested")
+
+    /// The app is no longer holding *or* maintaining a location-simulation
+    /// session: the device session closed, or the map's resend loop stopped.
+    /// Posted on the main thread by `LocationSimulationSession` on either
+    /// retracting edge — never a request to do anything to the device, purely a
+    /// signal that work which stands aside for a running simulation (the
+    /// deferred tunnel rebuild in `TLocationApp`) may now proceed. Observers
+    /// must re-check `LocationSimulationSession` rather than trust the edge: one
+    /// half can retract while the other is still set.
+    static let locationSimulationSessionEnded = Notification.Name("vn.truongkma.tlocation.locationSimulationSessionEnded")
 }
 
 enum LocationSimulationRequest {

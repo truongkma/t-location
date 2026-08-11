@@ -303,6 +303,53 @@ private enum PendingSheet: Identifiable {
     }
 }
 
+/// Which run of the resend loop a tick belongs to.
+///
+/// Invalidating the `Timer` stops *future* ticks; it does nothing about ticks
+/// already handed to the serial `LocationSimulationCommandQueue`. Those are not
+/// rare or fleeting: a failing `simulate_location` tears the dead session down
+/// and builds a fresh tunnel, remote server and session before it returns, with
+/// no timeout of its own, so ticks routinely outlast the four-second period and
+/// pile up behind each other. By the time three failures have been counted on
+/// the main thread and the app has told the user the simulation is over, several
+/// more ticks can still be queued.
+///
+/// One of those succeeding would put the device back to simulating a position
+/// the app has just declared dead and disarmed Stop for: no way to clear it, and
+/// `LocationSimulationSession` left claiming an open session with nothing
+/// watching it. So each tick captures the generation it was scheduled under and
+/// re-checks it *on the queue, immediately before the FFI call* — the last
+/// moment before anything reaches the device. `stopResendLoop()` bumps the
+/// counter, which retires every tick already in flight in one move.
+///
+/// Process-wide rather than view state, deliberately: the thing it guards (the
+/// session inside `LocationSimulationState`) is process-wide too, and it is read
+/// from `LocationSimulationCommandQueue`, where SwiftUI `@State` has no business
+/// being touched.
+private enum ResendGeneration {
+    private static let lock = NSLock()
+    private static var value: UInt64 = 0
+
+    /// Retires every tick scheduled under the current generation and returns the
+    /// new one for the run that is starting (callers that are only stopping can
+    /// ignore it).
+    @discardableResult
+    static func invalidate() -> UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        // Wrapping is fine and unreachable in practice: at one bump per
+        // start/stop, exhausting 2^64 would take longer than the device exists.
+        value &+= 1
+        return value
+    }
+
+    static func isCurrent(_ generation: UInt64) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return value == generation
+    }
+}
+
 struct LocationSimulationView: View {
     /// Opt-in "natural GPS drift": when enabled, periodic resends of an active
     /// simulation wobble a few metres around the chosen point instead of
@@ -322,6 +369,11 @@ struct LocationSimulationView: View {
     /// Drives the single consolidated `.alert` below — see `PendingAlert`.
     /// Nothing else in this view decides whether an alert is on screen.
     @State private var pendingAlert: PendingAlert?
+    /// One alert deep of waiting room for `presentAlert(_:)`, so an unsolicited
+    /// alert raised while another is already up is shown after it rather than
+    /// dropped on the floor. Still exactly one `.alert` modifier and one
+    /// "what is on screen" variable — see `presentAlert(_:)`.
+    @State private var deferredAlert: PendingAlert?
 
     @State private var searchText = ""
     @StateObject private var searchCompleter = LocationSearchCompleter()
@@ -386,16 +438,26 @@ struct LocationSimulationView: View {
     /// Consecutive failed resends before the app concludes the simulation is no
     /// longer running and says so.
     ///
-    /// Three, spanning roughly twelve seconds of the four-second loop. One is far
-    /// too eager to act on: every failing tick already contains a complete
-    /// recovery attempt of its own — `simulate_location` tears the dead session
-    /// down and builds a fresh tunnel, remote server and session at the user's
-    /// anchor before it reports failure — so a single non-zero code can be a
-    /// transport blip mid-repair (VPN re-establishing after a foreground return,
-    /// Wi-Fi roaming) rather than a verdict. Three consecutive failures means
-    /// three full rebuild attempts have been made and refused, which is well past
-    /// any of those, while still telling the user the truth inside a quarter of a
-    /// minute rather than leaving the map lying indefinitely.
+    /// Three — three *failures*, not three ticks and not a fixed span of time.
+    /// The loop fires every four seconds, but a failing `simulate_location` does
+    /// a full untimed tunnel rebuild before it reports back, so a single failing
+    /// tick can take far longer than the period; the timer keeps firing
+    /// meanwhile and the extra ticks queue up behind it on the serial command
+    /// queue (they are retired by `ResendGeneration` once the run ends). A
+    /// healthy loop reaches this verdict in about twelve seconds; a loop failing
+    /// on slow, hanging rebuilds can take considerably longer, and that is the
+    /// intended trade — the app waits for three rebuild attempts to actually
+    /// come back refused rather than guessing from a clock.
+    ///
+    /// One failure is far too eager to act on: every failing tick already
+    /// contains a complete recovery attempt of its own — `simulate_location`
+    /// tears the dead session down and builds a fresh tunnel, remote server and
+    /// session at the user's anchor before it reports failure — so a single
+    /// non-zero code can be a transport blip mid-repair (VPN re-establishing
+    /// after a foreground return, Wi-Fi roaming) rather than a verdict. Three
+    /// consecutive failures means three full rebuild attempts have been made and
+    /// refused, which is well past any of those, while still telling the user the
+    /// truth promptly rather than leaving the map lying indefinitely.
     private static let resendFailureLimit = 3
 
     private var pairingFilePath: String {
@@ -954,11 +1016,22 @@ struct LocationSimulationView: View {
         // on *every* dismissal — Save, Cancel, and SwiftUI dismissing the alert
         // on its own — so no call site has to remember to tidy up and a stale
         // "already presenting" state cannot survive to block the next request.
+        //
+        // The dismissal is also where a `deferredAlert` — one that arrived while
+        // this alert was on screen — gets its turn. Handing it over on the next
+        // runloop turn rather than in the setter itself lets SwiftUI finish the
+        // dismissal it is in the middle of before the next presentation starts.
         .alert(
             pendingAlert?.title ?? "",
             isPresented: Binding(
                 get: { pendingAlert != nil },
-                set: { isPresented in if !isPresented { pendingAlert = nil } }
+                set: { isPresented in
+                    guard !isPresented else { return }
+                    pendingAlert = nil
+                    guard let queued = deferredAlert else { return }
+                    deferredAlert = nil
+                    DispatchQueue.main.async { pendingAlert = queued }
+                }
             ),
             presenting: pendingAlert
         ) { alert in
@@ -1280,6 +1353,13 @@ struct LocationSimulationView: View {
         simulatedCoordinate = coordinate
         consecutiveResendFailures = 0
         resendTimer?.invalidate()
+        // Starts a new run, and in doing so retires any tick still queued from
+        // the previous one — `simulate()` reaches here without going through
+        // `stopResendLoop()` when the user re-simulates while already running,
+        // so a tick carrying the *old* anchor could otherwise land after the
+        // new one. See `ResendGeneration`.
+        let generation = ResendGeneration.invalidate()
+        LocationSimulationSession.setMaintained(true)
         resendTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
             guard let simulatedCoordinate else { return }
             // `simulatedCoordinate` is the fixed anchor set above (or in
@@ -1292,12 +1372,20 @@ struct LocationSimulationView: View {
                 ? jitteredCoordinate(around: simulatedCoordinate)
                 : simulatedCoordinate
             LocationSimulationCommandQueue.shared.async {
+                // The last gate before anything reaches the device. This tick
+                // may have been sitting behind a minutes-long rebuild; if the
+                // run it belongs to has ended in the meantime — Stop, Return to
+                // Real Location, a Shortcut's clear, the map going off screen,
+                // or the app concluding the simulation is dead — it must not
+                // simulate anything, least of all resurrect a simulation the
+                // user has already been told is over.
+                guard ResendGeneration.isCurrent(generation) else { return }
                 let code = locationUpdateCode(for: sendCoordinate)
                 // The result used to be discarded here. A session that had died
                 // then failed on every tick in complete silence — no log line
                 // from this loop, no alert, and a map that went on showing an
                 // active simulation the device had already stopped honouring.
-                DispatchQueue.main.async { handleResendResult(code) }
+                DispatchQueue.main.async { handleResendResult(code, generation: generation) }
             }
         }
     }
@@ -1310,12 +1398,15 @@ struct LocationSimulationView: View {
     /// written the line explaining what that code means and which call produced
     /// it, so this one only has to say that a *resend* was what hit it and how
     /// close the run is to the limit.
-    private func handleResendResult(_ code: Int32) {
-        // The loop has been stopped (Stop, Return to Real Location, a Shortcut's
-        // clear, or the map going off screen) since this resend was dispatched.
-        // Its result is about a simulation that is already over, so it must not
-        // count toward the failure run or raise anything.
-        guard simulatedCoordinate != nil else { return }
+    private func handleResendResult(_ code: Int32, generation: UInt64) {
+        // Results are matched to the run that asked for them by identity, not by
+        // "is *a* simulation running". A failure from a run that has since been
+        // stopped (Stop, Return to Real Location, a Shortcut's clear, the map
+        // going off screen) must not count toward anything; and if the user has
+        // started a *new* simulation in the meantime, a straight `!= nil` check
+        // would let the dead run's failure count toward the fresh run's streak
+        // and drag it toward a false "Simulation Stopped".
+        guard ResendGeneration.isCurrent(generation), simulatedCoordinate != nil else { return }
 
         guard code != 0 else {
             consecutiveResendFailures = 0
@@ -1346,21 +1437,60 @@ struct LocationSimulationView: View {
     /// only from a deliberate user action.
     ///
     /// The pin is left on the map, so "Simulate Location" is right there to try
-    /// again with the same point if the user wants to.
+    /// again with the same point once the connection is back.
     private func concludeSimulationHasStopped() {
         LogManager.shared.addErrorLog(
             "Location resends failed \(Self.resendFailureLimit) times in a row; TLocation is no longer treating the simulation as running. No command was sent to the device."
         )
+        // Bumps the resend generation, so ticks already queued behind the slow
+        // failures that got us here cannot land after this and quietly put the
+        // device back to simulating — see `ResendGeneration`. It also retracts
+        // `LocationSimulationSession.isMaintained`, which is what releases the
+        // deferred tunnel rebuild below.
         stopResendLoop()
         endBackgroundTask()
         BackgroundLocationManager.shared.requestStop()
         // Same reasoning as `clear()`'s success path: whatever the device is
         // reporting now, this app should stop sitting on a cached simulated fix.
         currentLocationProvider.refreshTracking()
-        pendingAlert = .message(
+        // Three full RemotePairing rebuilds to <targetIP>:49152 have just been
+        // refused. `TunnelManager.isConnected` latches on the last success and
+        // is cleared by nothing but an explicit retry or a pairing import, so
+        // without this it would go on claiming a connection that three attempts
+        // in a row could not make — and the readiness overlay, which is the only
+        // place Retry and Open LocalDevVPN exist, renders solely when something
+        // is *not* ready. Recording what was just observed is the opposite of
+        // fabricating state: it only ever moves the app toward "not ready", it
+        // sends nothing to the device, and it is what puts a way back on screen
+        // instead of leaving the next tap on Simulate Location to produce a bare
+        // "error 3" with no guidance attached.
+        markTunnelDisconnected()
+        presentAlert(.message(
             title: String(localized: "Simulation Stopped"),
-            body: String(localized: "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Tap Simulate Location to start again.")
-        )
+            body: String(localized: "TLocation lost the location-simulation session on this device and could not rebuild it, so the position is no longer being kept up to date — the device has most likely returned to its real location. Nothing was sent to the device. Reconnect LocalDevVPN, then tap Retry to reconnect before simulating again.")
+        ))
+    }
+
+    /// Puts `alert` on screen, or in the one-deep waiting room if this view is
+    /// already presenting one.
+    ///
+    /// For alerts the user did not ask for — `concludeSimulationHasStopped()` is
+    /// the only one — because assigning `pendingAlert` while an alert is up does
+    /// not swap the alert's content, and the dismissal of the alert that *is* up
+    /// then nils the assignment, so the notification is simply never seen. Every
+    /// other call site sets `pendingAlert` directly: those all run from a tap on
+    /// this view, which cannot happen while an alert is covering it.
+    ///
+    /// One alert deep is the whole design: there is exactly one unsolicited
+    /// alert in this view, so a queue would only add ways for it to get stuck.
+    /// The single `.alert` modifier and the single "what is on screen" variable
+    /// are untouched.
+    private func presentAlert(_ alert: PendingAlert) {
+        if pendingAlert == nil {
+            pendingAlert = alert
+        } else {
+            deferredAlert = alert
+        }
     }
 
     /// Returns `anchor` offset by a small, realistic amount of consumer-GPS
@@ -1397,6 +1527,12 @@ struct LocationSimulationView: View {
         resendTimer = nil
         simulatedCoordinate = nil
         consecutiveResendFailures = 0
+        // The timer only owed us future ticks; these two are what disarm the
+        // ticks already dispatched onto the command queue (`ResendGeneration`)
+        // and let the deferred tunnel rebuild in `TLocationApp` know that
+        // nothing is maintaining a simulation any more.
+        ResendGeneration.invalidate()
+        LocationSimulationSession.setMaintained(false)
     }
 
     /// - Parameter recenter: `true` for programmatic selections (search result,

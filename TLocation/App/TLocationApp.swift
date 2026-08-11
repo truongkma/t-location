@@ -25,6 +25,16 @@ struct TLocationApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     handleScenePhaseChange(newPhase)
                 }
+                // The other half of the deferral below: the moment a simulation
+                // stops standing in the way, the pending rebuild runs, instead
+                // of waiting for another background → foreground round trip that
+                // may never come.
+                .onReceive(NotificationCenter.default.publisher(for: .locationSimulationSessionEnded)) { _ in
+                    attemptDeferredTunnelReconnect(
+                        isActive: scenePhase == .active,
+                        trigger: "the location simulation ending"
+                    )
+                }
         }
     }
 
@@ -47,8 +57,12 @@ struct TLocationApp: App {
     /// endpoint is a risk taken for no benefit, so it is not taken.
     ///
     /// Nothing is lost by waiting. `shouldAttemptTunnelReconnect` is deliberately
-    /// left set, so the reconnect happens on the next foreground return once the
-    /// simulation has ended. Nothing the simulation itself needs depends on
+    /// left set, and the wait is bounded by the simulation rather than by the
+    /// process: `LocationSimulationSession` posts
+    /// `.locationSimulationSessionEnded` the moment either half of that state
+    /// retracts, and this scene observes it, so a deferred rebuild runs as soon
+    /// as the simulation is over — no second background → foreground round trip
+    /// required. Nothing the simulation itself needs depends on
     /// `JITEnableContext`'s tunnel — `simulate_location` and
     /// `clear_simulated_location` build and tear down their own — and every
     /// explicit recovery route is untouched: the readiness card's Retry
@@ -60,17 +74,54 @@ struct TLocationApp: App {
         case .background:
             shouldAttemptTunnelReconnect = true
         case .active:
-            guard shouldAttemptTunnelReconnect else { return }
-            guard !LocationSimulationSession.isOpen else {
-                LogManager.shared.addInfoLog(
-                    "Foreground tunnel reconnect skipped: a location-simulation session is open. It will run on the next return to the foreground after the simulation ends."
-                )
-                return
-            }
-            shouldAttemptTunnelReconnect = false
-            startTunnelInBackground(showErrorUI: false)
+            // `scenePhase` itself is not read here: `onChange` hands us the new
+            // phase, and the environment value it mirrors may not have been
+            // republished yet at this point in the update.
+            attemptDeferredTunnelReconnect(isActive: true, trigger: "a return to the foreground")
         default:
             break
+        }
+    }
+
+    /// Runs the pending tunnel rebuild if one is owed and nothing is in its way.
+    ///
+    /// Both the "in the way" checks matter, and neither is redundant:
+    /// `isOpen` covers a live session (including one a Shortcut opened while no
+    /// map was on screen), `isMaintained` covers a resend loop whose last
+    /// rebuild failed — session already gone, another rebuild due within
+    /// seconds. Reconnecting into either is the second concurrent RemotePairing
+    /// handshake against single-occupancy `<targetIP>:49152` that this deferral
+    /// exists to avoid.
+    ///
+    /// The hop through `LocationSimulationCommandQueue` is what makes the checks
+    /// mean anything when the trigger is a session *closing*: that close is
+    /// posted from inside `LocationSimulationState.cleanup()`, which
+    /// `simulate_location` also calls halfway through rebuilding a session it
+    /// found dead. Read straight off the notification, the flags say "nothing
+    /// open, nothing maintained" while a tunnel is being built on that very
+    /// queue. Because the queue is serial, a block appended to it cannot start
+    /// until that call has returned — so the re-check on the far side sees the
+    /// settled state, and a rebuild that succeeded has already set `isOpen`
+    /// again.
+    private func attemptDeferredTunnelReconnect(isActive: Bool, trigger: String) {
+        guard shouldAttemptTunnelReconnect, isActive else { return }
+
+        guard !LocationSimulationSession.isOpen, !LocationSimulationSession.isMaintained else {
+            LogManager.shared.addInfoLog(
+                "Tunnel reconnect after \(trigger) skipped: a location simulation is still in progress. It will run as soon as the simulation ends."
+            )
+            return
+        }
+
+        LocationSimulationCommandQueue.shared.async {
+            DispatchQueue.main.async {
+                guard shouldAttemptTunnelReconnect,
+                      !LocationSimulationSession.isOpen,
+                      !LocationSimulationSession.isMaintained else { return }
+                shouldAttemptTunnelReconnect = false
+                LogManager.shared.addInfoLog("Rebuilding the app's tunnel after \(trigger).")
+                startTunnelInBackground(showErrorUI: false)
+            }
         }
     }
 

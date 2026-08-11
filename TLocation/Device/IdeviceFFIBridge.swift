@@ -268,23 +268,39 @@ private enum LocationSimulationState {
     }
 }
 
-/// Whether a location-simulation session is currently open on the device.
+/// What the app currently holds on the device's location-simulation service:
+/// whether a session is *open*, and whether anything is *maintaining* it.
 ///
-/// A lock-guarded mirror of `LocationSimulationState.locationSimulation != nil`,
-/// maintained by the two places that change it (a successful
-/// `location_simulation_new`, and `LocationSimulationState.cleanup()`), both of
-/// which only ever run on `LocationSimulationCommandQueue`. The handles
-/// themselves stay confined to that queue; this exposes a plain `Bool` so code
-/// on any thread — notably the scene-phase handler in `TLocationApp`, which runs
-/// on the main thread and cannot block — can ask the question without touching a
-/// pointer.
+/// `isOpen` is a lock-guarded mirror of
+/// `LocationSimulationState.locationSimulation != nil`, maintained by the two
+/// places that change it (a successful `location_simulation_new`, and
+/// `LocationSimulationState.cleanup()`), both of which only ever run on
+/// `LocationSimulationCommandQueue`. The handles themselves stay confined to
+/// that queue; this exposes plain `Bool`s so code on any thread — notably the
+/// scene-phase handler in `TLocationApp`, which runs on the main thread and
+/// cannot block — can ask the question without touching a pointer.
 ///
-/// It answers "is a session open", not "is the user simulating": those diverge
-/// for exactly as long as it takes the resend loop to notice a session has died,
-/// which is what `LocationSimulationView.handleResendResult(_:)` exists to close.
+/// `isMaintained` is the other half of the answer, owned by the map's resend
+/// loop (`LocationSimulationView.startResendLoop`/`stopResendLoop`, main thread
+/// only). The two deliberately differ:
+///
+/// * open but not maintained — a Shortcut simulated while no map was alive, or
+///   the map went off screen with the device still simulating. The session is
+///   real; nothing is re-sending to it.
+/// * maintained but not open — the loop is alive and its last rebuild failed, so
+///   the next tick will try again. This is the window the foreground tunnel
+///   rebuild in `TLocationApp` must stay out of, and it is invisible to `isOpen`
+///   alone.
+///
+/// Both retractions post ``Notification/Name/locationSimulationSessionEnded`` so
+/// the work that stands down while a simulation is in progress can run the
+/// moment it is not, instead of waiting for another background → foreground
+/// round trip. Posting is a strict edge (true → false), never a level, so it
+/// cannot repeat.
 enum LocationSimulationSession {
     private static let lock = NSLock()
     private static var open = false
+    private static var maintained = false
 
     static var isOpen: Bool {
         lock.lock()
@@ -292,10 +308,38 @@ enum LocationSimulationSession {
         return open
     }
 
-    fileprivate static func set(open newValue: Bool) {
+    static var isMaintained: Bool {
         lock.lock()
         defer { lock.unlock() }
+        return maintained
+    }
+
+    /// Called by the map's resend loop as it starts and stops. Main thread only,
+    /// like the rest of that view's state.
+    static func setMaintained(_ newValue: Bool) {
+        lock.lock()
+        let didRetract = maintained && !newValue
+        maintained = newValue
+        lock.unlock()
+
+        if didRetract { postSessionEnded() }
+    }
+
+    fileprivate static func set(open newValue: Bool) {
+        lock.lock()
+        let didClose = open && !newValue
         open = newValue
+        lock.unlock()
+
+        if didClose { postSessionEnded() }
+    }
+
+    /// Posted off the lock (a notification handler must never run under it) and
+    /// on the main thread, which is where every observer of it lives.
+    private static func postSessionEnded() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .locationSimulationSessionEnded, object: nil)
+        }
     }
 }
 
@@ -402,6 +446,29 @@ func simulate_location(_ deviceIP: String, _ latitude: Double, _ longitude: Doub
         return LocationSimulationStatus.locationSimulation
     }
 
+    // UNRESOLVED — do not "fix" this without checking upstream first.
+    //
+    // Dropping the remote-server handle here assumes `location_simulation_new`
+    // took ownership of it, so freeing it in `cleanup()` would be a double free.
+    // The header does not say that. `idevice.h`'s doc comment for
+    // `location_simulation_new` (the `RemoteServerHandle *server` overload)
+    // lists only "`server` must be a valid pointer to a handle allocated by this
+    // library" and documents no transfer — while the iOS-16-and-below sibling
+    // `lockdown_location_simulation_new` in the same header states outright that
+    // "Ownership of the `IdeviceHandle` is transferred to this function". A
+    // library that says so where it means it, and is silent here, points the
+    // other way: this nil-out probably leaks one remote-server handle and its
+    // socket per session, for the life of the process.
+    //
+    // It is left exactly as it is regardless, because the two mistakes are not
+    // symmetric. Leaking a handle per session costs a socket; freeing a handle
+    // the Rust side still owns is a double free and a crash on a user's device,
+    // on the *success* path of the app's main feature. This line predates all
+    // recorded history here and has never been observed to misbehave, so the
+    // only thing that can settle it is reading the upstream Rust implementation
+    // of `location_simulation_new` (does it consume the `RemoteServerHandle` via
+    // `Box::from_raw`, or borrow it?) — not reasoning about the header, and not
+    // an experiment on a device.
     LocationSimulationState.remoteServer = nil
 
     // The session handle now exists. Published here rather than after the
