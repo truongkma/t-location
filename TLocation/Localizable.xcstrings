@@ -364,6 +364,22 @@
         }
       }
     },
+    "Background keep-alive needs “Always” location access and will not work without it. Set location access to Always so the simulation keeps running when TLocation is in the background.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Background keep-alive needs “Always” location access and will not work without it. Set location access to Always so the simulation keeps running when TLocation is in the background."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duy trì chạy nền cần quyền truy cập vị trí “Luôn luôn” và sẽ không hoạt động nếu thiếu quyền này. Hãy đặt quyền truy cập vị trí thành Luôn luôn để phiên giả lập vị trí tiếp tục chạy khi TLocation ở chế độ nền."
+          }
+        }
+      }
+    },
     "Bookmark Sync File": {
       "localizations": {
         "en": {

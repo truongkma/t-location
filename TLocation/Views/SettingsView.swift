@@ -3,6 +3,7 @@
 //  TLocation
 //
 
+import CoreLocation
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
@@ -135,6 +136,14 @@ struct SettingsView: View {
     @State private var isSyncing = false
     @State private var syncMessage: (text: String, isError: Bool)?
 
+    /// Watched, not owned — same singleton the keep-alive toggle drives. It
+    /// republishes the app's location authorization from its
+    /// `CLLocationManagerDelegate`, which is the only reliable notice of a
+    /// change the user makes over in system Settings.
+    @ObservedObject private var backgroundLocation = BackgroundLocationManager.shared
+
+    @Environment(\.scenePhase) private var scenePhase
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
@@ -206,6 +215,8 @@ struct SettingsView: View {
                     .onChange(of: keepAliveLocation) { _, enabled in
                         if !enabled { BackgroundLocationManager.shared.stop() }
                     }
+
+                    alwaysAuthorizationWarning
 
                     Toggle(isOn: $keepAliveAudio) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -327,6 +338,16 @@ struct SettingsView: View {
                 // rather than only after the next failed write.
                 syncFile.refresh()
             }
+            // Belt and braces only. `BackgroundLocationManager` republishes the
+            // status from its authorization delegate callback, which already
+            // covers a change made in system Settings while this sheet was
+            // open; this just re-reads it on the way back in case that callback
+            // is ever missed. It is deliberately not the sole mechanism — the
+            // sheet can sit on screen through an authorization change without
+            // the scene ever leaving `.active`.
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { backgroundLocation.refreshAuthorizationStatus() }
+            }
         }
         // The exporter lives on its own invisible subview (rather than chained
         // directly alongside the importer below) so its presentation trigger has
@@ -392,6 +413,52 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
+        }
+    }
+
+    // MARK: - Background Keep-Alive Warning
+
+    /// Background location updates only keep a backgrounded app alive under
+    /// `.authorizedAlways`. Under "While Using the App" — which is what the
+    /// system prompt offers first, and what iOS leaves the app on whenever it
+    /// defers the Always upgrade prompt — the toggle above looks on and does
+    /// nothing: iOS suspends TLocation shortly after it is backgrounded, the
+    /// resend loop stops, and the device quietly falls back to its real
+    /// location. That failure is completely silent without this row.
+    ///
+    /// Shown only when the toggle is on *and* the authorization is not
+    /// `.authorizedAlways`, so the normal case is never nagged. `.denied` and
+    /// `.restricted` deliberately land here too: the outcome for the user is
+    /// identical, and so is the fix.
+    ///
+    /// Deliberately does not call `requestAlwaysAuthorization()`. That stays in
+    /// `BackgroundLocationManager.start()`; iOS only shows the prompt in
+    /// limited circumstances, so a button here would often do nothing visible
+    /// at all — worse than no button. This opens system Settings instead, which
+    /// always works.
+    @ViewBuilder
+    private var alwaysAuthorizationWarning: some View {
+        if keepAliveLocation, backgroundLocation.authorizationStatus != .authorizedAlways {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(
+                    "Background keep-alive needs “Always” location access and will not work without it. Set location access to Always so the simulation keeps running when TLocation is in the background.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+
+                // `.plain` so only the label itself is a hit target: a default
+                // button inside a Form row makes the whole row tappable, and
+                // this row is mostly explanatory text.
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.footnote)
+                .foregroundStyle(.tint)
+            }
         }
     }
 
