@@ -1518,6 +1518,22 @@
         }
       }
     },
+    "Last checked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last checked"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiểm tra lần cuối"
+          }
+        }
+      }
+    },
     "Later": {
       "localizations": {
         "en": {
@@ -1908,6 +1924,22 @@
         }
       }
     },
+    "No profile on this device": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No profile on this device"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có hồ sơ trên thiết bị này"
+          }
+        }
+      }
+    },
     "No saved locations": {
       "localizations": {
         "en": {
@@ -1936,6 +1968,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa liên kết tệp đồng bộ nào."
+          }
+        }
+      }
+    },
+    "Not checked yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked yet"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa kiểm tra"
           }
         }
       }
@@ -2160,6 +2208,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đang chuẩn bị tải…"
+          }
+        }
+      }
+    },
+    "Read from the provisioning profile on this device, so it follows a SideStore refresh.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read from the provisioning profile on this device, so it follows a SideStore refresh."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Được đọc từ hồ sơ cấp phép trên thiết bị này, nên sẽ cập nhật theo mỗi lần làm mới bằng SideStore."
           }
         }
       }
@@ -3154,6 +3218,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "TLocation cần quyền truy cập vị trí để tìm vị trí hiện tại của bạn. Lưu ý: khi đang giả lập vị trí, iOS sẽ báo về vị trí giả lập."
+          }
+        }
+      }
+    },
+    "TLocation reads this from the device, and can only check it while connected.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation reads this from the device, and can only check it while connected."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLocation đọc thông tin này từ thiết bị, nên chỉ kiểm tra được khi đang kết nối."
           }
         }
       }

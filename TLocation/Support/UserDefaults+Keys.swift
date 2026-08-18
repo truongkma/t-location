@@ -9,6 +9,16 @@ extension UserDefaults {
         /// brings the warning back next week instead of silencing it forever.
         static let suppressedExpiryWarning = "suppressedExpiryWarning"
 
+        /// `timeIntervalSince1970` of the signing expiry last read from the
+        /// device's `misagent` service. Absent when the last successful read
+        /// found no profile covering this app — which is "unknown", not
+        /// "expired". See `SigningExpiryMonitor`.
+        static let signingExpiryDate = "signingExpiryDate"
+        /// `timeIntervalSince1970` of the last *successful* signing-expiry read.
+        /// Its absence is what "never checked" means, so a failed read must never
+        /// write it.
+        static let signingExpiryCheckedAt = "signingExpiryCheckedAt"
+
         /// Security-scoped URL bookmark for the JSON file the user linked as a
         /// bookmark sync file. See `BookmarkSyncFile`.
         static let bookmarkSyncFileBookmark = "bookmarkSyncFileBookmark"

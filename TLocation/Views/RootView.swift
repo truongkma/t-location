@@ -84,6 +84,7 @@ private enum ExternalLocationAction: Identifiable {
 struct RootView: View {
     @ObservedObject private var tunnel = TunnelManager.shared
     @ObservedObject private var mounting = MountingProgress.shared
+    @ObservedObject private var signing = SigningExpiryMonitor.shared
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -95,8 +96,9 @@ struct RootView: View {
     )
     @State private var isShowingExpiryWarning = false
     @State private var suppressExpiryWarning = false
-    /// The expiry warning is decided once per launch. Without this, dismissing with
-    /// "Later" would only last until the app next came back to the foreground.
+    /// The expiry warning is decided once per launch — but only once there is
+    /// something to decide *with*. Without this, dismissing with "Later" would
+    /// only last until the app next came back to the foreground.
     @State private var hasEvaluatedExpiryWarning = false
 
     private let statusTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -146,10 +148,24 @@ struct RootView: View {
         .onAppear {
             startTunnelInBackground()
             MountingProgress.shared.checkforMounted()
+            signing.refreshIfPossible(reason: "launch")
             evaluateExpiryWarning()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active { evaluateExpiryWarning() }
+            if newPhase == .active {
+                signing.refreshIfPossible(reason: "a return to the foreground")
+                evaluateExpiryWarning()
+            }
+        }
+        // The tunnel is almost never up at the instant `onAppear` runs, so this is
+        // the edge that actually gets the first read of a cold launch taken.
+        .onChange(of: tunnel.isConnected) { _, isConnected in
+            if isConnected { signing.refreshIfPossible(reason: "the tunnel connecting") }
+        }
+        // A reading landing seconds after launch is the normal case, so the
+        // decision is retried whenever one does rather than only at `onAppear`.
+        .onChange(of: signing.reading) { _, _ in
+            evaluateExpiryWarning()
         }
         .onReceive(statusTimer) { _ in
             // Cheap existence check only. `prepareURL()` does directory creation and a
@@ -186,47 +202,69 @@ struct RootView: View {
 
     // MARK: - Signing expiry warning
 
-    /// Decides once per launch whether to warn that the signature is about to lapse.
-    /// Every early return still marks the decision as made, so "Later" holds for the
-    /// rest of the session even across foreground/background cycles.
+    /// Expiry the card speaks about: whatever the device last told us, or `nil`
+    /// when it has never been asked or answered "no profile for this app".
+    private var expiryDate: Date? { signing.reading?.expirationDate }
+
+    private var signatureHasExpired: Bool {
+        expiryDate.map { AppSigningInfo.hasExpired($0) } ?? false
+    }
+
+    /// Decides once per launch whether to warn that the signature is about to
+    /// lapse — but only once there is a reading worth deciding on.
+    ///
+    /// The two ways of knowing nothing are both silence, never a warning:
+    ///
+    /// * `signing.reading == nil` — the device has never been reachable, so
+    ///   there is no expiry, only an absence. A device that cannot be read is
+    ///   not a device whose signature has lapsed.
+    /// * `signing.reading?.expirationDate == nil` — the device answered and
+    ///   carries no profile for this app (App Store or TrollStore install).
+    ///
+    /// Neither marks the decision as made: a reading can still arrive seconds
+    /// later, when the tunnel comes up, and `onChange(of: signing.reading)` calls
+    /// back in. Only a trustworthy reading closes the question, and from then on
+    /// every early return marks it made, so "Later" holds for the rest of the
+    /// session even across foreground/background cycles.
     private func evaluateExpiryWarning() {
         guard !hasEvaluatedExpiryWarning else { return }
+
+        // A reading older than the trust window can only ever cry wolf (an expiry
+        // moves later, never earlier), so it is not allowed to raise the card —
+        // and it does not settle the question either, because a fresh read may
+        // still land this session.
+        guard let expiry = signing.reading?.expirationDate, signing.isTrustworthy else { return }
+
         hasEvaluatedExpiryWarning = true
 
-        // No embedded profile (App Store build, TrollStore, unsigned): nothing to say.
-        guard let expiry = AppSigningInfo.expirationDate,
-              AppSigningInfo.isExpiringSoon else { return }
+        guard AppSigningInfo.isExpiringSoon(expiry) else { return }
 
         // Suppression is keyed to this exact expiry date, so a SideStore refresh —
-        // new certificate, new expiry — starts warning again next week.
-        let suppressed = UserDefaults.standard.object(
-            forKey: UserDefaults.Keys.suppressedExpiryWarning
-        ) as? Double
-        if let suppressed, abs(suppressed - expiry.timeIntervalSince1970) < 1 { return }
+        // new certificate, new expiry — starts warning again next week. Now that
+        // the date is read from the device it actually moves, which is what makes
+        // the checkbox mean what it says.
+        guard !ExpiryWarningSuppression.isSuppressed(expiry) else { return }
 
         isShowingExpiryWarning = true
     }
 
     private func dismissExpiryWarning() {
-        if suppressExpiryWarning, let expiry = AppSigningInfo.expirationDate {
-            UserDefaults.standard.set(
-                expiry.timeIntervalSince1970,
-                forKey: UserDefaults.Keys.suppressedExpiryWarning
-            )
+        if suppressExpiryWarning, let expiry = expiryDate {
+            ExpiryWarningSuppression.suppress(expiry)
         }
         isShowingExpiryWarning = false
     }
 
     private var expiryTitle: String {
-        guard let remaining = AppSigningInfo.timeRemaining, remaining > 0 else {
+        guard let expiry = expiryDate, !AppSigningInfo.hasExpired(expiry) else {
             return String(localized: "TLocation has expired")
         }
-        let duration = AppSigningInfo.durationPhrase(remaining)
+        let duration = AppSigningInfo.durationPhrase(expiry.timeIntervalSinceNow)
         return String(localized: "TLocation expires in \(duration)")
     }
 
     private var expiryBody: String {
-        AppSigningInfo.hasExpired
+        signatureHasExpired
             ? String(localized: "The signing certificate for this install has lapsed, so TLocation will not launch again until it is re-signed. Open SideStore and refresh TLocation to fix it.")
             : String(localized: "Open SideStore and refresh TLocation to re-sign it. If the signature fully expires the app will not launch and must be reinstalled.")
     }
@@ -251,7 +289,7 @@ struct RootView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Label(expiryTitle, systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
-                    .foregroundStyle(AppSigningInfo.hasExpired ? .red : .orange)
+                    .foregroundStyle(signatureHasExpired ? .red : .orange)
                 Text(expiryBody)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

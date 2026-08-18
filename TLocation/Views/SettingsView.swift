@@ -138,17 +138,14 @@ struct SettingsView: View {
     /// change the user makes over in system Settings.
     @ObservedObject private var backgroundLocation = BackgroundLocationManager.shared
 
+    /// Watched, not owned. Holds the last signing expiry read from the device;
+    /// this view shows it and asks for a refresh, and never reads the app bundle.
+    @ObservedObject private var signing = SigningExpiryMonitor.shared
+
     @Environment(\.scenePhase) private var scenePhase
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    }
-
-    /// Red once the signature has lapsed, orange inside the last day, otherwise
-    /// the same muted grey as every other detail value in this form.
-    private var signingExpiryColor: Color {
-        if AppSigningInfo.hasExpired { return .red }
-        return AppSigningInfo.isExpiringSoon ? .orange : .secondary
     }
 
     var body: some View {
@@ -254,17 +251,7 @@ struct SettingsView: View {
                 bookmarkSyncSection
 
                 Section("Advanced") {
-                    // Omitted entirely when there is no embedded provisioning profile
-                    // to read — an App Store or TrollStore install has no expiry.
-                    if let expiry = AppSigningInfo.formattedExpirationDate,
-                       let remaining = AppSigningInfo.remainingPhrase {
-                        HStack {
-                            Text("Signing expires")
-                            Spacer()
-                            Text("\(expiry) (\(remaining))")
-                                .foregroundStyle(signingExpiryColor)
-                        }
-                    }
+                    signingExpiryRows
 
                     HStack {
                         Text("Target Device IP")
@@ -317,6 +304,10 @@ struct SettingsView: View {
                 // deleted or moved since the last launch is reported here
                 // rather than only after the next failed write.
                 syncFile.refresh()
+                // Opportunistic, like every other caller: it declines unless the
+                // tunnel is up, nothing is simulating, and the last reading is
+                // old enough to be worth replacing.
+                signing.refreshIfPossible(reason: "opening Settings")
             }
             // Belt and braces only. `BackgroundLocationManager` republishes the
             // status from its authorization delegate callback, which already
@@ -394,6 +385,70 @@ struct SettingsView: View {
         } message: {
             Text("Existing DDI files will be removed before downloading fresh copies.")
         }
+    }
+
+    // MARK: - Signing Expiry
+
+    /// What the device last said about when this install's signature expires,
+    /// and when it said it.
+    ///
+    /// Three honest states, and no fourth:
+    ///
+    /// * never read — says so. It does **not** fall back to the date baked into
+    ///   the app bundle at install time, which stops moving the moment SideStore
+    ///   first refreshes the app and from then on reads as long expired.
+    /// * read, no profile for this app — says that too. An App Store or
+    ///   TrollStore install has no expiry to report, which is not "expired".
+    /// * read — the date, how long is left, and when it was checked.
+    @ViewBuilder
+    private var signingExpiryRows: some View {
+        HStack {
+            Text("Signing expires")
+            Spacer()
+            Text(signingExpiryValue)
+                .foregroundStyle(signingExpiryColor)
+                .multilineTextAlignment(.trailing)
+        }
+
+        if let reading = signing.reading {
+            HStack {
+                Text("Last checked")
+                Spacer()
+                Text(syncTimestampFormatter.string(from: reading.checkedAt))
+                    .foregroundStyle(.secondary)
+            }
+            Text("Read from the provisioning profile on this device, so it follows a SideStore refresh.")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            Text("TLocation reads this from the device, and can only check it while connected.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var signingExpiryValue: String {
+        guard let reading = signing.reading else {
+            return String(localized: "Not checked yet")
+        }
+        guard let expiry = reading.expirationDate else {
+            return String(localized: "No profile on this device")
+        }
+        return "\(AppSigningInfo.formatted(expiry)) (\(AppSigningInfo.remainingPhrase(until: expiry)))"
+    }
+
+    /// Red once the signature has lapsed, orange inside the last day, otherwise
+    /// the same muted grey as every other detail value in this form.
+    ///
+    /// Alarm colours are spent only on a reading recent enough to still be true.
+    /// A stale one keeps the muted grey — it is still shown, with its "Last
+    /// checked" time beside it, but it does not get to shout: an expiry only ever
+    /// moves later, so an old reading can be wrong in exactly the alarming
+    /// direction, which is the bug this whole change exists to stop repeating.
+    private var signingExpiryColor: Color {
+        guard let expiry = signing.reading?.expirationDate, signing.isTrustworthy else {
+            return .secondary
+        }
+        if AppSigningInfo.hasExpired(expiry) { return .red }
+        return AppSigningInfo.isExpiringSoon(expiry) ? .orange : .secondary
     }
 
     // MARK: - Background Keep-Alive Warning

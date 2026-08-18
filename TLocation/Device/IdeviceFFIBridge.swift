@@ -165,6 +165,73 @@ extension JITEnableContext {
         }
     }
 
+    /// Every provisioning profile installed on this device, as raw CMS blobs.
+    ///
+    /// Read-only, and deliberately the *only* misagent call in the app: nothing
+    /// here installs (`misagent_install`) or removes (`misagent_remove`) a
+    /// profile. These are the profiles iOS itself validates against, which is why
+    /// they are worth reading — unlike the bundle's `embedded.mobileprovision`,
+    /// they move when SideStore refreshes the app.
+    ///
+    /// Ownership, straight from `idevice.h`:
+    ///
+    /// * `misagent_copy_all` returns an `IdeviceFfiError *` on failure and NULL on
+    ///   success, so on failure the three out-params are never written. They are
+    ///   `nil`/`0`-initialised here and the `defer` that frees them is installed
+    ///   *after* the error check, so the failure path frees nothing that was
+    ///   never handed over — only the error itself, via `consumeFFIError`.
+    /// * On success it hands over two parallel arrays of `out_count` entries: the
+    ///   profile buffers and their lengths. Both, and every buffer in them, are
+    ///   freed by exactly one `misagent_free_profiles(profiles, lens, count)` —
+    ///   documented as "Must only be called with values returned from
+    ///   `misagent_copy_all`", so the individual buffers are never freed
+    ///   separately and the call is skipped entirely unless both arrays came
+    ///   back, which is the only shape that function is allowed to receive.
+    /// * `Data(bytes:count:)` copies, so the returned values outlive the free.
+    /// * The client handle is freed by `misagent_client_free` on every path,
+    ///   through `withConnectedClient`'s `cleanup`.
+    func fetchAllProvisioningProfiles() throws -> [Data] {
+        try IdeviceBridge.withTunnelHandles(for: self) { adapter, handshake in
+            try IdeviceBridge.withConnectedClient(
+                fallback: "Failed to connect to misagent",
+                missingClientMessage: "Misagent client was not created",
+                domain: "profiles",
+                connect: { misagent_connect_rsd(adapter, handshake, $0) },
+                cleanup: { misagent_client_free($0) }
+            ) { misagentClient in
+                var profilePointers: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?
+                var profileLengths: UnsafeMutablePointer<Int>?
+                var profileCount = 0
+
+                if let ffiError = misagent_copy_all(misagentClient, &profilePointers, &profileLengths, &profileCount) {
+                    throw IdeviceBridge.consumeFFIError(
+                        ffiError,
+                        fallback: "Failed to fetch provisioning profiles",
+                        domain: "profiles"
+                    )
+                }
+
+                defer {
+                    if let profilePointers, let profileLengths {
+                        misagent_free_profiles(profilePointers, profileLengths, profileCount)
+                    }
+                }
+
+                guard let profilePointers, let profileLengths else { return [] }
+
+                var result: [Data] = []
+                result.reserveCapacity(profileCount)
+
+                for index in 0..<profileCount {
+                    guard let bytes = profilePointers[index] else { continue }
+                    result.append(Data(bytes: bytes, count: profileLengths[index]))
+                }
+
+                return result
+            }
+        }
+    }
+
     func mountPersonalDDI(withImagePath imagePath: String, trustcachePath: String, manifestPath: String) throws {
         let imageData = try IdeviceBridge.mappedFileData(atPath: imagePath, description: "developer disk image")
         let trustcacheData = try IdeviceBridge.mappedFileData(atPath: trustcachePath, description: "developer disk image trust cache")
